@@ -1,0 +1,31 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+11101   # HLIT = 286 (29 + 257)
+11111   # HDIST = 32 (31 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+000 000 001 000 000 000 000 000 000 000 000 000 000 000 000 010 000 010
+
+# This tests an OOB with a distance of 65536 by a single byte. We need to fill the buffer with 65535 values first
+>>1
+0 >1 1111111 >>1 # Repeat 0 138 times
+11               # Literal 138, 2 bits
+0 >1 1110011 >>1 # Repeat 0 126 times
+11               # Literal 265, 2 bits
+0 >1 0001000 >>1 # Repeat 0 19 times
+10               # Literal 285, 1 bit
+
+10               # Distance 0, 1 bit
+0 >1 0010011 >>1 # Repeat 0 30 times
+10               # Distance 31, 1 bit
+
+# Write the data as specified above
+10                                                # Literal 138
+0 >1 1111111111111011 >>1 0                       # Repeat 138 65534 times
+0 >1 0000000000000000 >>1 1 >1 11111111111111 >>1 # INVALID DISTANCE
+11                                                # End of block

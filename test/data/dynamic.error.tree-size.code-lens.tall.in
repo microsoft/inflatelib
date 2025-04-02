@@ -1,0 +1,13 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT (unused)
+00000   # HDIST (unused)
+0101    # HCLEN = 9 (5 + 4)
+
+# Build the tree such that bits 1-6 have a single node and 7 has 3, which should give us an error
+111 111 111 110 101 100 011 010 001
+
+# We shouldn't progress this far, so leaving it blank should be fine

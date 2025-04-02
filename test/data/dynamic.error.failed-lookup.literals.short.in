@@ -1,0 +1,31 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+1100    # HCLEN = 16 (12 + 4)
+
+# The lookup table for the literal/length tree is 9 bits. Our invalid code is a modest 7 bits in length
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+000 000 010 000 000 011 000 011 000 000 000 011 000 011 000 010
+
+# Assign lengths to literals 0-5; the rest is zero
+>>1
+110
+00
+111
+100
+00
+101
+01 >1 1111111 >>1 # Repeat 0 138 times
+01 >1 1100111 >>1 # Repeat 0 114 times
+
+00
+01
+100
+1010
+101100
+1011010
+1011011 # INVALID

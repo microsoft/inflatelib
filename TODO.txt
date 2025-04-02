@@ -1,0 +1,5 @@
+* Add inflate support
+* Add benchmarking tests
+* Fuzzing
+* CI pipeline
+* Packaging

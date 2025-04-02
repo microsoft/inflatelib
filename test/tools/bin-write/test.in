@@ -1,0 +1,319 @@
+
+# This is a file used to manually test the 'bin-write' tool. It is executed by hand and validated by hand. Each "test"
+# produces a multiple of 16 bytes of output so that it's easy to validate in most binary viewing tools
+
+##################################
+########## Simple Tests ##########
+##################################
+
+##### Byte output #####
+
+# Verifies that we start in byte output/hex input. Generates 00 11 22 ... FF
+00 11 22 33 44 55 66 77 88 99 aA Bb cC Dd eE Ff
+
+# Now with binary output. This tests bit sequences of varying lengths as well. Generates the reverse of the above
+<bin
+11111111 11101110 11011101 11001100 10111011 10101010 10011001 10001000 01110111 01100110 1010101 1000100 0110011 100010 10001 0 
+
+# And finally with decimal output. Generates the initial sequence
+<dec
+0 17 34 51 68 85 102 119 136 153 170 187 204 221 238 255
+
+# "Changing" back to byte output should reset us back to hex input. Output is again the reverse of the initial sequence
+>8
+FF ee DD cc BB aa 99 88
+<bin <hex # Just so we test _something_ that explicitly changes to hex input
+77 66 55 44 33 22 11 00
+
+
+##### String output #####
+>8
+
+# Empty string should produce no output
+""
+
+# 3 lines of output
+"--The quick brown fox jumps over the lazy dog.--"
+
+# Other embedded tokens shouldn't cause issues
+">1 >>1 >8 >16 repeat(1){0} 1...2 <bin <dec <hex#"
+
+# All escape sequences: 22 5C 00 08 09 0A 0B 0C 0D 0B 0A 09 08 00 5C 22
+"\"\\\0\b\t\n\v\f\r\v\n\t\b\0\\\""
+
+
+##### Word output #####
+<bin # Verify the change to hex actually occurs
+>16
+
+# Word output should keep us in hex input mode. Generates 01 23 45 ... EF FE DC ... 10
+2301 6745 AB89 EFCD
+<hex # Same as above; verify explicitly changing to hex has no impact
+DCFE 98BA 5476 1032
+
+# Binary input mode. Generates FE DC BA .. 10 01 23 ... EF
+<bin
+1101110011111110 1001100010111010 101010001110110 1000000110010 010001100000001 110011101000101 1010101110001001 1110111111001101
+
+# Decimal output. Generates the same 01 23 ... as the first word output test
+<dec
+8961 26437 43913 61389 56574 39098 21622 4146
+
+
+##### Bit output #####
+>1 # Write bits in the same order they appear, starting with the LSB. Outputs 00 11 22 33 ... FF
+0 00 000 0100 00100 000100 0011001 01000011 101010100 1100110010 00011101110 011001100010 0111010101010 11100110010111 111011101101110 11111111
+
+# This test verifies that changing the output mode to something other than binary will byte align the output
+# This test generates: 00 01 02 03 ... 0F
+>8 >1 0 >8 >1 1 >8 >1 10 >8 >1 11 >8 >1 100 >8 >1 101 >8 >1 110 >8 >1 111 >8 >1 1000 >8 >1 1001 >8 >1 1010 >8 >1 1011 >8 >1 1100 >8 >1 1101 >8 >1 1110 >8 >1 1111
+>8 # Ensure we byte align to terminate
+
+>>1 # Reverse the bits
+
+# Bit output requires binary input (implicit). Generates 00 22 44 ... CC EE FF DD BB ... 33 11
+0 00 000 0001 00010 000100 0100110 01100001 000101010 1010011001 10111011111 111111101110 1111011101100 11001111011101 01010101100110 010001000
+
+# Long bit sequences. Output is: "THIS IS FROM A LONG BINARY INPUT"
+>1
+01001100001000000100000100100000010011010100111101010010010001100010000001010011010010010010000001010011010010010100100001010100
+>>1
+11110010011100101110001000000100010000101001001001110010100000100100101010011010000001001001001001110010000010101010101000101010
+
+
+
+#################################
+########## Range Tests ##########
+#################################
+
+# Simple test outputting 41 42 ... 50 (aka A B C ... P)
+>8
+41...50
+
+# Another simple test outputting 61 62 ... 70 (aka a b c ... p)
+<dec
+97...112
+
+# Now in reverse (Z Y X ... K)
+<hex
+5A ... 4B
+
+# This time with decimal input (z y x ... k)
+<dec
+122 ... 107
+
+# This time in binary, outputting 20 21 ... 2F
+<bin
+100000 ... 101111
+
+# Now the same in reverse
+101111 ... 100000
+
+# Now output 16-bit values, AA00 to AA07 => 00 AA 01 AA ... 07 AA
+>16
+AA00
+...
+AA07
+
+# 16-bit in reverse, BB0F to BB08 (0F BB 0E BB ... 08 BB)
+BB0F...BB08
+
+# Bit output is a little special because each value is not byte aligned. 16 bytes of output is 128 bits in total. For
+# testing purposes, we use 5 bits (prime value). 25 values gives 125 bits, meaning the last 3 bits get set to zero when
+# they are byte aligned. This gives the output: 00 22 4C 28 E3 42 2A 6D AC F3 21 A6 5C 6A EB 03
+>>1
+00000...11000
+>8 # Byte align
+
+# The same bits as above, but in reverse, giving: A3 B7 5A 72 8A C1 3B 6B B4 92 82 33 4A 30 82 00
+>>1
+11000...00000
+>8 # Byte align
+
+
+
+##################################
+########## Repeat Tests ##########
+##################################
+
+# Repeat the bytes 54 45 53 54 (the string "TEST") four times
+>8
+repeat (4) { 54 45 53 54 }
+
+# Now repeat the bytes 4D 4F 52 45 (the string "MORE") four times, but this time using 16-bit values
+>16
+repeat (4)
+{
+    4F4D 4552
+}
+
+# Binary repeat is a bit more interesting because it shouldn't byte align. This test repeats the bits '10110' 25 times
+# for a total of 125 bits. This will pad 3 bits to the "end" to byte align. This gives:
+# AD B5 D6 5A 6B AD B5 D6 5A 6B AD B5 D6 5A 6B 0D
+>>1 # NOTE: If we don't set before the repeat, the output mode will reset each "iteration" and will byte align
+repeat(25){10110}
+
+# Output mode should retain its value on the start of repeat and reset on each "iteration" and then revert back to its
+# previous value on exit. This test writes "JUST" before repeating "TEST" twice and then writing "MORE"
+>8
+4A 55 53 54
+repeat (2) {
+    54 45
+    >16 <dec
+    21587
+}
+4D 4F 52 45
+
+# Similar test to above, but we're just going to repeat a single binary '3D' 16 times relying on the byte padding
+repeat (8) {
+    >1
+    111101
+}
+repeat (8) {
+    >>1
+    101111
+}
+
+# Repeat the string "GOOD" four times, but relying on nested repeats to double up the 'O'
+>8
+repeat (4) {
+    47
+    repeat(2) { 4F }
+    44
+}
+
+# Since the repeat block starts in binary output mode and ends in binary output mode, when it "wraps" back around, the
+# end and begin should get "merged" together without byte aligning.
+# Expected output is: 0A 3D AB 3D AB 3D AB 3D AB 3D AB 3D AB 3D 0B 00
+>>1
+repeat (7) {
+    0101
+    >8 3D
+    >>1 1101
+}
+>8 0 # To make sure we output 16 bytes
+
+# Empty repeats and repeat with '0' argument should produce no output
+>8
+repeat(100) {}
+repeat(0) { c0 ff ee }
+
+
+
+###################################
+########## Complete Test ##########
+###################################
+
+# This tests several features together for a pretty "in-depth" test. See internal comments for expacted outputs of each
+# section
+# Repeat '~' 16 times as an easy to identify separator
+repeat(16) { 7E }
+
+>>1
+repeat (2) {
+    # On first iteration, this will give a line of AB AB AB ... 0B, but on the second iteration it will give BA BA ... BA
+    1101
+    repeat (15) { 01011101 }
+
+    >8
+    repeat(2) {
+        # Repeat '<<>>' 4 times
+        repeat(4) {
+            repeat(2) { 3C }
+            repeat(2) { 3E }
+        }
+
+        # Repeat the string "HA" 8 times
+        >>1
+        0001
+        repeat (7) {
+            0010
+            >8 41
+            >>1 0001
+        }
+        001...010
+        repeat (4) { 0 }
+        10
+
+        # 'A' through 'H' twice
+        >8
+        repeat (2) { 41...48 }
+    }
+
+    >>1
+    0101
+}
+# We finished by writing a 1010 to the lower 4 bits... finish the 16 byte "line" by making it DA DA ... DA
+repeat(15) { 10110101 }
+1011
+
+
+
+#################################
+########## Error Tests ##########
+#################################
+
+# Uncomment the following lines to test various errors
+
+# 3 errors: bad binary & can't change input mode to decimal/hex
+# >1 22 <dec <hex
+
+# 6 errors: two bad hex values, binary values, and decimal values
+# >8 C0FFEE XYZ <bin 101010101 012 <dec 256 3D
+
+# 6 errors: two bad hex values, binary values, and decimal values
+# >16 C0FFEE XYZ <bin 10101010101010101 012 <dec 65536 3D
+
+# 4 errors: all invalid input modes and the '16' is invalid in binary output mode
+# >2 >10 > 16
+
+# 1 error: lengths don't match
+# >1 10101...101010
+
+# 1 error: size too big
+# >1 10101010101010101010101010101010101010101010101010101010101010101...10101010101010101010101010101010101010101010101010101010101010110
+
+# 2 errors: begin too large and end too large
+# >8 100...100 FF...100
+
+# 2 errors: begin too large and end too large
+# >16 10000...10000 FFFF...10000
+
+# 4 errors: invalid elipsis token
+# >8 0.7F 0..7F 0....7F 0......7F
+
+# 2 errors: expected parens and unexpected '}'
+# >8 repeat { c0 ff ee }
+
+# 3 errors: expected numeric argument and unexpected '{' and '}'
+# >8 repeat () { c0 ff ee }
+
+# 4 errors: invalid numeric argument and unexpected ')', '{', and '}'
+# >8 repeat (twenty) { c0 ff ee }
+
+# 1 error: expected '{' to begin scope
+# >8 repeat(10) FE
+
+# 5 errors: misspelled 'repeat' and unexpected '(', ')', '{', and '}'
+# reepeat (10) { c0 ff ee }
+
+# 2 errors: unexpected '{' and '}'
+# {>1 1010 11010}
+
+# 2 errors: unexpected '(' and ')'
+# >8 (c0 ff ee)
+
+# 12 errors: various invalid tokens
+# >8 0xAB %42 == - + , ~ \ ? /
+
+# 2 errors: strings only valid in byte output
+# >1 "foo" >16 "bar"
+
+# 1 error: Missing '"'
+# >8 "this is missing a trailing \"
+
+# 6 errors: escapes should be lowercase
+# >8 "\B\T\N\V\F\R"
+
+# 3 errors: other unsupported escape characters
+# >8 "\x42\u0123\U00000ABC"

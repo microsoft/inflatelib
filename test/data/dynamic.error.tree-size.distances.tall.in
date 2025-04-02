@@ -1,0 +1,35 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+10000   # HDIST = 17 (16 + 1)
+1111    # HCLEN = 19 (15 + 4)
+
+# We need to represent the values 1-15 as well as writing a bunch of 0s
+000 000 100 000 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100
+
+# We need three literal/length symbols of value 1; the rest are 0. This leaves us with needing 255 0s in total
+>>1
+1111 >1 1111111 >>1 # Repeat 0 138 times
+1111 >1 1101100 >>1 # Repeat 0 119 times
+1110
+0111
+0011
+1000
+0001
+1001
+0100
+1010
+1110
+0000
+1011
+0101
+1100
+0010
+1101
+0110
+1110
+
+# At this point, we have all our table info and the inflater should try and initialize the Huffman trees, which should fail

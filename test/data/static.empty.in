@@ -1,0 +1,9 @@
+
+# Single empty block
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# Encoded Data:
+>>1
+0000000

@@ -1,0 +1,27 @@
+
+# Single empty block
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 000 001 010 000 000 000 000 000 000 000 000 000 000 000 000 000 010
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+0 >1 1111111 >>1
+0 >1 1101011 >>1
+11
+10
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   END         1           0
+
+# Encoded Data:
+>>1
+0

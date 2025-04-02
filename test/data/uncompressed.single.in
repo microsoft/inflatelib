@@ -1,0 +1,15 @@
+
+# This generates a binary file with a single uncompressed block. The file consists of the bytes 0-255, in order
+
+>1
+1       # bfinal = true since this is the only block
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+0100    # LEN = 256
+FEFF    # NLEN = ~LEN
+
+# And finally, the data
+>8
+00...FF

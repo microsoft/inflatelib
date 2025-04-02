@@ -1,0 +1,13 @@
+
+# Tests that an error gets raised when NLEN != ~LEN
+>1
+1       # bfinal = true
+00      # Uncompressed
+
+>16
+7FFF    # LEN = 32,767
+0000    # Bad NLEN
+
+# Just in case we fail to detect the error above, make sure we don't error now because of missing data
+>8
+repeat (32767) { 0 }

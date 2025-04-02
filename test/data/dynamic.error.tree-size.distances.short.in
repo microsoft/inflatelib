@@ -1,0 +1,21 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00010   # HDIST = 3 (2 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# We just need three '1' codes and a bunch of '0' codes
+000 000 001 000 000 000 000 000 000 000 000 000 000 000 000 000 000 001
+
+# We need three literal/length symbols of value 1; the rest are 0. This leaves us with needing 257 0s in total
+# NOTE: The code lengths are all 1, so we can stay in non-reversed binary output to make things simpler
+1 1111111 # Repeat 0 138 times
+1 1101100 # Repeat 0 119 times
+0
+0
+0
+
+# At this point, we have all our table info and the inflater should try and initialize the Huffman trees, which should fail

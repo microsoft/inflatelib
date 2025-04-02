@@ -1,0 +1,20 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT (unused)
+00000   # HDIST (unused)
+0000    # HCLEN = 4 (0 + 4)
+
+# Unlike the literal/length and distance trees, the max code size is 7 bits, which fits entirely inside the lookup table
+# of our Huffman tree implementation
+101 010 011 010
+
+# Write some valid data before hitting the invalid data
+>>1
+00                  # Literal 0
+10100 >1 00 >>1     # Repeat the previous 0 3 times
+01 >1 100 >>1       # Repeat 0 7 times
+100 >1 0000000 >>1  # Repeat 0 11 times
+10101               # INVALID INPUT

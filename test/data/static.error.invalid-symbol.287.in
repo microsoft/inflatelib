@@ -1,0 +1,19 @@
+
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# Write the literals 250-255, just to have some initial data
+>>1
+111111010
+111111011
+111111100
+111111101
+111111110
+111111111
+
+# Write the invalid symbol 287
+11000111
+
+# Write a terminating 256, just to make it look like valid data
+0000000

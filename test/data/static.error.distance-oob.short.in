@@ -1,0 +1,8 @@
+
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# There's nothing in the window, so even a distance of 1 should fail
+>>1
+0000001 000000 # Length=3, Distance=1

@@ -1,0 +1,60 @@
+
+# This generates a binary file with multiple uncompressed blocks. Since we're producing multiple blocks, we go ahead And
+# use this test to verify some of the corner cases surrounding block sizes
+
+# First block: zero size
+>1
+0       # bfinal = false
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+0000    # LEN = 0
+FFFF    # NLEN = ~LEN
+
+# No data since the block is empty
+
+# Second block: size of one
+>1
+0       # bfinal = false
+00      # No compression
+
+>16
+0001    # LEN = 1
+FFFE    # NLEN = ~LEN
+
+>8
+42
+
+# Third block: max size
+>1
+0       # bfinal = false
+00      # No compression
+
+>16
+FFFF    # LEN = 65,535
+0000    # NLEN = ~LEN
+
+>8
+repeat (127) {
+    00...FF
+    FF...00
+}
+00...FF
+FF...01
+
+# Final block: moderate length
+>1
+1       # bfinal = true
+00      # No compression
+
+>16
+AC53    # LEN = 44,115
+53AC    # NLEN = ~LEN
+
+>8
+# 519 * 85 = 44115
+repeat (519)
+{
+    56...AA
+}

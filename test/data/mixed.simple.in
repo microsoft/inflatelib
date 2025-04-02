@@ -1,0 +1,59 @@
+
+# Writes the bytes 0-255 uncompressed and then uses dynamic and static tables to repeat the data once each
+>1
+0       # bfinal = false
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+0100    # LEN = 256
+FEFF    # NLEN = ~LEN
+
+>8
+0...FF
+
+# Now for the dynamic table portion
+>1
+0       # bfinal = false
+10      # Compressed with dynamic codes
+
+11100   # HLIT = 285 (28 + 257)
+01111   # HDIST = 16 (15 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 000 001 000 000 000 000 000 000 000 000 000 000 000 000 000 000 001
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+1 >1 1111111 >>1
+1 >1 1101011 >>1
+0
+1 >1 0010000 >>1
+0
+1 >1 0000100 >>1
+0
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   END         1           0
+#   284         1           1
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   15          1           0
+
+# Encoded Data:
+>>1
+1 >1 11101 >>1 0 >1 111111 >>1
+0
+
+# And finally, the static table portion
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# Encoded Data:
+>>1
+11000100 >1 11101 >>1 01111 >1 111111 >>1
+0000000

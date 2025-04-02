@@ -1,0 +1,23 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00001   # HLIT = 258 (1 + 257)
+00000   # HDIST = 1 (0 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+000 000 001 000 000 000 000 000 000 000 000 000 000 000 000 000 000 001
+
+# We just want a single (3, 1) length/distance pair
+>>1
+1 >1 1111111 >>1 # Repeat 0 138 times
+1 >1 1101100 >>1 # Repeat 0 119 times
+0 # Length=3, 1 bit
+0 # Distance=1, 1 bit
+
+# There's nothing in the window, so even a distance of 1 should fail
+0 0 # Length=3, Distance=1
+

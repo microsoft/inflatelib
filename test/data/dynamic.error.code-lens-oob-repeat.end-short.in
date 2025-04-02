@@ -1,0 +1,16 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+0000    # HCLEN = 4 (0 + 4)
+
+# We can get away with just repeating a bunch of 0s before the shorter repeat
+000 001 001 000
+
+# We're expected to produce 258 codes
+1 1111111 # Repeat 0 138 times
+1 1100100 # Repeat 0 111 times
+0 111 # Repeat 0 10 times, overflowing by 1

@@ -1,0 +1,13 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT (unused)
+00000   # HDIST (unused)
+0000    # HCLEN = 4 (0 + 4)
+
+# Having 3 codes with 1 bit should give us failure. It doesn't matter which ones they are
+001 001 000 001
+
+# We shouldn't progress this far, so leaving it blank should be fine

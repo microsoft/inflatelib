@@ -1,0 +1,11 @@
+
+# This generates a binary file with a single empty uncompressed block
+
+>1
+1       # bfinal = true since this is the only block
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+0000    # LEN = 0
+FFFF    # NLEN = ~LEN

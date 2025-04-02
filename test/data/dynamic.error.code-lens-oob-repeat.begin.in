@@ -1,0 +1,14 @@
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+0000    # HCLEN = 4 (0 + 4)
+
+# We just need a single code of 16
+001 000 000 000
+
+# A single code of 16 at the beginning should raise an error because there's no previous code to repeat
+0 00
