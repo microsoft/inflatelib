@@ -299,6 +299,7 @@ TEST_CASE("Inflate64CompressedStatic", "[inflate64]")
 
 TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
 {
+    inflate_test("mixed.empty.in.bin", "mixed.empty.out.bin");
     inflate_test("mixed.simple.in.bin", "mixed.simple.out.bin");
     inflate_test("mixed.overlap.in.bin", "mixed.overlap.out.bin");
 
@@ -326,6 +327,32 @@ TEST_CASE("Inflate64RealWorldData", "[inflate64]")
     inflate_test("file.bin-write.exe.in.bin", "file.bin-write.exe.out.bin");
     inflate_test("file.magna-carta.txt.in.bin", "file.magna-carta.txt.out.bin");
     inflate_test("file.us-constitution.txt.in.bin", "file.us-constitution.txt.out.bin");
+}
+
+TEST_CASE("Inflate64Truncation", "[inflate64]")
+{
+    auto doTest = [](const char* inputPath, const char* outputPath) {
+        auto input = read_file(data_directory / inputPath);
+        auto output = read_file(data_directory / outputPath);
+
+        auto outputBuffer = std::make_unique<std::byte[]>(output.size);
+        std::span<const std::byte> inputSpan = { input.buffer.get(), input.size };
+        std::span<std::byte> outputSpan = { outputBuffer.get(), output.size };
+
+        inflatelib::stream stream;
+        REQUIRE(stream.inflate64(inputSpan, outputSpan) == true); // 'true' means not done yet
+
+        REQUIRE(inputSpan.empty());
+        REQUIRE(outputSpan.empty());
+        REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
+    };
+
+    doTest("truncated.uncompressed.block.in.bin", "truncated.uncompressed.block.out.bin");
+    doTest("truncated.uncompressed.no-bfinal.in.bin", "truncated.uncompressed.no-bfinal.out.bin");
+    doTest("truncated.dynamic.block.in.bin", "truncated.dynamic.block.out.bin");
+    doTest("truncated.dynamic.no-bfinal.in.bin", "truncated.dynamic.no-bfinal.out.bin");
+    doTest("truncated.static.block.in.bin", "truncated.static.block.out.bin");
+    doTest("truncated.static.no-bfinal.in.bin", "truncated.static.no-bfinal.out.bin");
 }
 
 TEST_CASE("InflateReset", "[inflate][inflate64]")
