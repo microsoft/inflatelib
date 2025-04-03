@@ -1,0 +1,2 @@
+
+"This string is only 121 characters even though the file reports a length of 122 characters, meaning we will never get EOF"

@@ -1,0 +1,27 @@
+
+# This generates a file with a two uncompressed blocks, but neither has bfinal set to true
+>1
+0       # bfinal = false
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+002B    # LEN = 43
+FFD4    # NLEN = ~LEN
+
+# And finally, the data
+>8
+"This is from the first uncompressed block.\n"
+
+>1
+0       # bfinal = false
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+002C    # LEN = 44
+FFD3    # NLEN = ~LEN
+
+# And finally, the data
+>8
+"This is from the second uncompressed block.\n"

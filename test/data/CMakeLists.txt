@@ -51,6 +51,8 @@ set(INPUT
     "static.error.invalid-symbol.287.in"
     "static.error.distance-oob.short.in"
     "static.error.distance-oob.long.in"
+    "mixed.empty.in"
+    "mixed.empty.out"
     "mixed.simple.in"
     "mixed.simple.out"
     "mixed.overlap.in"
@@ -61,6 +63,18 @@ set(INPUT
     "file.magna-carta.txt.out"
     "file.us-constitution.txt.in"
     "file.us-constitution.txt.out"
+    "truncated.uncompressed.block.in"
+    "truncated.uncompressed.block.out"
+    "truncated.uncompressed.no-bfinal.in"
+    "truncated.uncompressed.no-bfinal.out"
+    "truncated.dynamic.block.in"
+    "truncated.dynamic.block.out"
+    "truncated.dynamic.no-bfinal.in"
+    "truncated.dynamic.no-bfinal.out"
+    "truncated.static.block.in"
+    "truncated.static.block.out"
+    "truncated.static.no-bfinal.in"
+    "truncated.static.no-bfinal.out"
     )
 set(OUTPUT)
 

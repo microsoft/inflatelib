@@ -1,0 +1,26 @@
+
+# This generates a file with a two compressed blocks, but neither has bfinal set to true
+>1
+0       # bfinal = false
+01      # Compressed with static codes
+
+# Encoded Data:
+>>1
+10100100
+10010101
+10100011
+10100100
+10011001
+10011110
+10010111
+0000000
+
+>1
+0       # bfinal = false
+01      # Compressed with static codes
+
+# Encoded Data:
+>>1
+0000101
+00101 >1 0 >>1
+0000000

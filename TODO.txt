@@ -1,3 +1,7 @@
+* Tests (no children means all ideas have been implemented)
+    * uncompressed.extra
+    * dynamic.extra
+    * static.extra
 * Add inflate support
 * Add benchmarking tests
 * Fuzzing
