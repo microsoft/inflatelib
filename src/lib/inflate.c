@@ -294,7 +294,7 @@ static int inflate64_process_data(inflatelib_stream* stream)
                 }
 
                 /* We'll return '0' to indicate success, however this could also mean that there was not enough data to
-                * finish initializing the Huffman trees */
+                 * finish initializing the Huffman trees */
                 if (state->ifstate < ifstate_reading_literal_length_code)
                 {
                     return INFLATELIB_OK; /* Not enough data */
