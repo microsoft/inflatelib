@@ -306,16 +306,18 @@ static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbo
             {
                 return false;
             }
-            output.push_back(output_symbol::make_length(
-                257 + (lengthInfo - length_encoding_data), static_cast<std::uint16_t>(length - lengthInfo->base_offset)));
+            output.push_back(
+                output_symbol::make_length(
+                    257 + (lengthInfo - length_encoding_data), static_cast<std::uint16_t>(length - lengthInfo->base_offset)));
 
             auto distanceInfo = findInfo(distance_encoding_data, distance);
             if (!distanceInfo)
             {
                 return false;
             }
-            output.push_back(output_symbol::make_distance(
-                distanceInfo - distance_encoding_data, static_cast<std::uint16_t>(distance - distanceInfo->base_offset)));
+            output.push_back(
+                output_symbol::make_distance(
+                    distanceInfo - distance_encoding_data, static_cast<std::uint16_t>(distance - distanceInfo->base_offset)));
 
             index = pos;
             break;

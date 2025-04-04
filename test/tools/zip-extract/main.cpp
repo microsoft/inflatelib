@@ -164,28 +164,28 @@ static const char* compression_method(std::uint16_t method) noexcept
 {
     switch (method)
     {
-        case 0:
-            return "Stored (no compression)";
-        case 1:
-            return "Shrunk";
-        case 2:
-            return "Reduced with compression factor 1";
-        case 3:
-            return "Reduced with compression factor 2";
-        case 4:
-            return "Reduced with compression factor 3";
-        case 5:
-            return "Reduced with compression factor 4";
-        case 6:
-            return "Imploded";
-        case 7:
-            return "Reserved";
-        case 8:
-            return "Deflated";
-        case 9:
-            return "Enhanced Deflated (Deflate64)";
-        default:
-            return "Unknown compression method";
+    case 0:
+        return "Stored (no compression)";
+    case 1:
+        return "Shrunk";
+    case 2:
+        return "Reduced with compression factor 1";
+    case 3:
+        return "Reduced with compression factor 2";
+    case 4:
+        return "Reduced with compression factor 3";
+    case 5:
+        return "Reduced with compression factor 4";
+    case 6:
+        return "Imploded";
+    case 7:
+        return "Reserved";
+    case 8:
+        return "Deflated";
+    case 9:
+        return "Enhanced Deflated (Deflate64)";
+    default:
+        return "Unknown compression method";
     }
 }
 
@@ -302,7 +302,8 @@ int main(int argc, char** argv)
     }
 
     // We want the central directory to remain in memory, so we'll need a separate buffer for file contents
-    static constexpr const long file_buffer_size = 256 * 1024; // Large enough to hold any local file header, rounded up to next power of two
+    // Large enough to hold any local file header, rounded up to next power of two
+    static constexpr const long file_buffer_size = 256 * 1024;
     auto file_buffer = std::make_unique<std::uint8_t[]>(file_buffer_size);
 
     auto cdStartBufferOffset = cdFileOffset - readFileOffset;
@@ -350,7 +351,8 @@ int main(int argc, char** argv)
         // Figure out how much data we need to read for both the header and the contents
         // NOTE: We've already read the local file header & have "seeked" past it; don't read again
         auto totalSize = localHeader->size() + localHeader->compressed_size.get();
-        auto readSize = static_cast<long>(std::min<std::size_t>(totalSize - sizeof(local_file_header), file_buffer_size - sizeof(local_file_header)));
+        auto readSize = static_cast<long>(
+            std::min<std::size_t>(totalSize - sizeof(local_file_header), file_buffer_size - sizeof(local_file_header)));
         if (fread(file_buffer.get() + sizeof(local_file_header), 1, readSize, file) != readSize)
         {
             std::println("ERROR: Failed to read local file header/data for {}", currentEntry->file_name());

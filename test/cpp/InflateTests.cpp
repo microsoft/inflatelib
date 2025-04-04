@@ -106,8 +106,8 @@ static void inflate_test_worker(
     inflatelib::stream stream;
 
     // Set up the spans that we use for input/output
-    std::span<const std::byte> inputSpan = { input.buffer.get(), std::min(readStride, input.size) };
-    std::span<std::byte> outputSpan = { outputBuffer.get(), std::min(writeStride, outputBufferSize)};
+    std::span<const std::byte> inputSpan = {input.buffer.get(), std::min(readStride, input.size)};
+    std::span<std::byte> outputSpan = {outputBuffer.get(), std::min(writeStride, outputBufferSize)};
 
     int result;
     std::size_t readOffset = 0, writeOffset = 0;
@@ -126,11 +126,11 @@ static void inflate_test_worker(
         // we still want to wait until we've consumed all of each buffer before changing the sizes
         if (inputSpan.empty())
         {
-            inputSpan = { input.buffer.get() + readOffset, std::min(readStride, input.size - readOffset) };
+            inputSpan = {input.buffer.get() + readOffset, std::min(readStride, input.size - readOffset)};
         }
         if (outputSpan.empty())
         {
-            outputSpan = { outputBuffer.get() + writeOffset, std::min(writeStride, outputBufferSize - writeOffset) };
+            outputSpan = {outputBuffer.get() + writeOffset, std::min(writeStride, outputBufferSize - writeOffset)};
         }
 
         if (result > INFLATELIB_OK)
@@ -336,8 +336,8 @@ TEST_CASE("Inflate64Truncation", "[inflate64]")
         auto output = read_file(data_directory / outputPath);
 
         auto outputBuffer = std::make_unique<std::byte[]>(output.size);
-        std::span<const std::byte> inputSpan = { input.buffer.get(), input.size };
-        std::span<std::byte> outputSpan = { outputBuffer.get(), output.size };
+        std::span<const std::byte> inputSpan = {input.buffer.get(), input.size};
+        std::span<std::byte> outputSpan = {outputBuffer.get(), output.size};
 
         inflatelib::stream stream;
         REQUIRE(stream.inflate64(inputSpan, outputSpan) == true); // 'true' means not done yet
@@ -346,7 +346,7 @@ TEST_CASE("Inflate64Truncation", "[inflate64]")
         REQUIRE(outputSpan.empty());
 
         // Calling again should immediately return true since there's no new input
-        outputSpan = { outputBuffer.get(), output.size }; // Reuse buffer to test that we don't write new data
+        outputSpan = {outputBuffer.get(), output.size}; // Reuse buffer to test that we don't write new data
         REQUIRE(stream.inflate64(inputSpan, outputSpan) == true);
         REQUIRE(outputSpan.size() == output.size);
 
@@ -368,16 +368,16 @@ TEST_CASE("Inflate64ExtraData", "[inflate64]")
         auto output = read_file(data_directory / outputPath);
 
         auto outputBuffer = std::make_unique<std::byte[]>(output.size);
-        std::span<const std::byte> inputSpan = { input.buffer.get(), input.size };
-        std::span<std::byte> outputSpan = { outputBuffer.get(), output.size };
+        std::span<const std::byte> inputSpan = {input.buffer.get(), input.size};
+        std::span<std::byte> outputSpan = {outputBuffer.get(), output.size};
 
         inflatelib::stream stream;
         REQUIRE(stream.inflate64(inputSpan, outputSpan) == false); // 'false' means we've decoded all data
-        REQUIRE(!inputSpan.empty()); // Since there's extra data at the end
+        REQUIRE(!inputSpan.empty());                               // Since there's extra data at the end
         REQUIRE(outputSpan.empty());
 
         // Calling again should immediately return false since we've already hit end of stream
-        outputSpan = { outputBuffer.get(), output.size }; // Reuse buffer to test that we don't write new data
+        outputSpan = {outputBuffer.get(), output.size}; // Reuse buffer to test that we don't write new data
         REQUIRE(stream.inflate64(inputSpan, outputSpan) == false);
         REQUIRE(outputSpan.size() == output.size);
 
@@ -392,7 +392,7 @@ TEST_CASE("Inflate64ExtraData", "[inflate64]")
 TEST_CASE("InflateReset", "[inflate][inflate64]")
 {
     // Simple initialization test
-    inflatelib::stream stream { nullptr };
+    inflatelib::stream stream{nullptr};
     REQUIRE(!stream);
 
     stream = inflatelib::stream{};
@@ -408,8 +408,8 @@ TEST_CASE("InflateReset", "[inflate][inflate64]")
         inputSize = inputSize ? inputSize : input.size;
 
         // NOTE: We provide buffers the exact size of the input/output, so we only need one call
-        std::span<const std::byte> inputSpan = { input.buffer.get(), inputSize };
-        std::span<std::byte> outputSpan = { outputBuffer.get(), outputBufferSize };
+        std::span<const std::byte> inputSpan = {input.buffer.get(), inputSize};
+        std::span<std::byte> outputSpan = {outputBuffer.get(), outputBufferSize};
         auto result = stream.try_inflate64(inputSpan, outputSpan);
         if (!output.size)
         {
