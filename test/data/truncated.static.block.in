@@ -17,5 +17,8 @@
 
 # The remainder of this data was originally intended to repeat all of the text once, however the repeat has been truncated
 11000011 >1 11000 >>1
-# 01111 >1 011010 >>1
+# At this point in time, there are five bits left in the last byte. Leaving them as zero is problematic as that's a valid
+# distane code (distance = 1, no extra bits). Fill up those last 5 bits; this will still be truncated as we're still
+# expecting an additional 5 extra bits
+01111 # >1 011010 >>1
 # 0000000

@@ -127,7 +127,7 @@ namespace inflatelib
         [[nodiscard]] bool inflate64(std::span<const std::byte>& input, std::span<std::byte>& output)
         {
             auto result = try_inflate64(input, output);
-            if (result != INFLATELIB_OK)
+            if (result < INFLATELIB_OK)
             {
                 throw_error(result);
             }

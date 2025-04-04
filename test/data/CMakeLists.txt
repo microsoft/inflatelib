@@ -75,6 +75,12 @@ set(INPUT
     "truncated.static.block.out"
     "truncated.static.no-bfinal.in"
     "truncated.static.no-bfinal.out"
+    "extra.uncompressed.in"
+    "extra.uncompressed.out"
+    "extra.dynamic.in"
+    "extra.dynamic.out"
+    "extra.static.in"
+    "extra.static.out"
     )
 set(OUTPUT)
 

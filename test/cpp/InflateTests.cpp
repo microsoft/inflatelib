@@ -344,6 +344,12 @@ TEST_CASE("Inflate64Truncation", "[inflate64]")
 
         REQUIRE(inputSpan.empty());
         REQUIRE(outputSpan.empty());
+
+        // Calling again should immediately return true since there's no new input
+        outputSpan = { outputBuffer.get(), output.size }; // Reuse buffer to test that we don't write new data
+        REQUIRE(stream.inflate64(inputSpan, outputSpan) == true);
+        REQUIRE(outputSpan.size() == output.size);
+
         REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
     };
 
@@ -353,6 +359,34 @@ TEST_CASE("Inflate64Truncation", "[inflate64]")
     doTest("truncated.dynamic.no-bfinal.in.bin", "truncated.dynamic.no-bfinal.out.bin");
     doTest("truncated.static.block.in.bin", "truncated.static.block.out.bin");
     doTest("truncated.static.no-bfinal.in.bin", "truncated.static.no-bfinal.out.bin");
+}
+
+TEST_CASE("Inflate64ExtraData", "[inflate64]")
+{
+    auto doTest = [](const char* inputPath, const char* outputPath) {
+        auto input = read_file(data_directory / inputPath);
+        auto output = read_file(data_directory / outputPath);
+
+        auto outputBuffer = std::make_unique<std::byte[]>(output.size);
+        std::span<const std::byte> inputSpan = { input.buffer.get(), input.size };
+        std::span<std::byte> outputSpan = { outputBuffer.get(), output.size };
+
+        inflatelib::stream stream;
+        REQUIRE(stream.inflate64(inputSpan, outputSpan) == false); // 'false' means we've decoded all data
+        REQUIRE(!inputSpan.empty()); // Since there's extra data at the end
+        REQUIRE(outputSpan.empty());
+
+        // Calling again should immediately return false since we've already hit end of stream
+        outputSpan = { outputBuffer.get(), output.size }; // Reuse buffer to test that we don't write new data
+        REQUIRE(stream.inflate64(inputSpan, outputSpan) == false);
+        REQUIRE(outputSpan.size() == output.size);
+
+        REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
+    };
+
+    doTest("extra.uncompressed.in.bin", "extra.uncompressed.out.bin");
+    doTest("extra.dynamic.in.bin", "extra.dynamic.out.bin");
+    doTest("extra.static.in.bin", "extra.static.out.bin");
 }
 
 TEST_CASE("InflateReset", "[inflate][inflate64]")
