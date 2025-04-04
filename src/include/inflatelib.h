@@ -111,7 +111,7 @@ extern "C"
      */
     int inflatelib_destroy(inflatelib_stream* stream);
 
-    int inflate64(inflatelib_stream* stream);
+    int inflatelib_inflate64(inflatelib_stream* stream);
 
 #ifdef __cplusplus
 } // extern "C"

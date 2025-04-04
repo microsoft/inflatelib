@@ -183,7 +183,7 @@ static void inflate64_init_static_tables(inflatelib_stream* stream);
 static int inflate64_read_dynamic_header(inflatelib_stream* stream);
 static int inflate64_read_compressed(inflatelib_stream* stream);
 
-int inflate64(inflatelib_stream* stream)
+int inflatelib_inflate64(inflatelib_stream* stream)
 {
     int result;
     inflatelib_state* state = stream->internal;
@@ -196,8 +196,8 @@ int inflate64(inflatelib_stream* stream)
         return INFLATELIB_ERROR_ARG;
     }
 
-    /* The last call to inflate64 may not have read all data, e.g. if we've filled up the output buffer, however we
-     * should have reset the buffer to avoid the dangling pointer */
+    /* The last call to inflatelib_inflate64 may not have read all data, e.g. if we've filled up the output buffer,
+     * however we should have reset the buffer to avoid the dangling pointer */
     bitstream_set_data(&state->bitstream, (const uint8_t*)stream->next_in, stream->avail_in);
 
     result = inflate64_process_data(stream);

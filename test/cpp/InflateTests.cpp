@@ -206,9 +206,9 @@ TEST_CASE("Inflate64Errors", "[inflate64]")
 {
     inflate_error_test("error.invalid-block-type.in.bin", "Unexpected block type '3'");
 
-    // Error if we call 'inflate64' before calling 'inflate64_init'
+    // Error if we call 'inflatelib_inflate64' before calling 'inflate64_init'
     inflatelib_stream stream = {};
-    REQUIRE(inflate64(&stream) == INFLATELIB_ERROR_ARG);
+    REQUIRE(inflatelib_inflate64(&stream) == INFLATELIB_ERROR_ARG);
 }
 
 TEST_CASE("Inflate64Uncompressed", "[inflate64]")
@@ -309,7 +309,7 @@ TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
         REQUIRE(inflatelib_init(&stream) == INFLATELIB_OK);
 
         // All pointers/lengths should still be null from initialization above
-        REQUIRE(inflate64(&stream) == INFLATELIB_OK);
+        REQUIRE(inflatelib_inflate64(&stream) == INFLATELIB_OK);
         REQUIRE(stream.next_in == nullptr);
         REQUIRE(stream.avail_in == 0);
         REQUIRE(stream.next_out == nullptr);
