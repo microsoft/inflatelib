@@ -115,7 +115,7 @@ namespace inflatelib
             m_stream.next_out = output.data();
             m_stream.avail_out = output.size_bytes();
 
-            auto result =  ::inflatelib_inflate64(&m_stream); // TODO: Not inflate64
+            auto result =  ::inflatelib_inflate(&m_stream);
 
             // Update the caller based on what was consumed/written
             input = {static_cast<const std::byte*>(m_stream.next_in), m_stream.avail_in};

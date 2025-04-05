@@ -62,7 +62,7 @@ int inflatelib_init(inflatelib_stream* stream)
         bitstream_init(&state->bitstream);
         window_init(&state->window);
 
-        state->ifstate = ifstate_reading_bfinal;
+        state->ifstate = ifstate_init;
     }
 
     if (result < 0)
@@ -92,7 +92,7 @@ int inflatelib_reset(inflatelib_stream* stream)
     // NOTE: The Huffman trees do not need to be reset as they are reset on demand as needed. If we've made it this far,
     // all of their internal state has been allocated, and that's the best that we can ask for
 
-    state->ifstate = ifstate_reading_bfinal;
+    state->ifstate = ifstate_init;
 
     return INFLATELIB_OK;
 }
@@ -177,30 +177,25 @@ int format_error_message(inflatelib_stream* stream, const char* fmt, ...)
     return INFLATELIB_OK;
 }
 
-static int inflate64_process_data(inflatelib_stream* stream);
-static int inflate64_read_uncompressed(inflatelib_stream* stream);
-static void inflate64_init_static_tables(inflatelib_stream* stream);
-static int inflate64_read_dynamic_header(inflatelib_stream* stream);
-static int inflate64_read_compressed(inflatelib_stream* stream);
+static int inflater_process_data(inflatelib_stream* stream);
+static int inflater_read_uncompressed(inflatelib_stream* stream);
+static void inflater_init_static_tables(inflatelib_stream* stream);
+static int inflater_read_dynamic_header(inflatelib_stream* stream);
+static int inflater_read_compressed(inflatelib_stream* stream);
 
-int inflatelib_inflate64(inflatelib_stream* stream)
+static int do_inflate(inflatelib_stream* stream)
 {
     int result;
     inflatelib_state* state = stream->internal;
     size_t initialOutSize = stream->avail_out;
 
-    if (state == NULL)
-    {
-        stream->error_msg = "Internal state is null; ensure inflatelib_init has been called first";
-        errno = EINVAL;
-        return INFLATELIB_ERROR_ARG;
-    }
+    assert(state->ifstate != ifstate_init);
 
-    /* The last call to inflatelib_inflate64 may not have read all data, e.g. if we've filled up the output buffer,
+    /* The last call to inflatelib_inflate* may not have read all data, e.g. if we've filled up the output buffer,
      * however we should have reset the buffer to avoid the dangling pointer */
     bitstream_set_data(&state->bitstream, (const uint8_t*)stream->next_in, stream->avail_in);
 
-    result = inflate64_process_data(stream);
+    result = inflater_process_data(stream);
 
     /* When making it this far, we've potentially read/written data that we want to report, even on failure */
     stream->total_out += initialOutSize - stream->avail_out;
@@ -213,7 +208,77 @@ int inflatelib_inflate64(inflatelib_stream* stream)
     return result;
 }
 
-static int inflate64_process_data(inflatelib_stream* stream)
+int inflatelib_inflate(inflatelib_stream* stream)
+{
+    inflatelib_state* state = stream->internal;
+
+    if (state == NULL)
+    {
+        stream->error_msg = "Internal state is null; ensure inflatelib_init has been called first";
+        errno = EINVAL;
+        return INFLATELIB_ERROR_ARG;
+    }
+
+    /* Ensure that we're not mixing inflate/inflate64 calls */
+    switch (state->ifstate)
+    {
+    case ifstate_init:
+        /* Not yet initialized */
+        state->mode = INFLATELIB_MODE_DEFLATE;
+        state->ifstate = ifstate_reading_bfinal;
+        break;
+
+    default:
+        /* Already initialized */
+        if (state->mode != INFLATELIB_MODE_DEFLATE)
+        {
+            stream->error_msg =
+                "inflatelib_stream is initialized for Deflate64 and cannot be called with Deflate encoded data. First call inflatelib_reset to reset the stream";
+            errno = EINVAL;
+            return INFLATELIB_ERROR_ARG;
+        }
+        break;
+    }
+
+    return do_inflate(stream);
+}
+
+int inflatelib_inflate64(inflatelib_stream* stream)
+{
+    inflatelib_state* state = stream->internal;
+
+    if (state == NULL)
+    {
+        stream->error_msg = "Internal state is null; ensure inflatelib_init has been called first";
+        errno = EINVAL;
+        return INFLATELIB_ERROR_ARG;
+    }
+
+    /* Ensure that we're not mixing inflate/inflate64 calls */
+    switch (state->ifstate)
+    {
+    case ifstate_init:
+        /* Not yet initialized */
+        state->mode = INFLATELIB_MODE_DEFLATE64;
+        state->ifstate = ifstate_reading_bfinal;
+        break;
+
+    default:
+        /* Already initialized */
+        if (state->mode != INFLATELIB_MODE_DEFLATE64)
+        {
+            stream->error_msg =
+                "inflatelib_stream is initialized for Deflate and cannot be called with Deflate64 encoded data. First call inflatelib_reset to reset the stream";
+            errno = EINVAL;
+            return INFLATELIB_ERROR_ARG;
+        }
+        break;
+    }
+
+    return do_inflate(stream);
+}
+
+static int inflater_process_data(inflatelib_stream* stream)
 {
     inflatelib_state* state = stream->internal;
     int result;
@@ -257,7 +322,7 @@ static int inflate64_process_data(inflatelib_stream* stream)
                 break;
 
             case btype_static:
-                inflate64_init_static_tables(stream);
+                inflater_init_static_tables(stream);
                 state->ifstate = ifstate_reading_literal_length_code;
                 break;
 
@@ -278,7 +343,7 @@ static int inflate64_process_data(inflatelib_stream* stream)
         switch (state->btype)
         {
         case btype_uncompressed:
-            result = inflate64_read_uncompressed(stream);
+            result = inflater_read_uncompressed(stream);
             break;
 
         default:
@@ -287,7 +352,7 @@ static int inflate64_process_data(inflatelib_stream* stream)
             if (state->ifstate < ifstate_reading_literal_length_code)
             {
                 /* We have not fully initialized the dynamic Huffman tables yet */
-                result = inflate64_read_dynamic_header(stream);
+                result = inflater_read_dynamic_header(stream);
                 if (result < 0)
                 {
                     return result;
@@ -303,7 +368,7 @@ static int inflate64_process_data(inflatelib_stream* stream)
             /* Fallthrough */
 
         case btype_static:
-            result = inflate64_read_compressed(stream);
+            result = inflater_read_compressed(stream);
             break;
         }
     } while ((result == INFLATELIB_OK) && (state->ifstate == ifstate_reading_bfinal));
@@ -316,7 +381,7 @@ static int inflate64_process_data(inflatelib_stream* stream)
     return result;
 }
 
-static int inflate64_read_uncompressed(inflatelib_stream* stream)
+static int inflater_read_uncompressed(inflatelib_stream* stream)
 {
     inflatelib_state* state = stream->internal;
     int result = INFLATELIB_OK;
@@ -382,7 +447,7 @@ static int inflate64_read_uncompressed(inflatelib_stream* stream)
     return INFLATELIB_OK;
 }
 
-static void inflate64_init_static_tables(inflatelib_stream* stream)
+static void inflater_init_static_tables(inflatelib_stream* stream)
 {
     int result;
     uint8_t buffer[LITERAL_TREE_MAX_ELEMENT_COUNT];
@@ -430,7 +495,7 @@ static void inflate64_init_static_tables(inflatelib_stream* stream)
 /* The order that the code length alphabe's code lengths are specified in, as per RFC 1951, section 3.2.7 */
 static const uint8_t code_order[CODE_LENGTH_TREE_ELEMENT_COUNT] = {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 
-static int inflate64_read_dynamic_header(inflatelib_stream* stream)
+static int inflater_read_dynamic_header(inflatelib_stream* stream)
 {
     int result = INFLATELIB_OK;
     inflatelib_state* state = stream->internal;
@@ -644,27 +709,51 @@ static int inflate64_read_dynamic_header(inflatelib_stream* stream)
     return INFLATELIB_OK;
 }
 
-/* The data for reading encoded lengths. For some symbol N, N >= 257, the length of the block is:
- * length_base[N - 257] + bitstream_read_bits(..., length_extra_bits[N - 257]) */
-/* NOTE: The primary difference between Deflate and Deflate64 w.r.t. the length encoding is that the final entry (the
- * entry for symbol 285) has a base/extra bits of 258/0 for Deflate, whereas it's 3/16 for Deflate64 */
-static const uint16_t length_base[29] = {3,  4,  5,  6,  7,  8,  9,  10, 11,  13,  15,  17,  19,  23, 27,
-                                         31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 3};
-static const uint16_t length_extra_bits[29] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2,
-                                               2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 16};
+typedef struct
+{
+    /* The data for reading encoded lengths. For some symbol N, N >= 257, the length of the block is:
+     * table.lengths[N - 257].base + bitstream_read_bits(..., table.lengths[N - 257].extra_bits) */
+    struct
+    {
+        uint16_t base;
+        uint16_t extra_bits;
+    } lengths[29];
 
-/* The data for reading encoded distances. For some symbol N, 0 <= N <= 31, the distance is:
- * distance_base[N] + bitstream_read_bits(..., distance_extra_bits[N]) */
-/* NOTE: The only difference between Deflate and Deflate64 w.r.t. the distance encoding is that Deflate64 makes use of
- * symbols 30 and 31 */
-/* TODO: Another way to calculate the number of extra bits is (N - 2) >> 1; see which is better */
-static const uint16_t distance_base[32] = {1,    2,    3,    4,    5,    7,     9,     13,    17,    25,   33,
-                                           49,   65,   97,   129,  193,  257,   385,   513,   769,   1025, 1537,
-                                           2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577, 32769, 49153};
-static const uint16_t distance_extra_bits[32] = {0, 0, 0, 0, 1, 1, 2,  2,  3,  3,  4,  4,  5,  5,  6,  6,
-                                                 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14};
+    /* The data for reading encoded distances. For some symbol N, 0 <= N <= 31, the distance is:
+     * table.distances[N].base + bitstream_read_bits(..., table.distances[N].extra_bits) */
+    struct
+    {
+        uint16_t base;
+        uint16_t extra_bits;
+    } distances[32];
+} inflater_tables;
 
-static int inflate64_read_compressed(inflatelib_stream* stream)
+static const inflater_tables deflate_tables = {
+    .lengths = {{3, 0},  {4, 0},  {5, 0},  {6, 0},   {7, 0},   {8, 0},   {9, 0},   {10, 0},  {11, 1}, {13, 1},
+                {15, 1}, {17, 1}, {19, 2}, {23, 2},  {27, 2},  {31, 2},  {35, 3},  {43, 3},  {51, 3}, {59, 3},
+                {67, 4}, {83, 4}, {99, 4}, {115, 4}, {131, 5}, {163, 5}, {195, 5}, {227, 5}, {258, 0}},
+    .distances = {{1, 0},     {2, 0},     {3, 0},     {4, 0},      {5, 1},      {7, 1},      {9, 2},     {13, 2},
+                  {17, 3},    {25, 3},    {33, 4},    {49, 4},     {65, 5},     {97, 5},     {129, 6},   {193, 6},
+                  {257, 7},   {385, 7},   {513, 8},   {769, 8},    {1025, 9},   {1537, 9},   {2049, 10}, {3073, 10},
+                  {4097, 11}, {6145, 11}, {8193, 12}, {12289, 12}, {16385, 13}, {24577, 13}, {0, 0},     {0, 0}}};
+
+static const inflater_tables deflate64_tables = {
+    /* NOTE: The primary difference between Deflate and Deflate64 w.r.t. the length encoding is that the final entry
+     * (the entry for symbol 285) has a base/extra bits of 258/0 for Deflate, whereas it's 3/16 for Deflate64 */
+    .lengths = {{3, 0},  {4, 0},  {5, 0},  {6, 0},   {7, 0},   {8, 0},   {9, 0},   {10, 0},  {11, 1}, {13, 1},
+                {15, 1}, {17, 1}, {19, 2}, {23, 2},  {27, 2},  {31, 2},  {35, 3},  {43, 3},  {51, 3}, {59, 3},
+                {67, 4}, {83, 4}, {99, 4}, {115, 4}, {131, 5}, {163, 5}, {195, 5}, {227, 5}, {3, 16}},
+    /* NOTE: The only difference between Deflate and Deflate64 w.r.t. the distance encoding is that Deflate64 makes use
+     * of symbols 30 and 31 */
+    .distances = {{1, 0},     {2, 0},     {3, 0},     {4, 0},      {5, 1},      {7, 1},      {9, 2},      {13, 2},
+                  {17, 3},    {25, 3},    {33, 4},    {49, 4},     {65, 5},     {97, 5},     {129, 6},    {193, 6},
+                  {257, 7},   {385, 7},   {513, 8},   {769, 8},    {1025, 9},   {1537, 9},   {2049, 10},  {3073, 10},
+                  {4097, 11}, {6145, 11}, {8193, 12}, {12289, 12}, {16385, 13}, {24577, 13}, {32769, 14}, {49153, 14}}};
+
+/* The "active" table is indexed using the current "mode" */
+static const inflater_tables* const inflate_tables[] = {&deflate_tables, &deflate64_tables};
+
+static int inflater_read_compressed(inflatelib_stream* stream)
 {
     int result = INFLATELIB_OK;
     inflatelib_state* state = stream->internal;
@@ -672,6 +761,7 @@ static int inflate64_read_compressed(inflatelib_stream* stream)
     size_t bytesCopied, outSize = stream->avail_out;
     uint16_t symbol;
     int opResult, keepGoing = 1;
+    const inflater_tables* tables = inflate_tables[state->mode];
 
     while (keepGoing)
     {
@@ -739,9 +829,9 @@ static int inflate64_read_compressed(inflatelib_stream* stream)
 
             /* Otherwise, 'symbol' references a length */
             symbol = state->data.compressed.symbol - 257;
-            assert(symbol < inflatelib_arraysize(length_base)); /* Shouldn't have passed check above */
-            state->data.compressed.block_length = length_base[symbol];
-            state->data.compressed.extra_bits = length_extra_bits[symbol];
+            assert(symbol < inflatelib_arraysize(tables->lengths)); /* Shouldn't have passed check above */
+            state->data.compressed.block_length = tables->lengths[symbol].base;
+            state->data.compressed.extra_bits = tables->lengths[symbol].extra_bits;
             /* Fallthrough */
 
         case ifstate_reading_length_extra_bits:
@@ -776,9 +866,9 @@ static int inflate64_read_compressed(inflatelib_stream* stream)
             }
 
             /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the exact size of the table */
-            assert(symbol < inflatelib_arraysize(distance_base));
-            state->data.compressed.block_distance = distance_base[symbol];
-            state->data.compressed.extra_bits = distance_extra_bits[symbol];
+            assert(symbol < inflatelib_arraysize(tables->distances));
+            state->data.compressed.block_distance = tables->distances[symbol].base;
+            state->data.compressed.extra_bits = tables->distances[symbol].extra_bits;
             /* Fallthrough */
 
         case ifstate_reading_distance_extra_bits:

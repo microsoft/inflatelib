@@ -21,8 +21,10 @@ typedef enum block_type
 
 typedef enum inflate_state
 {
-    /* NOTE: Outside of 'ifstate_reading_bfinal' which must be zero, the values of these states don't really matter,
-     * however the relative order of some of them do. */
+    /* NOTE: Outside of 'ifstate_init' which must be zero, the values of these states don't really matter, however they
+     * relative order of some of them do. */
+    ifstate_init = 0,
+
     ifstate_reading_bfinal,
     ifstate_reading_btype,
 
@@ -52,6 +54,9 @@ typedef enum inflate_state
     ifstate_eof,
 } inflate_state;
 
+#define INFLATELIB_MODE_DEFLATE 0x0000
+#define INFLATELIB_MODE_DEFLATE64 0x0001
+
 /* Internal state */
 typedef struct inflatelib_state
 {
@@ -63,6 +68,7 @@ typedef struct inflatelib_state
 
     /* Inflater state */
     inflate_state ifstate;
+    uint8_t mode  : 1; // See 'INFLATELIB_MODE*' for possible values
     uint8_t btype : 2; // block_type, but 'block_type' is signed and any value gretaer than 1 is negative...
     int bfinal : 1;
 

@@ -1,4 +1,6 @@
 * Tests (no children means all ideas have been implemented)
+  * mixing inflate & inflate64
+  * inflate tests
 * Add inflate support
 * Add benchmarking tests
 * Fuzzing
