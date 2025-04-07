@@ -1,5 +1,6 @@
 
 # This generates a file with a single uncompressed block whose reported size is one greater than the number of bytes available
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true since this is the only block
 00      # No compression

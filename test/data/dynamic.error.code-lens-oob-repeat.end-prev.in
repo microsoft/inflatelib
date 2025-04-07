@@ -1,4 +1,8 @@
 
+# Produces a single block that should fail when reading the code length symbols for the dynamic Huffman tables since the
+# final entry instructs us to repeat the last code enough times that the total number of code length symbols exceeds
+# HLIT + HDIST by one
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 10      # Compressed with dynamic codes

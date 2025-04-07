@@ -1,5 +1,6 @@
 
 # This generates a binary file with three empty blocks
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 0       # bfinal = false
 00      # No compression

@@ -6,6 +6,7 @@
 # a majority of the output). For the distances, we have no control over the data it copies from, so we use small lengths
 # to make the expected output shorter and easier to produce. This writes a total of 68,668 bytes. This repeats the
 # sequence 268 times (269 total in the output) with the bytes 0-59 at the end.
+# NOTE: This test is only applicable to Deflate64
 >1
 1       # bfinal = true
 01      # Compressed with static codes

@@ -1,5 +1,6 @@
 
 # This test has three blocks, however the last one gets ignored since the second block has 'bfinal' set to true
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 0       # bfinal = false
 00      # No compression

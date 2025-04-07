@@ -1,4 +1,7 @@
 
+# Produces a single block that first writes 65535 bytes and then tries to copy data from the window with a distance of
+# 65536 bytes, which exceeds the number of bytes written to the window.
+# NOTE: This test is only applicable to Deflate64
 >1
 1       # bfinal = true
 01      # Compressed with static codes

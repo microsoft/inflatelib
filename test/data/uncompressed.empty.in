@@ -1,5 +1,6 @@
 
 # This generates a binary file with a single empty uncompressed block
+# NOTE: This test is valid for both Deflate and Deflate64
 
 >1
 1       # bfinal = true since this is the only block

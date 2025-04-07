@@ -1,6 +1,7 @@
 
 # This test has two blocks: one that just writes some "Lorem ipsum" text using only literals, and a second block that
 # repeats the text a number of times using only length/distance pairs
+# NOTE: This test is only applicable to Deflate64
 >1
 0       # bfinal = false
 01      # Compressed with static codes

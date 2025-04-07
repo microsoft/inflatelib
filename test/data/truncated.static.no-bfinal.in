@@ -1,5 +1,6 @@
 
 # This generates a file with a two compressed blocks, but neither has bfinal set to true
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 0       # bfinal = false
 01      # Compressed with static codes

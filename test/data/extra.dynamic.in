@@ -1,10 +1,11 @@
 
 # This test has three blocks, however the last one gets ignored since the second block has 'bfinal' set to true
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 0       # bfinal = false
 10      # Compressed with dynamic codes
 
-# "This is from the first block\n"
+# Outputs "This is from the first block\n"
 00000   # HLIT = 257 (0 + 257)
 00000   # HDIST = 1 (0 + 1)
 1010    # HCLEN = 14 (10 + 4)
@@ -79,7 +80,7 @@
 1       # bfinal = true
 10      # Compressed with dynamic codes
 
-# "This is from the second block\n"
+# Outputs "This is from the second block\n"
 01100   # HLIT = 269 (12 + 257)
 01001   # HDIST = 10 (9 + 1)
 1110    # HCLEN = 18 (14 + 4)
@@ -136,7 +137,7 @@
 1       # bfinal = true
 10      # Compressed with dynamic codes
 
-# "This is from the third block\n"
+# Skips outputting "This is from the third block\n"
 01100   # HLIT = 269 (12 + 257)
 01001   # HDIST = 10 (9 + 1)
 1110    # HCLEN = 18 (14 + 4)

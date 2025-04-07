@@ -1,4 +1,8 @@
 
+# Produces a single block whose literal/length alphabet's code lengths are chosen such that the tree has leaves with no
+# assigned symbols. These lengths are also chosen such that these invalid codes are greater than 9 bits in length (the
+# length of the lookup table portion of the Huffman tree).
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 10      # Compressed with dynamic codes
@@ -11,19 +15,33 @@
 #16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
 000 000 011 000 000 000 000 000 011 010 011 011 011 011
 
-# Assign lengths to literals 0-10; the rest is zero
+# Assign lengths to literals 0-10; the rest is zero. The tree looks like this:
+#        start
+#         /
+#   /          \
+#  /\       /        \
+# 2  7     /\        /
+#         5 /\     /   \
+#          1  6   9    /
+#                     /
+#                    /
+#                /      \
+#               / \     /
+#              10 /\   /\
+#                0  3 8 /
+#                      4
 >>1
-101
-00
-010
-101
-110
-011
-00
-010
-101
-00
-100
+101 # literal=0, 11 bits
+00  # literal=1, 5 bits
+010 # literal=2, 3 bits
+101 # literal=3, 11 bits
+110 # literal=4, 12 bits
+011 # literal=5, 4 bits
+00  # literal=6, 5 bits
+010 # literal=7, 3 bits
+101 # literal=8, 11 bits
+00  # literal=9, 5 bits
+100 # literal=10, 10 bits
 111 >1 1111111 >>1 # Repeat 0 138 times
 111 >1 1100010 >>1 # Repeat 0 109 times
 

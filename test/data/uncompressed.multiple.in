@@ -1,6 +1,7 @@
 
 # This generates a binary file with multiple uncompressed blocks. Since we're producing multiple blocks, we go ahead And
 # use this test to verify some of the corner cases surrounding block sizes
+# NOTE: This test is valid for both Deflate and Deflate64
 
 # First block: zero size
 >1

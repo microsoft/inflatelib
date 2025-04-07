@@ -1,5 +1,6 @@
 
 # Single block that outputs "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG" 100 times
+# NOTE: This test is only applicable to Deflate64
 >1
 1       # bfinal = true
 01      # Compressed with static codes

@@ -1,4 +1,7 @@
 
+# Produces a single block whose distance alphabet specifies 17 symbols, 14 of which specify lengths 1, 2, ..., 14 and
+# the other 3 specify lengths of 15, which should fail when trying to create the Huffman tree
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 10      # Compressed with dynamic codes
@@ -8,28 +11,29 @@
 1111    # HCLEN = 19 (15 + 4)
 
 # We need to represent the values 1-15 as well as writing a bunch of 0s
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
 000 000 100 000 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100
 
-# We need three literal/length symbols of value 1; the rest are 0. This leaves us with needing 255 0s in total
+# We first need to write 257 0s to cover the literal/length dictionary
 >>1
 1111 >1 1111111 >>1 # Repeat 0 138 times
 1111 >1 1101100 >>1 # Repeat 0 119 times
-1110
-0111
-0011
-1000
-0001
-1001
-0100
-1010
-1110
-0000
-1011
-0101
-1100
-0010
-1101
-0110
-1110
+1110 # Distance=1, 15 bits
+0111 # Distance=2, 8 bits
+0011 # Distance=3, 4 bits
+1000 # Distance=4, 9 bits
+0001 # Distance=5, 2 bits
+1001 # Distance=7, 10 bits
+0100 # Distance=9, 5 bits
+1010 # Distance=13, 11 bits
+1110 # Distance=17, 15 bits
+0000 # Distance=25, 1 bit
+1011 # Distance=33, 12 bits
+0101 # Distance=49, 6 bits
+1100 # Distance=65, 13 bits
+0010 # Distance=97, 3 bits
+1101 # Distance=129, 14 bits
+0110 # Distance=193, 7 bits
+1110 # Distance=257, 15 bits
 
 # At this point, we have all our table info and the inflater should try and initialize the Huffman trees, which should fail

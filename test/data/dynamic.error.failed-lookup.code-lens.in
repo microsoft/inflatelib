@@ -1,4 +1,8 @@
 
+# Produces a single block whose code length alphabet's code lengths are chosen such that the tree has leaves with no
+# assigned symbols. The length/distance code lengths portion of the input then uses one of these invalid inputs causing
+# a failure
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 10      # Compressed with dynamic codes
@@ -8,7 +12,14 @@
 0000    # HCLEN = 4 (0 + 4)
 
 # Unlike the literal/length and distance trees, the max code size is 7 bits, which fits entirely inside the lookup table
-# of our Huffman tree implementation
+# of our Huffman tree implementation. The tree looks like:
+#     start
+#   /       \
+#  /\       /
+# 0  17    / \
+#        18  /
+#           /
+#         16
 101 010 011 010
 
 # Write some valid data before hitting the invalid data

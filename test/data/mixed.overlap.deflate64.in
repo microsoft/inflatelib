@@ -1,5 +1,6 @@
 
 # Repeats "London Bridge" (1344 in length) many times using all three encodings such that each one "overflows" the window
+# NOTE: This test is only applicable to Deflate64
 
 # First with no compression. We want to repeat the string 49 times in total to give a total of 65,856 bytes, however
 # uncompressed blocks have a max length of 65,535, so we need to do this in two steps.

@@ -1,4 +1,6 @@
 
+# Produces a single block that tries to use the invalid symbol '286'
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 01      # Compressed with static codes

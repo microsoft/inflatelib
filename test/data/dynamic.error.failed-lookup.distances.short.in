@@ -1,4 +1,8 @@
 
+# Produces a single block whose distance alphabet's code lengths are chosen such that the tree has leaves with no
+# assigned symbols. These lengths are also chosen such that these invalid codes are less than 7 bits in length (the
+# length of the lookup table portion of the Huffman tree).
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 10      # Compressed with dynamic codes
@@ -20,6 +24,15 @@
 00  # Length=4, 2 bits
 00  # Length=5, 2 bits
 
+# The tree looks like this:
+#    start
+#   /      \
+#  /\     /  \
+# 4 /\   /\  /
+#  2  3 5 9 /\
+#          7 /
+#           /
+#          1
 111 # Distance=1, 6 bits
 01  # Distance=2, 3 bits
 01  # Distance=3, 3 bits

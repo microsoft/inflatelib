@@ -225,10 +225,10 @@ TEST_CASE("Inflate64Uncompressed", "[inflate64]")
 TEST_CASE("Inflate64CompressedDynamic", "[inflate64]")
 {
     inflate_test("dynamic.empty.in.bin", "dynamic.empty.out.bin");
-    inflate_test("dynamic.single.in.bin", "dynamic.single.out.bin");
-    inflate_test("dynamic.multiple.in.bin", "dynamic.multiple.out.bin");
-    inflate_test("dynamic.overlap.in.bin", "dynamic.overlap.out.bin");
-    inflate_test("dynamic.length-distance-stress.in.bin", "dynamic.length-distance-stress.out.bin");
+    inflate_test("dynamic.single.deflate64.in.bin", "dynamic.single.deflate64.out.bin");
+    inflate_test("dynamic.multiple.deflate64.in.bin", "dynamic.multiple.deflate64.out.bin");
+    inflate_test("dynamic.overlap.deflate64.in.bin", "dynamic.overlap.deflate64.out.bin");
+    inflate_test("dynamic.length-distance-stress.deflate64.in.bin", "dynamic.length-distance-stress.deflate64.out.bin");
 
     // Error cases
     inflate_error_test(
@@ -275,17 +275,17 @@ TEST_CASE("Inflate64CompressedDynamic", "[inflate64]")
     inflate_error_test(
         "dynamic.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
     inflate_error_test(
-        "dynamic.error.distance-oob.long.in.bin",
+        "dynamic.error.distance-oob.long.deflate64.in.bin",
         "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
 }
 
 TEST_CASE("Inflate64CompressedStatic", "[inflate64]")
 {
     inflate_test("static.empty.in.bin", "static.empty.out.bin");
-    inflate_test("static.single.in.bin", "static.single.out.bin");
-    inflate_test("static.multiple.in.bin", "static.multiple.out.bin");
-    inflate_test("static.overlap.in.bin", "static.overlap.out.bin");
-    inflate_test("static.length-distance-stress.in.bin", "static.length-distance-stress.out.bin");
+    inflate_test("static.single.deflate64.in.bin", "static.single.deflate64.out.bin");
+    inflate_test("static.multiple.deflate64.in.bin", "static.multiple.deflate64.out.bin");
+    inflate_test("static.overlap.deflate64.in.bin", "static.overlap.deflate64.out.bin");
+    inflate_test("static.length-distance-stress.deflate64.in.bin", "static.length-distance-stress.deflate64.out.bin");
 
     inflate_error_test("static.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
     inflate_error_test("static.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
@@ -293,7 +293,7 @@ TEST_CASE("Inflate64CompressedStatic", "[inflate64]")
     inflate_error_test(
         "static.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
     inflate_error_test(
-        "static.error.distance-oob.long.in.bin",
+        "static.error.distance-oob.long.deflate64.in.bin",
         "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
 }
 
@@ -301,7 +301,7 @@ TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
 {
     inflate_test("mixed.empty.in.bin", "mixed.empty.out.bin");
     inflate_test("mixed.simple.in.bin", "mixed.simple.out.bin");
-    inflate_test("mixed.overlap.in.bin", "mixed.overlap.out.bin");
+    inflate_test("mixed.overlap.deflate64.in.bin", "mixed.overlap.deflate64.out.bin");
 
     // Verify nothing bad happens if we call with no data
     {
@@ -324,9 +324,9 @@ TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
 TEST_CASE("Inflate64RealWorldData", "[inflate64]")
 {
     // Tests a collection of files compressed with 7-Zip in an attempt to test scenarios that represent "real world data"
-    inflate_test("file.bin-write.exe.in.bin", "file.bin-write.exe.out.bin");
-    inflate_test("file.magna-carta.txt.in.bin", "file.magna-carta.txt.out.bin");
-    inflate_test("file.us-constitution.txt.in.bin", "file.us-constitution.txt.out.bin");
+    inflate_test("file.bin-write.deflate64.exe.in.bin", "file.bin-write.deflate64.exe.out.bin");
+    inflate_test("file.magna-carta.deflate64.txt.in.bin", "file.magna-carta.deflate64.txt.out.bin");
+    inflate_test("file.us-constitution.deflate64.txt.in.bin", "file.us-constitution.deflate64.txt.out.bin");
 }
 
 TEST_CASE("Inflate64Truncation", "[inflate64]")
@@ -436,35 +436,35 @@ TEST_CASE("InflateReset", "[inflate][inflate64]")
 
     // Test 1: Reset after EOF
     // NOTE: For all of these tests, we read archives that use Huffman tables to ensure proper re-use
-    input = read_file(data_directory / "dynamic.single.in.bin"); // Just a simple, small file to test
-    output = read_file(data_directory / "dynamic.single.out.bin");
+    input = read_file(data_directory / "dynamic.single.deflate64.in.bin"); // Just a simple, small file to test
+    output = read_file(data_directory / "dynamic.single.deflate64.out.bin");
     doInflate();
     stream.reset();
 
-    input = read_file(data_directory / "static.single.in.bin");
-    output = read_file(data_directory / "static.single.out.bin");
+    input = read_file(data_directory / "static.single.deflate64.in.bin");
+    output = read_file(data_directory / "static.single.deflate64.out.bin");
     doInflate();
     stream.reset();
 
     // Test 2: Reset after error
-    input = read_file(data_directory / "dynamic.error.distance-oob.long.in.bin");
+    input = read_file(data_directory / "dynamic.error.distance-oob.long.deflate64.in.bin");
     output = {}; // Error; no output
     doInflate();
     stream.reset();
 
-    input = read_file(data_directory / "static.multiple.in.bin");
-    output = read_file(data_directory / "static.multiple.out.bin");
+    input = read_file(data_directory / "static.multiple.deflate64.in.bin");
+    output = read_file(data_directory / "static.multiple.deflate64.out.bin");
     doInflate();
     stream.reset();
 
     // Test 3: Reset in the middle of a stream
-    input = read_file(data_directory / "mixed.overlap.in.bin");
-    output = read_file(data_directory / "mixed.overlap.out.bin");
+    input = read_file(data_directory / "mixed.overlap.deflate64.in.bin");
+    output = read_file(data_directory / "mixed.overlap.deflate64.out.bin");
     doInflate(256);
     stream.reset();
 
-    input = read_file(data_directory / "dynamic.multiple.in.bin");
-    output = read_file(data_directory / "dynamic.multiple.out.bin");
+    input = read_file(data_directory / "dynamic.multiple.deflate64.in.bin");
+    output = read_file(data_directory / "dynamic.multiple.deflate64.out.bin");
     doInflate();
     stream.reset();
 
@@ -474,8 +474,8 @@ TEST_CASE("InflateReset", "[inflate][inflate64]")
 
     // Test 4, part 2: Reset after reading Deflate data and then reading Deflate64 data
     // NOTE: Previous test read Deflate data
-    input = read_file(data_directory / "static.overlap.in.bin");
-    output = read_file(data_directory / "static.overlap.out.bin");
+    input = read_file(data_directory / "static.overlap.deflate64.in.bin");
+    output = read_file(data_directory / "static.overlap.deflate64.out.bin");
     doInflate();
     stream.reset();
 }

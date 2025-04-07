@@ -1,5 +1,6 @@
 
-# Single empty block
+# Produces a single empty block
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 10      # Compressed with dynamic codes

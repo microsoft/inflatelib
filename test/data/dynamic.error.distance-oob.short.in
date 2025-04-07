@@ -1,4 +1,7 @@
 
+# Produces a single block whose first entry is a length/distance pair with a distance of one, which will fail since
+# there's nothing in the window yet
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 10      # Compressed with dynamic codes

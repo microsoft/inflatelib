@@ -1,5 +1,6 @@
 
 # This generates a binary file with a single uncompressed block. The file consists of the bytes 0-255, in order
+# NOTE: This test is valid for both Deflate and Deflate64
 
 >1
 1       # bfinal = true since this is the only block

@@ -1,5 +1,6 @@
 
 # Block type 3 is unassigned & invalid
+# NOTE: This test is valid for both Deflate and Deflate64
 >1
 1       # bfinal = true
 11      # Invalid block type

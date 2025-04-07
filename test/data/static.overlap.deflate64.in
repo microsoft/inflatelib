@@ -7,6 +7,7 @@
 #   * Write the literal '0'
 #   * Copy '0' 1023 times: (1023, 1)
 #   * Repeat the string 48 times offset at the start of the buffer: (64512, 65536)
+# NOTE: This test is only applicable to Deflate64
 >1
 1       # bfinal = true
 01      # Compressed with static codes
