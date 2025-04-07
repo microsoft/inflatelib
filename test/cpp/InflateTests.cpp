@@ -96,6 +96,7 @@ static file_contents read_file(const std::filesystem::path& path)
 }
 
 using try_inflate_t = int (inflatelib::stream::*)(std::span<const std::byte>&, std::span<std::byte>&) noexcept;
+using inflate_t = bool (inflatelib::stream::*)(std::span<const std::byte>&, std::span<std::byte>&);
 
 template <try_inflate_t inflateFunc>
 static void inflate_test_worker(
@@ -163,7 +164,7 @@ static void inflate_test_worker(
         REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
 
         // Calling again should return EOF
-        REQUIRE(stream.try_inflate64(inputSpan, outputSpan) == INFLATELIB_EOF);
+        REQUIRE((stream.*inflateFunc)(inputSpan, outputSpan) == INFLATELIB_EOF);
         REQUIRE(stream.get()->next_in == input.buffer.get() + input.size);
         REQUIRE(stream.get()->next_out == outputBuffer.get() + output.size);
     }
@@ -193,6 +194,13 @@ static void do_inflate_test(const file_contents& input, const file_contents& out
     inflate_test_worker<inflateFunc>(input, output, 1, 1, errFragment);
 }
 
+static void inflate_test(const char* inputFileName, const char* outputFileName)
+{
+    auto input = read_file(data_directory / inputFileName);
+    auto output = read_file(data_directory / outputFileName);
+    do_inflate_test<&inflatelib::stream::try_inflate>(input, output, nullptr);
+}
+
 static void inflate64_test(const char* inputFileName, const char* outputFileName)
 {
     auto input = read_file(data_directory / inputFileName);
@@ -200,10 +208,25 @@ static void inflate64_test(const char* inputFileName, const char* outputFileName
     do_inflate_test<&inflatelib::stream::try_inflate64>(input, output, nullptr);
 }
 
+static void inflate_error_test(const char* inputFileName, const char* errFragment)
+{
+    auto input = read_file(data_directory / inputFileName);
+    do_inflate_test<&inflatelib::stream::try_inflate>(input, {}, errFragment);
+}
+
 static void inflate64_error_test(const char* inputFileName, const char* errFragment)
 {
     auto input = read_file(data_directory / inputFileName);
     do_inflate_test<&inflatelib::stream::try_inflate64>(input, {}, errFragment);
+}
+
+TEST_CASE("InflateErrors", "[inflate]")
+{
+    inflate_error_test("error.invalid-block-type.in.bin", "Unexpected block type '3'");
+
+    // Error if we call 'inflatelib_inflate' before calling 'inflate64_init'
+    inflatelib_stream stream = {};
+    REQUIRE(inflatelib_inflate(&stream) == INFLATELIB_ERROR_ARG);
 }
 
 TEST_CASE("Inflate64Errors", "[inflate64]")
@@ -215,6 +238,17 @@ TEST_CASE("Inflate64Errors", "[inflate64]")
     REQUIRE(inflatelib_inflate64(&stream) == INFLATELIB_ERROR_ARG);
 }
 
+TEST_CASE("InflateUncompressed", "[inflate]")
+{
+    inflate_test("uncompressed.empty.in.bin", "uncompressed.empty.out.bin");
+    inflate_test("uncompressed.single.in.bin", "uncompressed.single.out.bin");
+    inflate_test("uncompressed.multiple.in.bin", "uncompressed.multiple.out.bin");
+
+    // Error cases
+    inflate_error_test(
+        "uncompressed.error.nlen.in.bin", "Uncompressed block length (7FFF) does not match its encoded one's complement value (0000)");
+}
+
 TEST_CASE("Inflate64Uncompressed", "[inflate64]")
 {
     inflate64_test("uncompressed.empty.in.bin", "uncompressed.empty.out.bin");
@@ -224,6 +258,63 @@ TEST_CASE("Inflate64Uncompressed", "[inflate64]")
     // Error cases
     inflate64_error_test(
         "uncompressed.error.nlen.in.bin", "Uncompressed block length (7FFF) does not match its encoded one's complement value (0000)");
+}
+
+TEST_CASE("InflateCompressedDynamic", "[inflate]")
+{
+    inflate_test("dynamic.empty.in.bin", "dynamic.empty.out.bin");
+    // inflate_test("dynamic.single.deflate.in.bin", "dynamic.single.deflate.out.bin");
+    // inflate_test("dynamic.multiple.deflate.in.bin", "dynamic.multiple.deflate.out.bin");
+    // inflate_test("dynamic.overlap.deflate.in.bin", "dynamic.overlap.deflate.out.bin");
+    // inflate_test("dynamic.length-distance-stress.deflate.in.bin", "dynamic.length-distance-stress.deflate.out.bin");
+
+    // Error cases
+    inflate_error_test(
+        "dynamic.error.tree-size.code-lens.short.in.bin",
+        "Too many symbols with code length 1. 3 symbols starting at 0x0 exceeds the specified number of bits");
+    inflate_error_test(
+        "dynamic.error.tree-size.code-lens.tall.in.bin",
+        "Too many symbols with code length 7. 3 symbols starting at 0x7E exceeds the specified number of bits");
+    inflate_error_test(
+        "dynamic.error.tree-size.literals.short.in.bin",
+        "Too many symbols with code length 1. 3 symbols starting at 0x0 exceeds the specified number of bits");
+    inflate_error_test(
+        "dynamic.error.tree-size.literals.tall.in.bin",
+        "Too many symbols with code length 15. 3 symbols starting at 0x7FFE exceeds the specified number of bits");
+    inflate_error_test(
+        "dynamic.error.tree-size.distances.short.in.bin",
+        "Too many symbols with code length 1. 3 symbols starting at 0x0 exceeds the specified number of bits");
+    inflate_error_test(
+        "dynamic.error.tree-size.distances.tall.in.bin",
+        "Too many symbols with code length 15. 3 symbols starting at 0x7FFE exceeds the specified number of bits");
+
+    inflate_error_test("dynamic.error.code-lens-oob-repeat.begin.in.bin", "Code length repeat code encountered at beginning of data");
+    inflate_error_test(
+        "dynamic.error.code-lens-oob-repeat.end-prev.in.bin", "Code length repeat code specifies 6 repetitions, but only 5 codes remain");
+    inflate_error_test(
+        "dynamic.error.code-lens-oob-repeat.end-short.in.bin", "Zero repeat code specifies 10 repetitions, but only 9 codes remain");
+    inflate_error_test(
+        "dynamic.error.code-lens-oob-repeat.end-long.in.bin", "Zero repeat code specifies 138 repetitions, but only 1 codes remain");
+
+    inflate_error_test(
+        "dynamic.error.failed-lookup.code-lens.in.bin", "Input bit sequence 0x15 is not a valid Huffman code for the encoded table");
+    inflate_error_test(
+        "dynamic.error.failed-lookup.literals.short.in.bin", "Input bit sequence 0x6D is not a valid Huffman code for the encoded table");
+    inflate_error_test(
+        "dynamic.error.failed-lookup.literals.long.in.bin", "Input bit sequence 0xD16 is not a valid Huffman code for the encoded table");
+    inflate_error_test(
+        "dynamic.error.failed-lookup.distances.short.in.bin", "Input bit sequence 0x2B is not a valid Huffman code for the encoded table");
+    inflate_error_test(
+        "dynamic.error.failed-lookup.distances.long.in.bin", "Input bit sequence 0x58E is not a valid Huffman code for the encoded table");
+
+    inflate_error_test("dynamic.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
+    inflate_error_test("dynamic.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
+
+    inflate_error_test(
+        "dynamic.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
+    // inflate_error_test(
+    //     "dynamic.error.distance-oob.long.deflate.in.bin",
+    //     "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
 }
 
 TEST_CASE("Inflate64CompressedDynamic", "[inflate64]")
@@ -283,6 +374,24 @@ TEST_CASE("Inflate64CompressedDynamic", "[inflate64]")
         "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
 }
 
+TEST_CASE("InflateCompressedStatic", "[inflate]")
+{
+    inflate_test("static.empty.in.bin", "static.empty.out.bin");
+    // inflate_test("static.single.deflate.in.bin", "static.single.deflate.out.bin");
+    // inflate_test("static.multiple.deflate.in.bin", "static.multiple.deflate.out.bin");
+    // inflate_test("static.overlap.deflate.in.bin", "static.overlap.deflate.out.bin");
+    // inflate_test("static.length-distance-stress.deflate.in.bin", "static.length-distance-stress.deflate.out.bin");
+
+    inflate_error_test("static.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
+    inflate_error_test("static.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
+
+    inflate_error_test(
+        "static.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
+    // inflate_error_test(
+    //     "static.error.distance-oob.long.deflate.in.bin",
+    //     "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
+}
+
 TEST_CASE("Inflate64CompressedStatic", "[inflate64]")
 {
     inflate64_test("static.empty.in.bin", "static.empty.out.bin");
@@ -299,6 +408,30 @@ TEST_CASE("Inflate64CompressedStatic", "[inflate64]")
     inflate64_error_test(
         "static.error.distance-oob.long.deflate64.in.bin",
         "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
+}
+
+TEST_CASE("InflateCompressedMixed", "[inflate]")
+{
+    inflate_test("mixed.empty.in.bin", "mixed.empty.out.bin");
+    inflate_test("mixed.simple.in.bin", "mixed.simple.out.bin");
+    // inflate_test("mixed.overlap.deflate.in.bin", "mixed.overlap.deflate.out.bin");
+
+    // Verify nothing bad happens if we call with no data
+    {
+        inflatelib_stream stream = {};
+        REQUIRE(inflatelib_init(&stream) == INFLATELIB_OK);
+
+        // All pointers/lengths should still be null from initialization above
+        REQUIRE(inflatelib_inflate(&stream) == INFLATELIB_OK);
+        REQUIRE(stream.next_in == nullptr);
+        REQUIRE(stream.avail_in == 0);
+        REQUIRE(stream.next_out == nullptr);
+        REQUIRE(stream.avail_out == 0);
+        REQUIRE(stream.total_in == 0);
+        REQUIRE(stream.total_out == 0);
+
+        inflatelib_destroy(&stream);
+    }
 }
 
 TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
@@ -325,6 +458,14 @@ TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
     }
 }
 
+TEST_CASE("InflateRealWorldData", "[inflate]")
+{
+    // Tests a collection of files compressed with 7-Zip in an attempt to test scenarios that represent "real world data"
+    // inflate_test("file.bin-write.deflate.exe.in.bin", "file.bin-write.deflate.exe.out.bin");
+    // inflate_test("file.magna-carta.deflate.txt.in.bin", "file.magna-carta.deflate.txt.out.bin");
+    // inflate_test("file.us-constitution.deflate.txt.in.bin", "file.us-constitution.deflate.txt.out.bin");
+}
+
 TEST_CASE("Inflate64RealWorldData", "[inflate64]")
 {
     // Tests a collection of files compressed with 7-Zip in an attempt to test scenarios that represent "real world data"
@@ -333,9 +474,9 @@ TEST_CASE("Inflate64RealWorldData", "[inflate64]")
     inflate64_test("file.us-constitution.deflate64.txt.in.bin", "file.us-constitution.deflate64.txt.out.bin");
 }
 
-TEST_CASE("Inflate64Truncation", "[inflate64]")
+TEST_CASE("InflateTruncation", "[inflate][inflate64]")
 {
-    auto doTest = [](const char* inputPath, const char* outputPath) {
+    auto doTestWorker = []<inflate_t inflateFunc>(const char* inputPath, const char* outputPath) {
         auto input = read_file(data_directory / inputPath);
         auto output = read_file(data_directory / outputPath);
 
@@ -344,17 +485,22 @@ TEST_CASE("Inflate64Truncation", "[inflate64]")
         std::span<std::byte> outputSpan = {outputBuffer.get(), output.size};
 
         inflatelib::stream stream;
-        REQUIRE(stream.inflate64(inputSpan, outputSpan) == true); // 'true' means not done yet
+        REQUIRE((stream.*inflateFunc)(inputSpan, outputSpan) == true); // 'true' means not done yet
 
         REQUIRE(inputSpan.empty());
         REQUIRE(outputSpan.empty());
 
         // Calling again should immediately return true since there's no new input
         outputSpan = {outputBuffer.get(), output.size}; // Reuse buffer to test that we don't write new data
-        REQUIRE(stream.inflate64(inputSpan, outputSpan) == true);
+        REQUIRE((stream.*inflateFunc)(inputSpan, outputSpan) == true);
         REQUIRE(outputSpan.size() == output.size);
 
         REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
+    };
+
+    auto doTest = [&](const char* inputPath, const char* outputPath) {
+        doTestWorker.operator()<&inflatelib::stream::inflate>(inputPath, outputPath);
+        doTestWorker.operator()<&inflatelib::stream::inflate64>(inputPath, outputPath);
     };
 
     doTest("truncated.uncompressed.block.in.bin", "truncated.uncompressed.block.out.bin");
@@ -365,9 +511,9 @@ TEST_CASE("Inflate64Truncation", "[inflate64]")
     doTest("truncated.static.no-bfinal.in.bin", "truncated.static.no-bfinal.out.bin");
 }
 
-TEST_CASE("Inflate64ExtraData", "[inflate64]")
+TEST_CASE("InflateExtraData", "[inflate][inflate64]")
 {
-    auto doTest = [](const char* inputPath, const char* outputPath) {
+    auto doTestWorker = []<inflate_t inflateFunc>(const char* inputPath, const char* outputPath) {
         auto input = read_file(data_directory / inputPath);
         auto output = read_file(data_directory / outputPath);
 
@@ -376,16 +522,21 @@ TEST_CASE("Inflate64ExtraData", "[inflate64]")
         std::span<std::byte> outputSpan = {outputBuffer.get(), output.size};
 
         inflatelib::stream stream;
-        REQUIRE(stream.inflate64(inputSpan, outputSpan) == false); // 'false' means we've decoded all data
+        REQUIRE((stream.*inflateFunc)(inputSpan, outputSpan) == false); // 'false' means we've decoded all data
         REQUIRE(!inputSpan.empty());                               // Since there's extra data at the end
         REQUIRE(outputSpan.empty());
 
         // Calling again should immediately return false since we've already hit end of stream
         outputSpan = {outputBuffer.get(), output.size}; // Reuse buffer to test that we don't write new data
-        REQUIRE(stream.inflate64(inputSpan, outputSpan) == false);
+        REQUIRE((stream.*inflateFunc)(inputSpan, outputSpan) == false);
         REQUIRE(outputSpan.size() == output.size);
 
         REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
+    };
+
+    auto doTest = [&](const char* inputPath, const char* outputPath) {
+        doTestWorker.operator()<&inflatelib::stream::inflate>(inputPath, outputPath);
+        doTestWorker.operator()<&inflatelib::stream::inflate64>(inputPath, outputPath);
     };
 
     doTest("extra.uncompressed.in.bin", "extra.uncompressed.out.bin");
