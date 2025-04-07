@@ -68,7 +68,7 @@ typedef struct inflatelib_state
 
     /* Inflater state */
     inflate_state ifstate;
-    uint8_t mode  : 1; // See 'INFLATELIB_MODE*' for possible values
+    uint8_t mode : 1;  // See 'INFLATELIB_MODE*' for possible values
     uint8_t btype : 2; // block_type, but 'block_type' is signed and any value gretaer than 1 is negative...
     int bfinal : 1;
 

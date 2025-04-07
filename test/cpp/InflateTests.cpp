@@ -58,7 +58,7 @@ static file_contents read_file(const std::filesystem::path& path)
     if (auto err = ::fopen_s(&handle, path.c_str(), "rb"))
 #endif
     {
-        throw std::system_error(err, std::generic_category(), "Failed to open file");
+        throw std::system_error(err, std::generic_category(), std::format("Failed to open file {}", path.string()));
     }
 
     unique_file file(handle);
@@ -95,6 +95,9 @@ static file_contents read_file(const std::filesystem::path& path)
     return result;
 }
 
+using try_inflate_t = int (inflatelib::stream::*)(std::span<const std::byte>&, std::span<std::byte>&) noexcept;
+
+template <try_inflate_t inflateFunc>
 static void inflate_test_worker(
     const file_contents& input, const file_contents& output, std::size_t readStride, std::size_t writeStride, const char* errFragment)
 {
@@ -113,7 +116,7 @@ static void inflate_test_worker(
     std::size_t readOffset = 0, writeOffset = 0;
     while ((readOffset < input.size) || (writeOffset < outputBufferSize))
     {
-        result = stream.try_inflate64(inputSpan, outputSpan);
+        result = (stream.*inflateFunc)(inputSpan, outputSpan);
         if (result < 0)
         {
             break;
@@ -166,45 +169,46 @@ static void inflate_test_worker(
     }
 }
 
+template <try_inflate_t inflateFunc>
 static void do_inflate_test(const file_contents& input, const file_contents& output, const char* errFragment)
 {
     auto minOutputStride = output.size ? output.size : 0x10000;
 
     // Give ourselves our best opportunity for success; use strides equal to the sizes of the buffers
-    inflate_test_worker(input, output, input.size, minOutputStride, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, input.size, minOutputStride, errFragment);
 
     // Now with a (likely) smaller stride, but still large enough to cause issues with buffer size
-    inflate_test_worker(input, output, 64, minOutputStride, errFragment);
-    inflate_test_worker(input, output, input.size, 64, errFragment);
-    inflate_test_worker(input, output, 64, 64, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, 64, minOutputStride, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, input.size, 64, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, 64, 64, errFragment);
 
     // Now with a much smaller stride, but still large enough to at least hold full symbols
-    inflate_test_worker(input, output, 7, minOutputStride, errFragment);
-    inflate_test_worker(input, output, input.size, 7, errFragment);
-    inflate_test_worker(input, output, 7, 7, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, 7, minOutputStride, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, input.size, 7, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, 7, 7, errFragment);
 
     // And finally, just one byte at a time, which should be the most likely to cause issues
-    inflate_test_worker(input, output, 1, minOutputStride, errFragment);
-    inflate_test_worker(input, output, input.size, 1, errFragment);
-    inflate_test_worker(input, output, 1, 1, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, 1, minOutputStride, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, input.size, 1, errFragment);
+    inflate_test_worker<inflateFunc>(input, output, 1, 1, errFragment);
 }
 
-static void inflate_test(const char* inputFileName, const char* outputFileName)
+static void inflate64_test(const char* inputFileName, const char* outputFileName)
 {
     auto input = read_file(data_directory / inputFileName);
     auto output = read_file(data_directory / outputFileName);
-    do_inflate_test(input, output, nullptr);
+    do_inflate_test<&inflatelib::stream::try_inflate64>(input, output, nullptr);
 }
 
-static void inflate_error_test(const char* inputFileName, const char* errFragment)
+static void inflate64_error_test(const char* inputFileName, const char* errFragment)
 {
     auto input = read_file(data_directory / inputFileName);
-    do_inflate_test(input, {}, errFragment);
+    do_inflate_test<&inflatelib::stream::try_inflate64>(input, {}, errFragment);
 }
 
 TEST_CASE("Inflate64Errors", "[inflate64]")
 {
-    inflate_error_test("error.invalid-block-type.in.bin", "Unexpected block type '3'");
+    inflate64_error_test("error.invalid-block-type.in.bin", "Unexpected block type '3'");
 
     // Error if we call 'inflatelib_inflate64' before calling 'inflate64_init'
     inflatelib_stream stream = {};
@@ -213,95 +217,95 @@ TEST_CASE("Inflate64Errors", "[inflate64]")
 
 TEST_CASE("Inflate64Uncompressed", "[inflate64]")
 {
-    inflate_test("uncompressed.empty.in.bin", "uncompressed.empty.out.bin");
-    inflate_test("uncompressed.single.in.bin", "uncompressed.single.out.bin");
-    inflate_test("uncompressed.multiple.in.bin", "uncompressed.multiple.out.bin");
+    inflate64_test("uncompressed.empty.in.bin", "uncompressed.empty.out.bin");
+    inflate64_test("uncompressed.single.in.bin", "uncompressed.single.out.bin");
+    inflate64_test("uncompressed.multiple.in.bin", "uncompressed.multiple.out.bin");
 
     // Error cases
-    inflate_error_test(
+    inflate64_error_test(
         "uncompressed.error.nlen.in.bin", "Uncompressed block length (7FFF) does not match its encoded one's complement value (0000)");
 }
 
 TEST_CASE("Inflate64CompressedDynamic", "[inflate64]")
 {
-    inflate_test("dynamic.empty.in.bin", "dynamic.empty.out.bin");
-    inflate_test("dynamic.single.deflate64.in.bin", "dynamic.single.deflate64.out.bin");
-    inflate_test("dynamic.multiple.deflate64.in.bin", "dynamic.multiple.deflate64.out.bin");
-    inflate_test("dynamic.overlap.deflate64.in.bin", "dynamic.overlap.deflate64.out.bin");
-    inflate_test("dynamic.length-distance-stress.deflate64.in.bin", "dynamic.length-distance-stress.deflate64.out.bin");
+    inflate64_test("dynamic.empty.in.bin", "dynamic.empty.out.bin");
+    inflate64_test("dynamic.single.deflate64.in.bin", "dynamic.single.deflate64.out.bin");
+    inflate64_test("dynamic.multiple.deflate64.in.bin", "dynamic.multiple.deflate64.out.bin");
+    inflate64_test("dynamic.overlap.deflate64.in.bin", "dynamic.overlap.deflate64.out.bin");
+    inflate64_test("dynamic.length-distance-stress.deflate64.in.bin", "dynamic.length-distance-stress.deflate64.out.bin");
 
     // Error cases
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.tree-size.code-lens.short.in.bin",
         "Too many symbols with code length 1. 3 symbols starting at 0x0 exceeds the specified number of bits");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.tree-size.code-lens.tall.in.bin",
         "Too many symbols with code length 7. 3 symbols starting at 0x7E exceeds the specified number of bits");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.tree-size.literals.short.in.bin",
         "Too many symbols with code length 1. 3 symbols starting at 0x0 exceeds the specified number of bits");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.tree-size.literals.tall.in.bin",
         "Too many symbols with code length 15. 3 symbols starting at 0x7FFE exceeds the specified number of bits");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.tree-size.distances.short.in.bin",
         "Too many symbols with code length 1. 3 symbols starting at 0x0 exceeds the specified number of bits");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.tree-size.distances.tall.in.bin",
         "Too many symbols with code length 15. 3 symbols starting at 0x7FFE exceeds the specified number of bits");
 
-    inflate_error_test("dynamic.error.code-lens-oob-repeat.begin.in.bin", "Code length repeat code encountered at beginning of data");
-    inflate_error_test(
+    inflate64_error_test("dynamic.error.code-lens-oob-repeat.begin.in.bin", "Code length repeat code encountered at beginning of data");
+    inflate64_error_test(
         "dynamic.error.code-lens-oob-repeat.end-prev.in.bin", "Code length repeat code specifies 6 repetitions, but only 5 codes remain");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.code-lens-oob-repeat.end-short.in.bin", "Zero repeat code specifies 10 repetitions, but only 9 codes remain");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.code-lens-oob-repeat.end-long.in.bin", "Zero repeat code specifies 138 repetitions, but only 1 codes remain");
 
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.failed-lookup.code-lens.in.bin", "Input bit sequence 0x15 is not a valid Huffman code for the encoded table");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.failed-lookup.literals.short.in.bin", "Input bit sequence 0x6D is not a valid Huffman code for the encoded table");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.failed-lookup.literals.long.in.bin", "Input bit sequence 0xD16 is not a valid Huffman code for the encoded table");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.failed-lookup.distances.short.in.bin", "Input bit sequence 0x2B is not a valid Huffman code for the encoded table");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.failed-lookup.distances.long.in.bin", "Input bit sequence 0x58E is not a valid Huffman code for the encoded table");
 
-    inflate_error_test("dynamic.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
-    inflate_error_test("dynamic.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
+    inflate64_error_test("dynamic.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
+    inflate64_error_test("dynamic.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
 
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
-    inflate_error_test(
+    inflate64_error_test(
         "dynamic.error.distance-oob.long.deflate64.in.bin",
         "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
 }
 
 TEST_CASE("Inflate64CompressedStatic", "[inflate64]")
 {
-    inflate_test("static.empty.in.bin", "static.empty.out.bin");
-    inflate_test("static.single.deflate64.in.bin", "static.single.deflate64.out.bin");
-    inflate_test("static.multiple.deflate64.in.bin", "static.multiple.deflate64.out.bin");
-    inflate_test("static.overlap.deflate64.in.bin", "static.overlap.deflate64.out.bin");
-    inflate_test("static.length-distance-stress.deflate64.in.bin", "static.length-distance-stress.deflate64.out.bin");
+    inflate64_test("static.empty.in.bin", "static.empty.out.bin");
+    inflate64_test("static.single.deflate64.in.bin", "static.single.deflate64.out.bin");
+    inflate64_test("static.multiple.deflate64.in.bin", "static.multiple.deflate64.out.bin");
+    inflate64_test("static.overlap.deflate64.in.bin", "static.overlap.deflate64.out.bin");
+    inflate64_test("static.length-distance-stress.deflate64.in.bin", "static.length-distance-stress.deflate64.out.bin");
 
-    inflate_error_test("static.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
-    inflate_error_test("static.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
+    inflate64_error_test("static.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
+    inflate64_error_test("static.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
 
-    inflate_error_test(
+    inflate64_error_test(
         "static.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
-    inflate_error_test(
+    inflate64_error_test(
         "static.error.distance-oob.long.deflate64.in.bin",
         "Compressed block has a distance '65536' which exceeds the size of the window (65535 bytes)");
 }
 
 TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
 {
-    inflate_test("mixed.empty.in.bin", "mixed.empty.out.bin");
-    inflate_test("mixed.simple.in.bin", "mixed.simple.out.bin");
-    inflate_test("mixed.overlap.deflate64.in.bin", "mixed.overlap.deflate64.out.bin");
+    inflate64_test("mixed.empty.in.bin", "mixed.empty.out.bin");
+    inflate64_test("mixed.simple.in.bin", "mixed.simple.out.bin");
+    inflate64_test("mixed.overlap.deflate64.in.bin", "mixed.overlap.deflate64.out.bin");
 
     // Verify nothing bad happens if we call with no data
     {
@@ -324,9 +328,9 @@ TEST_CASE("Inflate64CompressedMixed", "[inflate64]")
 TEST_CASE("Inflate64RealWorldData", "[inflate64]")
 {
     // Tests a collection of files compressed with 7-Zip in an attempt to test scenarios that represent "real world data"
-    inflate_test("file.bin-write.deflate64.exe.in.bin", "file.bin-write.deflate64.exe.out.bin");
-    inflate_test("file.magna-carta.deflate64.txt.in.bin", "file.magna-carta.deflate64.txt.out.bin");
-    inflate_test("file.us-constitution.deflate64.txt.in.bin", "file.us-constitution.deflate64.txt.out.bin");
+    inflate64_test("file.bin-write.deflate64.exe.in.bin", "file.bin-write.deflate64.exe.out.bin");
+    inflate64_test("file.magna-carta.deflate64.txt.in.bin", "file.magna-carta.deflate64.txt.out.bin");
+    inflate64_test("file.us-constitution.deflate64.txt.in.bin", "file.us-constitution.deflate64.txt.out.bin");
 }
 
 TEST_CASE("Inflate64Truncation", "[inflate64]")
