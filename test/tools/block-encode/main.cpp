@@ -5,6 +5,7 @@
 #include <iostream>
 #include <print>
 #include <queue>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -15,14 +16,14 @@ using namespace std::literals;
 
 #define IGNORED_CHARACTERS " \t,;.#"
 
-struct length_offset_encoding_data
+struct sized_offset_encoding_data
 {
-    std::uint8_t extra_bits;
     std::uint32_t base_offset;
-    std::uint16_t max_extra_data;
+    std::uint8_t extra_bits;
     std::uint32_t max_offset;
+    std::uint16_t max_extra_data;
 
-    constexpr length_offset_encoding_data(std::uint8_t extraBits, std::uint32_t baseOffset) noexcept :
+    constexpr sized_offset_encoding_data(std::uint32_t baseOffset, std::uint8_t extraBits) noexcept :
         extra_bits(extraBits), base_offset(baseOffset)
     {
         max_extra_data = static_cast<std::uint16_t>((1 << extra_bits) - 1);
@@ -31,72 +32,113 @@ struct length_offset_encoding_data
 };
 
 // Index by subtracting 257
-static constexpr const length_offset_encoding_data length_encoding_data[] = {
-    {0, 3},   // 257
-    {0, 4},   // 258
-    {0, 5},   // 259
-    {0, 6},   // 260
-    {0, 7},   // 261
-    {0, 8},   // 262
-    {0, 9},   // 263
-    {0, 10},  // 264
-    {1, 11},  // 265
-    {1, 13},  // 266
-    {1, 15},  // 267
-    {1, 17},  // 268
-    {2, 19},  // 269
-    {2, 23},  // 270
-    {2, 27},  // 271
-    {2, 31},  // 272
-    {3, 35},  // 273
-    {3, 43},  // 274
-    {3, 51},  // 275
-    {3, 59},  // 276
-    {4, 67},  // 277
-    {4, 83},  // 278
-    {4, 99},  // 279
-    {4, 115}, // 280
-    {5, 131}, // 281
-    {5, 163}, // 282
-    {5, 195}, // 283
-    {5, 227}, // 284
-    {16, 3},  // 285
+static constexpr const sized_offset_encoding_data deflate_length_encoding_data[] = {
+    {3, 0},   // 257
+    {4, 0},   // 258
+    {5, 0},   // 259
+    {6, 0},   // 260
+    {7, 0},   // 261
+    {8, 0},   // 262
+    {9, 0},   // 263
+    {10, 0},  // 264
+    {11, 1},  // 265
+    {13, 1},  // 266
+    {15, 1},  // 267
+    {17, 1},  // 268
+    {19, 2},  // 269
+    {23, 2},  // 270
+    {27, 2},  // 271
+    {31, 2},  // 272
+    {35, 3},  // 273
+    {43, 3},  // 274
+    {51, 3},  // 275
+    {59, 3},  // 276
+    {67, 4},  // 277
+    {83, 4},  // 278
+    {99, 4},  // 279
+    {115, 4}, // 280
+    {131, 5}, // 281
+    {163, 5}, // 282
+    {195, 5}, // 283
+    {227, 5}, // 284
+    {258, 0}, // 285
 };
 
-static constexpr const length_offset_encoding_data distance_encoding_data[] = {
-    {0, 1},      // 0
-    {0, 2},      // 1
-    {0, 3},      // 2
-    {0, 4},      // 3
-    {1, 5},      // 4
-    {1, 7},      // 5
-    {2, 9},      // 6
-    {2, 13},     // 7
-    {3, 17},     // 8
-    {3, 25},     // 9
-    {4, 33},     // 10
-    {4, 49},     // 11
-    {5, 65},     // 12
-    {5, 97},     // 13
-    {6, 129},    // 14
-    {6, 193},    // 15
-    {7, 257},    // 16
-    {7, 385},    // 17
-    {8, 513},    // 18
-    {8, 769},    // 19
-    {9, 1025},   // 20
-    {9, 1537},   // 21
-    {10, 2049},  // 22
-    {10, 3073},  // 23
-    {11, 4097},  // 24
-    {11, 6145},  // 25
-    {12, 8193},  // 26
-    {12, 12289}, // 27
-    {13, 16385}, // 28
-    {13, 24577}, // 29
-    {14, 32769}, // 30
-    {14, 49153}, // 31
+static constexpr const sized_offset_encoding_data deflate64_length_encoding_data[] = {
+    {3, 0},   // 257
+    {4, 0},   // 258
+    {5, 0},   // 259
+    {6, 0},   // 260
+    {7, 0},   // 261
+    {8, 0},   // 262
+    {9, 0},   // 263
+    {10, 0},  // 264
+    {11, 1},  // 265
+    {13, 1},  // 266
+    {15, 1},  // 267
+    {17, 1},  // 268
+    {19, 2},  // 269
+    {23, 2},  // 270
+    {27, 2},  // 271
+    {31, 2},  // 272
+    {35, 3},  // 273
+    {43, 3},  // 274
+    {51, 3},  // 275
+    {59, 3},  // 276
+    {67, 4},  // 277
+    {83, 4},  // 278
+    {99, 4},  // 279
+    {115, 4}, // 280
+    {131, 5}, // 281
+    {163, 5}, // 282
+    {195, 5}, // 283
+    {227, 5}, // 284
+    {3, 16},  // 285
 };
+
+static constexpr const sized_offset_encoding_data distance_encoding_data[] = {
+    {1, 0},      // 0
+    {2, 0},      // 1
+    {3, 0},      // 2
+    {4, 0},      // 3
+    {5, 1},      // 4
+    {7, 1},      // 5
+    {9, 2},      // 6
+    {13, 2},     // 7
+    {17, 3},     // 8
+    {25, 3},     // 9
+    {33, 4},     // 10
+    {49, 4},     // 11
+    {65, 5},     // 12
+    {97, 5},     // 13
+    {129, 6},    // 14
+    {193, 6},    // 15
+    {257, 7},    // 16
+    {385, 7},    // 17
+    {513, 8},    // 18
+    {769, 8},    // 19
+    {1025, 9},   // 20
+    {1537, 9},   // 21
+    {2049, 10},  // 22
+    {3073, 10},  // 23
+    {4097, 11},  // 24
+    {6145, 11},  // 25
+    {8193, 12},  // 26
+    {12289, 12}, // 27
+    {16385, 13}, // 28
+    {24577, 13}, // 29
+    {32769, 14}, // 30
+    {49153, 14}, // 31
+};
+
+struct encoding_data
+{
+    std::span<const sized_offset_encoding_data> lengths;
+    std::span<const sized_offset_encoding_data> distances;
+};
+
+static constexpr const encoding_data deflate_encoding_data = {deflate_length_encoding_data, {distance_encoding_data, 30}};
+static constexpr const encoding_data deflate64_encoding_data = {deflate64_length_encoding_data, distance_encoding_data};
 
 template <typename T>
 static bool read_number(const std::string& str, std::string::size_type& pos, T& result)
@@ -156,7 +198,7 @@ struct output_symbol
     }
 };
 
-static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbol>& output)
+static bool read_input_as_symbols(std::istream& stream, const encoding_data& encoding, std::vector<output_symbol>& output)
 {
     std::string line;
     while (std::getline(stream, line) && !line.empty())
@@ -287,37 +329,36 @@ static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbo
             ++pos;
 
             // Finally, convert these values to actual data
-            auto findInfo = [](const auto& info, std::uint32_t value) -> const length_offset_encoding_data* {
-                for (std::size_t i = 0; i < std::size(info); ++i)
+            auto findInfo = [](std::span<const sized_offset_encoding_data> info, std::uint32_t value) -> std::size_t {
+                for (std::size_t i = 0; i < info.size(); ++i)
                 {
-                    auto ptr = info + i;
-                    if ((value >= ptr->base_offset) && (value <= ptr->max_offset))
+                    if ((value >= info[i].base_offset) && (value <= info[i].max_offset))
                     {
-                        return ptr;
+                        return i;
                     }
                 }
 
                 std::println("ERROR: Value '{}' does not match any valid range", value);
-                return nullptr;
+                return info.size();
             };
 
-            auto lengthInfo = findInfo(length_encoding_data, length);
-            if (!lengthInfo)
+            auto lengthIndex = findInfo(encoding.lengths, length);
+            if (lengthIndex == encoding.lengths.size())
             {
                 return false;
             }
             output.push_back(
                 output_symbol::make_length(
-                    257 + (lengthInfo - length_encoding_data), static_cast<std::uint16_t>(length - lengthInfo->base_offset)));
+                    257 + lengthIndex, static_cast<std::uint16_t>(length - encoding.lengths[lengthIndex].base_offset)));
 
-            auto distanceInfo = findInfo(distance_encoding_data, distance);
-            if (!distanceInfo)
+            auto distanceIndex = findInfo(encoding.distances, distance);
+            if (distanceIndex == encoding.distances.size())
             {
                 return false;
             }
             output.push_back(
                 output_symbol::make_distance(
-                    distanceInfo - distance_encoding_data, static_cast<std::uint16_t>(distance - distanceInfo->base_offset)));
+                    distanceIndex, static_cast<std::uint16_t>(distance - encoding.distances[distanceIndex].base_offset)));
 
             index = pos;
             break;
@@ -338,6 +379,11 @@ static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbo
                 output.push_back(output_symbol::make_literal(symbol));
                 break;
             }
+            else if (symbol > 285)
+            {
+                std::println("ERROR: Length symbol '{}' exceeds maximum of 285", symbol);
+                return false;
+            }
 
             std::uint16_t extraData = 0;
             if (symbol >= 265)
@@ -354,7 +400,7 @@ static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbo
                     return false;
                 }
 
-                auto& info = length_encoding_data[symbol - 257];
+                auto& info = encoding.lengths[symbol - 257];
                 if (extraData > info.max_extra_data)
                 {
                     std::println("ERROR: Extra data '{}' exceeds maximum of {}", extraData, info.max_extra_data);
@@ -363,13 +409,8 @@ static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbo
             }
 
             output.push_back(output_symbol::make_length(symbol, extraData));
-            if (symbol <= 256)
-            {
-                // Literal or end of block; either case there's no additional data
-                break;
-            }
 
-            // Otherwise, this is a length & we need to read a distance
+            // Now read the distance
             index = line.find_first_not_of(IGNORED_CHARACTERS, index);
             if (index == std::string::npos)
             {
@@ -379,6 +420,12 @@ static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbo
 
             if (!read_number(line, index, symbol))
             {
+                return false;
+            }
+
+            if (symbol >= encoding.distances.size())
+            {
+                std::println("ERROR: Distance symbol '{}' exceeds maximum of {}", symbol, encoding.distances.size() - 1);
                 return false;
             }
 
@@ -397,7 +444,7 @@ static bool read_input_as_symbols(std::istream& stream, std::vector<output_symbo
                     return false;
                 }
 
-                auto& info = distance_encoding_data[symbol];
+                auto& info = encoding.distances[symbol];
                 if (extraData > info.max_extra_data)
                 {
                     std::println("ERROR: Extra data '{}' exceeds maximum of {}", extraData, info.max_extra_data);
@@ -628,24 +675,77 @@ static bool calculate_codes(const std::uint8_t (&lens)[N], std::uint16_t (&codes
     return true;
 }
 
+void print_usage()
+{
+    std::println(R"^-^(
+USAGE
+    block-encode <deflate | deflate64> [input-path] [static]
+
+DESCRIPTION
+    Encodes the input data as a single block using the specified encoding. Note that this does NOT compress the data;
+    it merely encodes the data as specified. Length/distance pairs can be specified either as a pair of the form
+    '(<length>, <distance>)' or as explicit values of the form
+    '<length-symbol> [length-extra-data] <distance-symbol> [distance-extra-data]'. In the latter case, you are
+    responsible for knowing whether or not the specified symbol requires extra data as well as its range (0-2^N where N
+    is the number of extra bits for the symbol). The output is text that can be used with the 'bin-write' executable to
+    produce the binary output.
+
+ARGUMENTS
+    deflate | deflate64   Specifies how output data should be encoded.
+    input-path            The path to the input file. If not provided, input will be read from stdin.
+    static                Use the static tables for the encoding. If not provided, the input data will be used.
+)^-^");
+}
+
 int main(int argc, char** argv)
 {
+    if (argc < 2)
+    {
+        std::println("ERROR: Too few arguments\n");
+        return print_usage(), 1;
+    }
+    else if (argc > 4)
+    {
+        std::println("ERROR: Too many arguments\n");
+        return print_usage(), 1;
+    }
+
+    const encoding_data* encoding = nullptr;
+    int argIndex = 1;
+    if (argv[argIndex] == "deflate"sv)
+    {
+        encoding = &deflate_encoding_data;
+    }
+    else if (argv[argIndex] == "deflate64"sv)
+    {
+        encoding = &deflate64_encoding_data;
+    }
+    else
+    {
+        std::println("ERROR: Unknown encoding type '{}'. Expected 'deflate' or 'deflate64'", argv[1]);
+        return print_usage(), 1;
+    }
+
+    ++argIndex; // Required arg
+
     // Read in the output we are expected to generate
     std::vector<output_symbol> outputData;
-    if (argc > 1)
+    if ((argIndex < argc) && (argv[argIndex] != "static"sv))
     {
         // Input comes from a file
-        std::ifstream file(argv[1]);
+        std::ifstream file(argv[argIndex]);
         if (!file)
         {
-            std::println("Failed to open file '{}'", argv[1]);
+            std::println("Failed to open file '{}'", argv[argIndex]);
             return 1;
         }
 
-        if (!read_input_as_symbols(file, outputData))
+        if (!read_input_as_symbols(file, *encoding, outputData))
         {
             return 1;
         }
+
+        ++argIndex;
     }
     else
     {
@@ -656,7 +756,7 @@ int main(int argc, char** argv)
         std::println("    \"<string>\"");
         std::println("    (<length>, <distance>)");
         std::println("Enter an empty line to indicate completion:");
-        if (!read_input_as_symbols(std::cin, outputData))
+        if (!read_input_as_symbols(std::cin, *encoding, outputData))
         {
             return 1;
         }
@@ -669,9 +769,9 @@ int main(int argc, char** argv)
     std::uint8_t maxDistance = 0;
     bool hasDistanceCodes = true;
     bool usingStaticTables = false;
-    if (argc > 2)
+    if (argIndex < argc)
     {
-        std::string_view cmd = argv[2];
+        std::string_view cmd = argv[argIndex];
         if (cmd == "static"sv)
         {
             usingStaticTables = true;
@@ -706,7 +806,11 @@ int main(int argc, char** argv)
         {
             // Input comes from a file
             // TODO
+            std::println("ERROR: User-specified code lengths not yet implemented");
+            return print_usage(), 1;
         }
+
+        ++argIndex;
     }
     else
     {
@@ -1021,7 +1125,7 @@ int main(int argc, char** argv)
             }
 
             // Otherwise, there is extra data
-            auto& info = length_encoding_data[next.symbol - 257];
+            auto& info = encoding->lengths[next.symbol - 257];
             assert(next.extra_data <= info.max_extra_data); // Already validated
             std::print(" >1 {:0>{}b} >>1", next.extra_data, info.extra_bits);
             break;
@@ -1037,7 +1141,7 @@ int main(int argc, char** argv)
             }
 
             // Otherwise, there is extra data
-            auto& info = distance_encoding_data[next.symbol];
+            auto& info = encoding->distances[next.symbol];
             assert(next.extra_data <= info.max_extra_data); // Already validated
             std::print(">1 {:0>{}b} >>1", next.extra_data, info.extra_bits);
             break;
