@@ -33,6 +33,16 @@ int main(int argc, char** argv)
 
 void print_usage()
 {
-    std::printf("USAGE:\n");
-    std::printf("  bin-write <input_file> <output_file>\n");
+    std::println(R"^-^(
+USAGE
+    bin-write <input-path> <output-path>
+
+DESCRIPTION
+    Converts 'input-path' to the binary file 'output-path'. See the 'grammar.md' for more information on the grammar
+    used to parse the input file.
+
+ARGUMENTS
+    input-path   The path to the input file.
+    output-path  The path to the output file.
+)^-^");
 }

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <iostream>
+#include <print>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -35,8 +36,8 @@ std::vector<IntT> read_line_as_array()
         auto [ptr, ec] = std::from_chars(begin, end, value);
         if (ec != std::errc{})
         {
-            std::printf("ERROR: '%s' is not a valid integer\n", begin);
-            std::printf("ERROR: %s\n", std::make_error_code(ec).message().c_str());
+            std::println("ERROR: '{}' is not a valid integer", begin);
+            std::println("ERROR: {}", std::make_error_code(ec).message().c_str());
             return {};
         }
 
@@ -46,7 +47,7 @@ std::vector<IntT> read_line_as_array()
 
     if (result.empty())
     {
-        std::printf("ERROR: No values specified\n");
+        std::println("ERROR: No values specified");
     }
 
     return result;
@@ -70,7 +71,7 @@ int main()
 {
     std::string line;
 
-    std::printf("Enter the code lengths array: ");
+    std::print("Enter the code lengths array: ");
     auto codeLens = read_line_as_array<std::uint8_t>();
     if (codeLens.empty())
     {
@@ -78,11 +79,11 @@ int main()
     }
     else if (codeLens.size() > 288)
     {
-        std::printf("ERROR: Too many code lengths; specified %zu, but max is 288\n", codeLens.size());
+        std::println("ERROR: Too many code lengths; specified {}, but max is 288", codeLens.size());
         return 1;
     }
 
-    std::printf("Enter the data you wish to encode: ");
+    std::print("Enter the data you wish to encode: ");
     auto data = read_line_as_array<std::uint16_t>();
     if (data.empty())
     {
@@ -95,7 +96,7 @@ int main()
     {
         if (len > 15)
         {
-            std::printf("ERROR: Code length of %u is invalid; maximum allowed value is 15\n", len);
+            std::println("ERROR: Code length of {} is invalid; maximum allowed value is 15", len);
             return 1;
         }
 
@@ -129,14 +130,14 @@ int main()
     {
         if (value >= codeLens.size())
         {
-            std::printf("ERROR: Output value %u is out of range; max value is %zu\n", value, codeLens.size() - 1);
+            std::println("ERROR: Output value {} is out of range; max value is {}", value, codeLens.size() - 1);
             return 1;
         }
 
         auto bits = codeLens[value];
         if (!bits)
         {
-            std::printf("ERROR: Output value %u has no code assigned (code length of zero)\n", value);
+            std::println("ERROR: Output value {} has no code assigned (code length of zero)", value);
             return 1;
         }
 
@@ -158,13 +159,13 @@ int main()
         output.push_back(nextValue & 0xFF);
     }
 
-    std::printf("\nEncoded data: ");
+    std::print("\nEncoded data: ");
 
     const char* prefix = "";
     for (auto value : output)
     {
-        std::printf("%s0x%02X", prefix, value);
+        std::print("{}0x{:02X}", prefix, value);
         prefix = ", ";
     }
-    std::printf("\n");
+    std::println();
 }

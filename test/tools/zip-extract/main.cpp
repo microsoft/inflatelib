@@ -189,20 +189,35 @@ static const char* compression_method(std::uint16_t method) noexcept
     }
 }
 
+void print_usage()
+{
+    std::println(R"^-^(
+USAGE
+    zip-extract <path>
+
+DESCRIPTION
+    "Extracts" the file data portion as-is from all files in the specified zip file. This outputs text in a format that
+    can be used with the 'bin-write' executable to reproduce each individual file's contents as it appears in the zip
+    file.
+
+ARGUMENTS
+    path    The path to the input zip file.
+)^-^");
+}
+
 int main(int argc, char** argv)
 {
     if (argc != 2)
     {
         std::println("ERROR: Expected path to a zip file");
-        std::println("Usage: zip-extract <path>");
-        return 1;
+        return print_usage(), 1;
     }
 
     FILE* file;
     if (fopen_s(&file, argv[1], "rb") != 0)
     {
         std::println("ERROR: Failed to open file '{}'", argv[1]);
-        return 1;
+        return print_usage(), 1;
     }
 
     // Figure out the size of the file

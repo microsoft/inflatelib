@@ -2,20 +2,34 @@
 #include <cstdio>
 #include <print>
 
+void print_usage()
+{
+    std::println(R"^-^(
+USAGE
+    byte-view <path>
+
+DESCRIPTION
+    Outputs the contents of a file in a format that can be used with the 'bin-write' executable to reproduce the exact
+    same file as the input.
+
+ARGUMENTS
+    path    The path to the input file.
+)^-^");
+}
+
 int main(int argc, char** argv)
 {
     if (argc != 2)
     {
         std::println("ERROR: Expected path to a file");
-        std::println("Usage: byte-view <path>");
-        return 1;
+        return print_usage(), 1;
     }
 
     FILE* file;
     if (fopen_s(&file, argv[1], "rb") != 0)
     {
         std::println("ERROR: Failed to open file '{}'", argv[1]);
-        return 1;
+        return print_usage(), 1;
     }
 
     // Get the file size just for logging
