@@ -339,6 +339,7 @@ static bool read_input_as_symbols(std::istream& stream, const encoding_data& enc
                 }
 
                 std::println("ERROR: Value '{}' does not match any valid range", value);
+                std::println("NOTE: Expected a value between {} and {}", info.front().base_offset, info.back().max_offset);
                 return info.size();
             };
 
@@ -386,7 +387,8 @@ static bool read_input_as_symbols(std::istream& stream, const encoding_data& enc
             }
 
             std::uint16_t extraData = 0;
-            if (symbol >= 265)
+            auto& info = encoding.lengths[symbol - 257];
+            if (info.extra_bits > 0)
             {
                 index = line.find_first_not_of(IGNORED_CHARACTERS, index);
                 if (index == std::string::npos)
@@ -1118,16 +1120,18 @@ int main(int argc, char** argv)
         case symbol_type::literal_length:
         {
             std::print("{:0>{}b}", literalLengthCodes[next.symbol], literalLengthCodeLens[next.symbol]);
-            if (next.symbol <= 264)
+            if (next.symbol <= 256)
             {
-                assert(next.extra_data == 0); // No extra data
+                assert(next.extra_data == 0); // Literal or end of block; no extra data
                 break;
             }
 
-            // Otherwise, there is extra data
             auto& info = encoding->lengths[next.symbol - 257];
             assert(next.extra_data <= info.max_extra_data); // Already validated
-            std::print(" >1 {:0>{}b} >>1", next.extra_data, info.extra_bits);
+            if (info.extra_bits > 0)
+            {
+                std::print(" >1 {:0>{}b} >>1", next.extra_data, info.extra_bits);
+            }
             break;
         }
 

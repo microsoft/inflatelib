@@ -1,0 +1,103 @@
+
+# Tests several scenarios where window copies overlap itself. The inputs are as follows
+#   * Write the string "This tests overlapped writes" (28 characters)
+#   * Repeat the string 9 times, offset at the beginning of the string (overlapping 8 times): (252, 28)
+#   * Repeat the string 9 times, offset 4 strings back (overlapping 5 times): (252, 112)
+#   * Repeat the string 9 times, offset 8 strings back (overlapping once): (252, 224)
+#   * Write the literal '0'
+#   * Copy '0' 258 times (overlapping 257 times): (258, 1)
+# NOTE: This test is only applicable to Deflate
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+11100   # HLIT = 285 (28 + 257)
+01111   # HDIST = 16 (15 + 1)
+1100    # HCLEN = 16 (12 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 100 011 010 000 000 000 000 000 010 000 011 000 100 000 011
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+01
+110 >1 0010100 >>1
+101
+110 >1 0101000 >>1
+01
+110 >1 0000001 >>1
+01
+00
+00
+01
+1110
+00
+00
+01
+101
+00
+00
+01
+00
+00
+01
+101
+00
+101
+1110
+101
+00
+01
+01
+110 >1 1111101 >>1
+01
+110 >1 0010000 >>1
+1110
+100
+1111 >1 101 >>1
+100
+1111 >1 000 >>1
+100
+00
+100
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   0           5           10110
+#   ' '         4           0110
+#   'T'         5           10111
+#   'a'         5           11000
+#   'd'         5           11001
+#   'e'         3           000
+#   'h'         5           11010
+#   'i'         4           0111
+#   'l'         5           11011
+#   'o'         5           11100
+#   'p'         4           1000
+#   'r'         4           1001
+#   's'         3           001
+#   't'         4           1010
+#   'v'         5           11101
+#   'w'         5           11110
+#   END         5           11111
+#   284         3           010
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   0           2           00
+#   9           2           01
+#   13          2           10
+#   15          2           11
+
+# Encoded Data:
+>>1
+10111 11010 0111 001 0110
+1010 000 001 1010 001 0110
+11100 11101 000 1001 11011 11000 1000 1000 000 11001 0110
+11110 1001 0111 1010 000 001
+010 >1 11001 >>1 01 >1 011 >>1
+010 >1 11001 >>1 10 >1 01111 >>1
+010 >1 11001 >>1 11 >1 011111 >>1
+10110
+010 >1 11111 >>1 00
+11111
