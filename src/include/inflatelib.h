@@ -2,6 +2,7 @@
  *
  */
 #ifndef INFLATELIB_H
+#define INFLATELIB_H
 
 #include <stdint.h>
 
