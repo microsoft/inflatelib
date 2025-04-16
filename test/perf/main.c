@@ -28,7 +28,7 @@ static const char* const deflate64_files[] = {
     "file.us-constitution.deflate64.txt.in.bin",
 };
 
-const pinflater deflate_inflaters[] = { &inflatelib_inflater.vtable };
+const pinflater deflate_inflaters[] = { &inflatelib_inflater.vtable, &zlib_inflater.vtable };
 const pinflater deflate64_inflaters[] = { &inflatelib_inflater.vtable };
 
 typedef struct test_desc

@@ -88,3 +88,76 @@ inflatelib_inflater_t inflatelib_inflater = {
     .vtable = &inflatelib_inflater_vtable,
     .stream = {0},
 };
+
+int zlib_inflater_init(void* self)
+{
+    zlib_inflater_t* pThis = (zlib_inflater_t*)self;
+    if (inflateInit2(&pThis->stream, -15) != Z_OK) /* Don't check for zlib header */
+    {
+        printf("ERROR: inflateInit2 failed\n");
+        printf("ERROR: %s\n", pThis->stream.msg);
+        return 0;
+    }
+
+    return 1;
+}
+
+void zlib_inflater_destroy(void* self)
+{
+    zlib_inflater_t* pThis = (zlib_inflater_t*)self;
+    inflateEnd(&pThis->stream);
+}
+
+const char* zlib_inflater_name(void* pThis)
+{
+    return "zlib";
+}
+
+int zlib_inflater_inflate(void* self, deflate_algorithm alg, const file_data* input, uint8_t* outputBuffer)
+{
+    zlib_inflater_t* pThis = (zlib_inflater_t*)self;
+    int inflateResult;
+
+    assert(alg == deflate_algorithm_deflate);
+
+    inflateReset(&pThis->stream);
+
+    /* Initialize stream buffers */
+    pThis->stream.next_in = input->buffer;
+    pThis->stream.avail_in = input->bytes;
+
+    while (1)
+    {
+        pThis->stream.next_out = outputBuffer;
+        pThis->stream.avail_out = output_buffer_size;
+        inflateResult = inflate(&pThis->stream, 0);
+        if (inflateResult == Z_STREAM_END)
+        {
+            /* Tests for validity are done elsewhere; this is just a sanity check */
+            assert(pThis->stream.avail_in == 0);
+            return 1;
+        }
+        else if (inflateResult < 0)
+        {
+            /* Realistically should only happen because of bad data, which shouldn't ever be the case */
+            assert(0);
+            printf("ERROR: inflate unexpectedly failed for file '%s'\n", input->filename);
+            printf("ERROR: %s\n", pThis->stream.msg);
+            return 0;
+        }
+
+        assert(pThis->stream.avail_in > 0);
+    }
+}
+
+static const inflater_vtable zlib_inflater_vtable = {
+    .init = zlib_inflater_init,
+    .destroy = zlib_inflater_destroy,
+    .name = zlib_inflater_name,
+    .inflate_file = zlib_inflater_inflate,
+};
+
+zlib_inflater_t zlib_inflater = {
+    .vtable = &zlib_inflater_vtable,
+    .stream = {0},
+};

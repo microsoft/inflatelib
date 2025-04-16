@@ -3,6 +3,7 @@
 #define ALGORITHMS_H
 
 #include <inflatelib.h>
+#include <zlib.h>
 
 #include "file_io.h"
 
@@ -35,5 +36,13 @@ typedef struct inflatelib_inflater_t
 } inflatelib_inflater_t;
 
 extern inflatelib_inflater_t inflatelib_inflater;
+
+typedef struct zlib_inflater_t
+{
+    const inflater_vtable* const vtable;
+    z_stream stream;
+} zlib_inflater_t;
+
+extern zlib_inflater_t zlib_inflater;
 
 #endif

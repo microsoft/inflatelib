@@ -8,10 +8,8 @@ target_link_libraries(cpptests
         Catch2::Catch2WithMain
     )
 
-# 
 target_include_directories(cpptests
     PRIVATE
-#        ${CMAKE_SOURCE_DIR}/src/include
         ${CMAKE_SOURCE_DIR}/src/lib
     )
 
