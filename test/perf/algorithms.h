@@ -23,7 +23,7 @@ typedef struct inflater_vtable
     int (*init)(void* pThis);
     void (*destroy)(void* pThis);
     const char* (*name)(void* pThis);
-    int (*inflate_file)(void* pThis, deflate_algorithm alg, const file_data* input, uint8_t* outputBuffer);
+    int (*inflate_file)(void* pThis, const file_data* input, uint8_t* outputBuffer);
 } inflater_vtable;
 
 /* Convenient typedefs so these look more "object-like". The 'p' indicates that it's a "pointer to" an inflater */
@@ -36,6 +36,7 @@ typedef struct inflatelib_inflater_t
 } inflatelib_inflater_t;
 
 extern inflatelib_inflater_t inflatelib_inflater;
+extern inflatelib_inflater_t inflatelib_inflater64;
 
 typedef struct zlib_inflater_t
 {

@@ -29,7 +29,7 @@ static const char* const deflate64_files[] = {
 };
 
 const pinflater deflate_inflaters[] = { &inflatelib_inflater.vtable, &zlib_inflater.vtable };
-const pinflater deflate64_inflaters[] = { &inflatelib_inflater.vtable };
+const pinflater deflate64_inflaters[] = { &inflatelib_inflater64.vtable };
 
 typedef struct test_desc
 {
@@ -202,7 +202,7 @@ int main()
     }
 
     /* Finally, run the tests */
-    if (run_tests(&deflate_tests) != 0)
+    if ((run_tests(&deflate_tests) != 0) || (run_tests(&deflate64_tests) != 0))
     {
         result = 1;
     }
@@ -221,6 +221,9 @@ static int run_tests(test_desc* data)
     int result = 0;
     uint8_t* outputBuffer = NULL;
     uint64_t* times = NULL;
+
+    printf("--------------------------------------------------------------------------------\n");
+    printf("Running tests for %s...\n", deflate_algorithm_string(data->algorithm));
 
     outputBuffer = (uint8_t*)malloc(output_buffer_size);
     if (!outputBuffer)
@@ -251,7 +254,7 @@ static int run_tests(test_desc* data)
             for (size_t fileCount = 0; fileCount < data->file_count; ++fileCount)
             {
                 uint64_t fileStartTime = current_time();
-                if (!(*data->inflaters[inflaterIndex])->inflate_file((void*)data->inflaters[inflaterIndex], data->algorithm, &data->files[fileCount], outputBuffer))
+                if (!(*data->inflaters[inflaterIndex])->inflate_file((void*)data->inflaters[inflaterIndex], &data->files[fileCount], outputBuffer))
                 {
                     printf("ERROR: Failed to inflate file '%s'\n", data->files[fileCount].filename);
                     free(times);
