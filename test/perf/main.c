@@ -309,7 +309,7 @@ static const char histogram_symbols[] = {'#', '*', 'X', 'O'};
 int print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint64_t width, uint64_t height)
 {
     size_t titleLen = strlen(title);
-    uint64_t minX = data[0].min, maxX = data[0].max;
+    uint64_t minX = 0xFFFFFFFFFFFFFFFFull, maxX = 0;
     uint64_t strideX, startX;
     uint64_t maxY = 0;
     uint64_t strideY;
@@ -328,21 +328,25 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
     }
     memset(lastPrinted, ' ', width * sizeof(*lastPrinted));
 
-    for (size_t i = 1; i < count; ++i)
+    /* We want to try and avoid the biggest outliers, so we don't consider a set percentage of the highest and lowest
+     * times when calculating the min & max. These values are heuristically chosen */
+    const size_t outlierLowIndex = 0;
+    const size_t outlierHighIndex = (test_iterations * 97) / 100;
+    for (size_t i = 0; i < count; ++i)
     {
-        if (data[i].min < minX)
+        uint64_t testMin = data[i].counts[outlierLowIndex];
+        uint64_t testMax = data[i].counts[outlierHighIndex];
+
+        if (testMin < minX)
         {
-            minX = data[i].min;
+            minX = testMin;
         }
-        if (data[i].max > maxX)
+        if (testMax > maxX)
         {
-            maxX = data[i].max;
+            maxX = testMax;
         }
     }
 
-    /* We want to display all results, from min to max.  */
-    /* TODO: Maybe it would be worth while to remove outliers, however it's not super clear if that's necessary as it
-     * won't necessarily be quick and easy to do */
     /* NOTE: This formula is really '((max - min + 1) + (width - 1)) / width' however the +/-1 cancel */
     strideX = (maxX - minX + width) / width;
     assert((width * strideX) > (maxX - minX));
@@ -513,7 +517,7 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
             time_to_ms_f(data[i].mean),
             time_to_ms_f(data[i].median));
     }
-    printf("\n");
+    printf("\n\n");
 
     /* Cleanup */
     for (size_t i = 0; i < count; ++i)
