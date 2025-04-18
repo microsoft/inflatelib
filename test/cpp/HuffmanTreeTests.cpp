@@ -30,6 +30,7 @@ void DoHuffmanTreeTest(
             while (output.size() < outputSize) // Make sure we don't try and consume extra bits at the end of input
             {
                 std::uint16_t symbol;
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 auto result = huffman_tree_lookup(&tree, &stream, &symbol);
                 REQUIRE(result >= 0);
                 if (result == 0)
@@ -703,6 +704,7 @@ TEST_CASE("HuffmanTreeFailureTests", "[huffman_tree]")
                 const uint8_t input = 0x38; // 000111 (aka 111000)
                 uint16_t output;
                 bitstream_set_data(&stream.internal->bitstream, &input, 1);
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) < 0);
                 REQUIRE(errno == EINVAL);
                 REQUIRE(stream.error_msg == "Input bit sequence 0x38 is not a valid Huffman code for the encoded table"sv);
@@ -716,6 +718,7 @@ TEST_CASE("HuffmanTreeFailureTests", "[huffman_tree]")
                 const uint8_t input = 0x64; // 0010011 aka 110 0100
                 uint16_t output;
                 bitstream_set_data(&stream.internal->bitstream, &input, 1);
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) < 0);
                 REQUIRE(errno == EINVAL);
                 REQUIRE(stream.error_msg == "Input bit sequence 0x64 is not a valid Huffman code for the encoded table"sv);
@@ -730,6 +733,7 @@ TEST_CASE("HuffmanTreeFailureTests", "[huffman_tree]")
                 const uint8_t input[] = {0x00, 0x02}; // 000000000100000 (aka 0000010 00000000)
                 uint16_t output;
                 bitstream_set_data(&stream.internal->bitstream, input, std::size(input));
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) < 0);
                 REQUIRE(errno == EINVAL);
                 REQUIRE(stream.error_msg == "Input bit sequence 0x200 is not a valid Huffman code for the encoded table"sv);
@@ -746,9 +750,11 @@ TEST_CASE("HuffmanTreeFailureTests", "[huffman_tree]")
                 const uint8_t input = 0x90; // 00001 001 (aka 100 10000)
                 uint16_t output;
                 bitstream_set_data(&stream.internal->bitstream, &input, 1);
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) > 0);
                 REQUIRE(output == 8);
 
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) < 0);
                 REQUIRE(errno == EINVAL);
                 REQUIRE(stream.error_msg == "Input bit sequence 0x4 is not a valid Huffman code for the encoded table"sv);
@@ -766,19 +772,24 @@ TEST_CASE("HuffmanTreeFailureTests", "[huffman_tree]")
                 bitstream_set_data(&stream.internal->bitstream, input, std::size(input));
 
                 uint16_t output;
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) > 0);
                 REQUIRE(output == 11);
 
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) > 0);
                 REQUIRE(output == 31);
 
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) > 0);
                 REQUIRE(output == 8);
 
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) > 0);
                 REQUIRE(output == 20);
 
                 // Invalid input is 010001000000000
+                bitstream_fill_buffer(&stream.internal->bitstream); // Required before calling huffman_tree_lookup
                 REQUIRE(huffman_tree_lookup(&tree, &stream, &output) < 0);
                 REQUIRE(errno == EINVAL);
                 REQUIRE(stream.error_msg == "Input bit sequence 0x2200 is not a valid Huffman code for the encoded table"sv);

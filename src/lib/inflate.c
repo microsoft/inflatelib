@@ -289,6 +289,7 @@ static int inflater_process_data(inflatelib_stream* stream)
         switch (state->ifstate)
         {
         case ifstate_reading_bfinal:
+            bitstream_fill_buffer(&state->bitstream);
             if (!bitstream_read_bits(&state->bitstream, 1, &data))
             {
                 return INFLATELIB_OK; /* Not enough data */
@@ -299,6 +300,7 @@ static int inflater_process_data(inflatelib_stream* stream)
             /* Fallthrough */
 
         case ifstate_reading_btype:
+            bitstream_fill_buffer(&state->bitstream);
             if (!bitstream_read_bits(&state->bitstream, 2, &data))
             {
                 return INFLATELIB_OK; /* Not enough data */
@@ -393,6 +395,8 @@ static int inflater_read_uncompressed(inflatelib_stream* stream)
     switch (state->ifstate)
     {
     case ifstate_reading_uncompressed_block_len:
+        /* TODO: We should be byte aligned, so we can avoid the fills with a new function */
+        bitstream_fill_buffer(&state->bitstream);
         if (!bitstream_read_bits(&state->bitstream, 16, &data))
         {
             return INFLATELIB_OK; /* Not enough data */
@@ -403,6 +407,8 @@ static int inflater_read_uncompressed(inflatelib_stream* stream)
         /* Fallthrough */
 
     case ifstate_reading_uncompressed_block_len_complement:
+        /* TODO: See above */
+        bitstream_fill_buffer(&state->bitstream);
         if (!bitstream_read_bits(&state->bitstream, 16, &data))
         {
             return INFLATELIB_OK; /* Not enough data */
@@ -506,6 +512,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
     switch (state->ifstate)
     {
     case ifstate_reading_num_lit_codes:
+        bitstream_fill_buffer(&state->bitstream);
         if (!bitstream_read_bits(&state->bitstream, 5, &data))
         {
             return INFLATELIB_OK; /* Not enough data */
@@ -515,6 +522,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
         /* Fallthrough */
 
     case ifstate_reading_num_dist_codes:
+        bitstream_fill_buffer(&state->bitstream);
         if (!bitstream_read_bits(&state->bitstream, 5, &data))
         {
             return INFLATELIB_OK; /* Not enough data */
@@ -524,6 +532,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
         /* Fallthrough */
 
     case ifstate_reading_num_code_len_codes:
+        bitstream_fill_buffer(&state->bitstream);
         if (!bitstream_read_bits(&state->bitstream, 4, &data))
         {
             return INFLATELIB_OK; /* Not enough data */
@@ -538,6 +547,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
         assert(state->data.dynamic_codes.code_length_code_count <= CODE_LENGTH_TREE_ELEMENT_COUNT);
         while (state->data.dynamic_codes.loop_counter < state->data.dynamic_codes.code_length_code_count)
         {
+            bitstream_fill_buffer(&state->bitstream);
             if (!bitstream_read_bits(&state->bitstream, 3, &data))
             {
                 return INFLATELIB_OK; /* Not enough data */
@@ -572,6 +582,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
         {
             if (state->ifstate == ifstate_reading_tree_codes_before)
             {
+                bitstream_fill_buffer(&state->bitstream);
                 result = huffman_tree_lookup(&state->code_length_tree, stream, &data);
                 if (!result)
                 {
@@ -594,6 +605,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
             else if (state->data.dynamic_codes.length_code == 16)
             {
                 /* Repeat the previous code length 3-6 times as specified by the next two bits */
+                bitstream_fill_buffer(&state->bitstream);
                 if (!bitstream_read_bits(&state->bitstream, 2, &data))
                 {
                     /* Not enough data; ensure we don't read a new length code next time */
@@ -648,6 +660,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
                     repeatBase = 11;
                 }
 
+                bitstream_fill_buffer(&state->bitstream);
                 if (!bitstream_read_bits(&state->bitstream, bitCount, &data))
                 {
                     /* Not enough data; ensure we don't read a new length code next time */
@@ -753,7 +766,227 @@ static const inflater_tables deflate64_tables = {
 /* The "active" table is indexed using the current "mode" */
 static const inflater_tables* const inflate_tables[] = {&deflate_tables, &deflate64_tables};
 
+/*
+ * We can run a lot faster if we don't have to constantly check to see if we have enough data on each read. Therefore we
+ * split compressed reads into two functions: one where we know we have enough data to read a full symbol or
+ * literal/length pair, and one where we need to check after each attempted read. These values are calculated as follows:
+ *
+ * Deflate:     15 bits for the longest literal/length code + 5 bits for the maximum extra length bits + 15 bits for the
+ *              longest distance code + 13 bits for the maximum extra distance bits = 48 bits
+ * Deflate64:   15 bits for the longest literal/length code + 16 bits for the maximum extra length bits + 15 bits for
+ *              the longest distance code + 14 bits for the maximum extra distance bits = 60 bits
+ */
+static const int single_compressed_op_max_bits[] = {48, 60};
+
+static int inflater_read_compressed_slow(inflatelib_stream* stream);
+
 static int inflater_read_compressed(inflatelib_stream* stream)
+{
+    int result = INFLATELIB_OK;
+    inflatelib_state* state = stream->internal;
+    uint8_t* out = (uint8_t*)stream->next_out;
+    size_t bytesCopied, outSize = stream->avail_out;
+    uint16_t symbol;
+    int opResult, keepGoing = 1;
+    const inflater_tables* tables = inflate_tables[state->mode];
+    const int maxOpBits = single_compressed_op_max_bits[state->mode];
+
+    while (keepGoing)
+    {
+        if (bitstream_fill_buffer(&state->bitstream) < maxOpBits)
+        {
+            /* Need to take the slow path */
+            stream->next_out = out;
+            stream->avail_out = outSize;
+            return inflater_read_compressed_slow(stream);
+        }
+
+        switch (state->ifstate)
+        {
+        case ifstate_reading_literal_length_code:
+            /* We're in the process of reading a value from the literal/length tree */
+            opResult = huffman_tree_lookup(&state->literal_length_tree, stream, &state->data.compressed.symbol);
+            if (opResult < 0)
+            {
+                /* Error in the data; NOTE: We've already set the error message */
+                keepGoing = 0;
+                result = INFLATELIB_ERROR_DATA;
+                break;
+            }
+            assert(opResult > 0); /* Already guarenteed we have enough input data */
+            /* Fallthrough */
+
+        case ifstate_decoding_literal_length_code:
+            if (state->data.compressed.symbol < 256) /* Literal */
+            {
+                if (!window_write_byte(&state->window, (uint8_t)state->data.compressed.symbol))
+                {
+                    /* Not enough data in the window; try and read some data to free up space */
+                    /* TODO: We don't update out/outSize here ??? */
+                    if (!window_copy_output(&state->window, out, outSize))
+                    {
+                        keepGoing = 0; /* Not enough data in the output */
+                        state->ifstate = ifstate_decoding_literal_length_code;
+                        break;
+                    }
+
+                    /* Otherwise, we copyied at least one byte and therefore this write should succeed */
+                    opResult = window_write_byte(&state->window, (uint8_t)state->data.compressed.symbol);
+                    assert(opResult);
+                }
+
+                state->ifstate = ifstate_reading_literal_length_code;
+                break;
+            }
+            else if (state->data.compressed.symbol == 256) /* End of block */
+            {
+                state->ifstate = ifstate_copying_output_from_window;
+                break;
+            }
+            else if (state->data.compressed.symbol > 285)
+            {
+                /* NOTE: HLIT is 5 bits, which means that there are at most 288 code lengths specified for the
+                 * literal/length tree (257 + 31). This means that in theory, someone could author a block where symbols
+                 * can go from 0 to 287. If we move this error "up" and error out if HLIT is greater than 29, we can
+                 * eliminate this error check, which could potentially give us some perf wins at the cost of potentially
+                 * rejecting otherwise valid inputs. */
+                if (format_error_message(stream, "Invalid symbol '%u' from literal/length tree", state->data.compressed.symbol) < 0)
+                {
+                    stream->error_msg = "Invalid symbol from literal/length tree";
+                }
+                keepGoing = 0;
+                errno = EINVAL;
+                result = INFLATELIB_ERROR_DATA;
+                break;
+            }
+
+            /* Otherwise, 'symbol' references a length */
+            symbol = state->data.compressed.symbol - 257;
+            assert(symbol < inflatelib_arraysize(tables->lengths)); /* Shouldn't have passed check above */
+            state->data.compressed.block_length = tables->lengths[symbol].base;
+            state->data.compressed.extra_bits = tables->lengths[symbol].extra_bits;
+            /* Fallthrough */
+
+        case ifstate_reading_length_extra_bits:
+            if (state->data.compressed.extra_bits > 0)
+            {
+                opResult = bitstream_read_bits(&state->bitstream, state->data.compressed.extra_bits, &symbol);
+                assert(opResult); /* Already guarenteed we have enough input data */
+
+                state->data.compressed.block_length += symbol;
+            }
+            /* Fallthrough */
+
+        case ifstate_reading_distance_code:
+            /* Now we need to read a distance */
+            opResult = huffman_tree_lookup(&state->distance_tree, stream, &symbol);
+            if (opResult < 0)
+            {
+                /* Error in the data; NOTE: We've already set the error message */
+                keepGoing = 0;
+                result = INFLATELIB_ERROR_DATA;
+                break;
+            }
+            assert(opResult > 0); /* Already guarenteed we have enough input data */
+
+            /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the exact size of the table */
+            assert(symbol < inflatelib_arraysize(tables->distances));
+            state->data.compressed.block_distance = tables->distances[symbol].base;
+            state->data.compressed.extra_bits = tables->distances[symbol].extra_bits;
+            /* Fallthrough */
+
+        case ifstate_reading_distance_extra_bits:
+            if (state->data.compressed.extra_bits > 0)
+            {
+                opResult = bitstream_read_bits(&state->bitstream, state->data.compressed.extra_bits, &symbol);
+                assert(opResult); /* Already guarenteed we have enough input data */
+
+                state->data.compressed.block_distance += symbol;
+            }
+            /* Fallthrough */
+
+            /* NOTE: It's not guaranteed we have enough space available in 'out' to write all data, hence the need for a
+             * dedicated state for copying the data from the window */
+        case ifstate_copying_length_distance_from_window:
+            opResult =
+                window_copy_length_distance(&state->window, state->data.compressed.block_distance, state->data.compressed.block_length);
+            if (opResult < 0)
+            {
+                keepGoing = 0;
+                if (format_error_message(
+                        stream,
+                        "Compressed block has a distance '%u' which exceeds the size of the window (%llu bytes)",
+                        state->data.compressed.block_distance,
+                        state->window.total_bytes) < 0)
+                {
+                    stream->error_msg = "Compressed block has a distance which exceeds the size of the window";
+                }
+                errno = EINVAL;
+                result = INFLATELIB_ERROR_DATA;
+                break;
+            }
+
+            state->data.compressed.block_length -= (uint32_t)opResult;
+
+            bytesCopied = window_copy_output(&state->window, out, outSize);
+            out += bytesCopied;
+            outSize -= bytesCopied;
+
+            /* There are two scenarios where the operation is not yet complete at this point: (1) 'block_length' was too
+             * long to copy all data in a single operation, or (2) we ran out of space in the output buffer */
+            if ((state->data.compressed.block_length == 0) && (state->window.unconsumed_bytes == 0))
+            {
+                /* We're done; Repeat the process until we hit the end of block symbol (256) */
+                state->ifstate = ifstate_reading_literal_length_code;
+            }
+            else
+            {
+                state->ifstate = ifstate_copying_length_distance_from_window;
+                assert((state->data.compressed.block_length != 0) || (outSize == 0));
+
+                if (((state->data.compressed.block_length == 0) || (opResult == 0)) && (outSize == 0))
+                {
+                    /* Can't copy any more data in the window and can't copy any more data to the output... need to
+                     * return to the caller so they can give us a larger output buffer to write to */
+                    keepGoing = 0;
+                }
+            }
+            break;
+
+        case ifstate_copying_output_from_window:
+            /* This state means we've read all input; we just need to finish copying data to the output */
+            bytesCopied = window_copy_output(&state->window, out, outSize);
+            out += bytesCopied;
+            outSize -= bytesCopied;
+            if (state->window.unconsumed_bytes == 0)
+            {
+                /* All data consumed; go back to reading bfinal */
+                state->ifstate = state->bfinal ? ifstate_eof : ifstate_reading_bfinal;
+            }
+
+            /* Even if we're not done reading bytes, we've run out of space in the output and need to return */
+            keepGoing = 0;
+            break;
+
+        default:
+            assert(0); /* Should not be evaluating this function then */
+            break;
+        }
+    }
+
+    /* Copy as much data from the window as we can before returning */
+    bytesCopied = window_copy_output(&state->window, out, outSize);
+    out += bytesCopied;
+    outSize -= bytesCopied;
+
+    /* Update the output buffers to reflect what we wrote */
+    stream->next_out = out;
+    stream->avail_out = outSize;
+
+    return result;
+}
+
+static int inflater_read_compressed_slow(inflatelib_stream* stream)
 {
     int result = INFLATELIB_OK;
     inflatelib_state* state = stream->internal;
@@ -769,6 +1002,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
         {
         case ifstate_reading_literal_length_code:
             /* We're in the process of reading a value from the literal/length tree */
+            bitstream_fill_buffer(&state->bitstream);
             opResult = huffman_tree_lookup(&state->literal_length_tree, stream, &state->data.compressed.symbol);
             if (opResult == 0)
             {
@@ -837,6 +1071,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
         case ifstate_reading_length_extra_bits:
             if (state->data.compressed.extra_bits > 0)
             {
+                bitstream_fill_buffer(&state->bitstream);
                 if (!bitstream_read_bits(&state->bitstream, state->data.compressed.extra_bits, &symbol))
                 {
                     keepGoing = 0; /* Not enough data in the input */
@@ -850,6 +1085,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
 
         case ifstate_reading_distance_code:
             /* Now we need to read a distance */
+            bitstream_fill_buffer(&state->bitstream);
             opResult = huffman_tree_lookup(&state->distance_tree, stream, &symbol);
             if (opResult == 0)
             {
@@ -874,6 +1110,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
         case ifstate_reading_distance_extra_bits:
             if (state->data.compressed.extra_bits > 0)
             {
+                bitstream_fill_buffer(&state->bitstream);
                 if (!bitstream_read_bits(&state->bitstream, state->data.compressed.extra_bits, &symbol))
                 {
                     keepGoing = 0; /* Not enough data in the input */
@@ -916,7 +1153,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
              * long to copy all data in a single operation, or (2) we ran out of space in the output buffer */
             if ((state->data.compressed.block_length == 0) && (state->window.unconsumed_bytes == 0))
             {
-                /* Repeat the process until we hit the end of block symbol (256) */
+                /* We're done; Repeat the process until we hit the end of block symbol (256) */
                 state->ifstate = ifstate_reading_literal_length_code;
             }
             else
