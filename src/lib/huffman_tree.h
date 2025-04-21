@@ -77,7 +77,11 @@ extern "C"
     int huffman_tree_reset(huffman_tree* tree, struct inflatelib_stream* stream, const uint8_t* codeLengths, size_t codeLengthsSize);
     void huffman_tree_destroy(huffman_tree* tree, struct inflatelib_stream* stream);
 
+    /* Looks up a symbol from the table, returning -1 on failure (symbol does not exist), 0 if not enough input, and 1
+     * on success. The difference between these two functions is that the 'unchecked' function assumes there's enough
+     * bits in the input to read any given symbol. */
     int huffman_tree_lookup(huffman_tree* tree, struct inflatelib_stream* stream, uint16_t* symbol);
+    int huffman_tree_lookup_unchecked(huffman_tree* tree, struct inflatelib_stream* stream, uint16_t* symbol);
 
 #ifdef __cplusplus
 }

@@ -256,26 +256,13 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
             assert(tableEntry < (tree->data + tree->data_size)); /* Otherwise data in the table is corrupt */
             ++bitsRead;
             remainingInput >>= 1;
-
-            if (!tableEntry->code_length)
-            {
-                /* Zero means unused; this is an error case where the input refers to a symbol that doesn't exist */
-                if (format_error_message(
-                        stream,
-                        "Input bit sequence 0x%.*X is not a valid Huffman code for the encoded table",
-                        (bitsRead + 7) / 8,
-                        input & ((0x01 << bitsRead) - 1)) < 0)
-                {
-                    stream->error_msg = "Input bit sequence is not a valid Huffman code for the encoded table";
-                }
-                errno = EINVAL;
-                return -1;
-            }
         } while (tableEntry->code_length > bitsRead);
 
-        assert(tableEntry->code_length == bitsRead); /* Otherwise we wrote bad data or indexed something wrong */
+        assert((tableEntry->code_length == bitsRead) || !tableEntry->code_length); /* Otherwise we wrote bad data or indexed something wrong */
     }
-    else if (tableEntry->code_length == 0)
+    /* Otherwise, error or the data fit in the table and we have enough bits in the input to know that's the "full" code */
+
+    if (tableEntry->code_length == 0)
     {
         /* Zero means unassigned; this is an error */
         if (format_error_message(
@@ -289,7 +276,59 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
         errno = EINVAL;
         return -1;
     }
-    /* Otherwise, the data fit in the table and we have enough bits in the input to know that's the "full" code */
+
+    /* Success if we've gotten this far */
+    *symbol = tableEntry->symbol;
+    bitstream_consume_bits(bitstream, tableEntry->code_length);
+    return 1;
+}
+
+int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream, uint16_t* symbol)
+{
+    bitstream* bitstream = &stream->internal->bitstream;
+    huffman_table_entry* tableEntry;
+    uint16_t input;
+    int bits;
+
+    bits = bitstream_peek(bitstream, &input);
+    tableEntry = &tree->data[input & tree->table_mask];
+    assert((tableEntry->code_length <= bits) || (tableEntry->code_length > tree->table_bits)); /* Otherwise, not enough input */
+
+    if (tableEntry->code_length > tree->table_bits)
+    {
+        /* This is a "pointer" inside the tree */
+        huffman_table_entry* tableBase = tree->data + (0x01 << tree->table_bits);
+        int bitsRead = tree->table_bits;
+        uint16_t remainingInput = input >> tree->table_bits;
+
+        do
+        {
+            assert(bits > bitsRead); /* Otherwise, not enough input */
+
+            tableEntry = tableBase + (2 * tableEntry->symbol) + (remainingInput & 0x01);
+            assert(tableEntry < (tree->data + tree->data_size)); /* Otherwise data in the table is corrupt */
+            ++bitsRead;
+            remainingInput >>= 1;
+        } while (tableEntry->code_length > bitsRead);
+
+        assert((tableEntry->code_length == bitsRead) || !tableEntry->code_length); /* Otherwise we wrote bad data or indexed something wrong */
+    }
+    /* Otherwise, error or the data fit in the table and we have enough bits in the input to know that's the "full" code */
+
+    if (tableEntry->code_length == 0)
+    {
+        /* Zero means unassigned; this is an error */
+        if (format_error_message(
+                stream,
+                "Input bit sequence 0x%.*X is not a valid Huffman code for the encoded table",
+                (bits + 7) / 8,
+                input & ((0x01 << bits) - 1)) < 0)
+        {
+            stream->error_msg = "Input bit sequence is not a valid Huffman code for the encoded table";
+        }
+        errno = EINVAL;
+        return -1;
+    }
 
     /* Success if we've gotten this far */
     *symbol = tableEntry->symbol;
