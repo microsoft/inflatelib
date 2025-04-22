@@ -288,11 +288,9 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
     bitstream* bitstream = &stream->internal->bitstream;
     huffman_table_entry* tableEntry;
     uint16_t input;
-    int bits;
 
-    bits = bitstream_peek_unchecked(bitstream, &input);
+    input = bitstream_peek_unchecked(bitstream);
     tableEntry = &tree->data[input & tree->table_mask];
-    assert((tableEntry->code_length <= bits) || (tableEntry->code_length > tree->table_bits)); /* Otherwise, not enough input */
 
     if (tableEntry->code_length > tree->table_bits)
     {
@@ -303,7 +301,7 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
 
         do
         {
-            assert(bits > bitsRead); /* Otherwise, not enough input */
+            assert(bitsRead < 15); /* Largest code is 15 bits */
 
             tableEntry = tableBase + (2 * tableEntry->symbol) + (remainingInput & 0x01);
             assert(tableEntry < (tree->data + tree->data_size)); /* Otherwise data in the table is corrupt */
@@ -313,16 +311,12 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
 
         assert((tableEntry->code_length == bitsRead) || !tableEntry->code_length); /* Otherwise we wrote bad data or indexed something wrong */
     }
-    /* Otherwise, error or the data fit in the table and we have enough bits in the input to know that's the "full" code */
+    /* Otherwise, error or the data fit in the table */
 
     if (tableEntry->code_length == 0)
     {
         /* Zero means unassigned; this is an error */
-        if (format_error_message(
-                stream,
-                "Input bit sequence 0x%.*X is not a valid Huffman code for the encoded table",
-                (bits + 7) / 8,
-                input & ((0x01 << bits) - 1)) < 0)
+        if (format_error_message(stream, "Input bit sequence 0x%2X is not a valid Huffman code for the encoded table", input) < 0)
         {
             stream->error_msg = "Input bit sequence is not a valid Huffman code for the encoded table";
         }

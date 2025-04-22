@@ -134,6 +134,7 @@ uint16_t bitstream_read_bits_unchecked(bitstream* stream, int bitsToRead)
     assert((bitsToRead > 0) && (bitsToRead <= (sizeof(result) * 8)));
 
     bitstream_fill_buffer_unchecked(stream);
+    assert(bitsToRead <= stream->bits_in_buffer);
 
     result = stream->buffer & mask;
     stream->buffer >>= bitsToRead;
@@ -150,12 +151,10 @@ int bitstream_peek(bitstream* stream, uint16_t* result)
     return (stream->bits_in_buffer <= 16) ? stream->bits_in_buffer : 16;
 }
 
-int bitstream_peek_unchecked(bitstream* stream, uint16_t* result)
+uint16_t bitstream_peek_unchecked(bitstream* stream)
 {
     bitstream_fill_buffer_unchecked(stream);
-
-    *result = (uint16_t)stream->buffer;
-    return (stream->bits_in_buffer <= 16) ? stream->bits_in_buffer : 16;
+    return (uint16_t)stream->buffer;
 }
 
 void bitstream_consume_bits(bitstream* stream, int bits)

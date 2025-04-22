@@ -53,7 +53,7 @@ extern "C"
 
     /* Same as the above functions, but does not check to verify that the bitstream has enough input data */
     uint16_t bitstream_read_bits_unchecked(bitstream* stream, int bitsToRead);
-    int bitstream_peek_unchecked(bitstream* stream, uint16_t* result);
+    uint16_t bitstream_peek_unchecked(bitstream* stream);
 
 #ifdef __cplusplus
 }
