@@ -38,50 +38,6 @@ void bitstream_byte_align(bitstream* stream)
     stream->bits_in_buffer -= bitsToConsume;
 }
 
-/* Tries to fill the buffer such that there's at least two bytes of data */
-static void bitstream_fill_buffer(bitstream* stream)
-{
-    if ((stream->bits_in_buffer < 16) && (stream->length != 0))
-    {
-        /* We have enough data to copy at least one more byte */
-        stream->buffer |= ((uint32_t)*stream->data) << stream->bits_in_buffer;
-        ++stream->data;
-        --stream->length;
-        stream->bits_in_buffer += 8;
-
-        if ((stream->bits_in_buffer < 16) && (stream->length != 0))
-        {
-            /* We can copy another one */
-            stream->buffer |= ((uint32_t)*stream->data) << stream->bits_in_buffer;
-            ++stream->data;
-            --stream->length;
-            stream->bits_in_buffer += 8;
-
-            assert(stream->bits_in_buffer >= 16); /* Should have two bytes by now */
-        }
-    }
-}
-
-int bitstream_read_bits(bitstream* stream, int bitsToRead, uint16_t* result)
-{
-    uint32_t mask;
-
-    assert((bitsToRead > 0) && (bitsToRead <= (sizeof(*result) * 8)));
-
-    bitstream_fill_buffer(stream);
-    if (stream->bits_in_buffer < bitsToRead)
-    {
-        return 0; /* Not enough data */
-    }
-
-    mask = ((uint32_t)1 << bitsToRead) - 1;
-    *result = stream->buffer & mask;
-    stream->buffer >>= bitsToRead;
-    stream->bits_in_buffer -= bitsToRead;
-
-    return 1;
-}
-
 int bitstream_copy_bytes(bitstream* stream, int bytesToRead, uint8_t* dest)
 {
     int bytesFromBuffer, bytesFromData;
@@ -113,6 +69,79 @@ int bitstream_copy_bytes(bitstream* stream, int bytesToRead, uint8_t* dest)
     return bytesFromBuffer + bytesFromData;
 }
 
+/* Tries to fill the buffer such that there's at least two bytes of data */
+static void bitstream_fill_buffer(bitstream* stream)
+{
+    if ((stream->bits_in_buffer < 16) && (stream->length != 0))
+    {
+        /* We have enough data to copy at least one more byte */
+        stream->buffer |= ((uint32_t)*stream->data) << stream->bits_in_buffer;
+        ++stream->data;
+        --stream->length;
+        stream->bits_in_buffer += 8;
+
+        if ((stream->bits_in_buffer < 16) && (stream->length != 0))
+        {
+            /* We can copy another one */
+            stream->buffer |= ((uint32_t)*stream->data) << stream->bits_in_buffer;
+            ++stream->data;
+            --stream->length;
+            stream->bits_in_buffer += 8;
+
+            assert(stream->bits_in_buffer >= 16); /* Should have two bytes by now */
+        }
+    }
+}
+
+static void bitstream_fill_buffer_unchecked(bitstream* stream)
+{
+    if (stream->bits_in_buffer < 16)
+    {
+        assert(stream->length >= 2); /* Caller should have verified */
+        stream->buffer |= ((uint32_t)stream->data[0]) << stream->bits_in_buffer;
+        stream->buffer |= ((uint32_t)stream->data[1]) << (stream->bits_in_buffer + 8);
+        stream->bits_in_buffer += 16;
+        stream->data += 2;
+        stream->length -= 2;
+    }
+}
+
+int bitstream_read_bits(bitstream* stream, int bitsToRead, uint16_t* result)
+{
+    uint32_t mask;
+
+    assert((bitsToRead > 0) && (bitsToRead <= (sizeof(*result) * 8)));
+
+    bitstream_fill_buffer(stream);
+    if (stream->bits_in_buffer < bitsToRead)
+    {
+        return 0; /* Not enough data */
+    }
+
+    mask = ((uint32_t)1 << bitsToRead) - 1;
+    *result = stream->buffer & mask;
+    stream->buffer >>= bitsToRead;
+    stream->bits_in_buffer -= bitsToRead;
+
+    return 1;
+}
+
+uint16_t bitstream_read_bits_unchecked(bitstream* stream, int bitsToRead)
+{
+    uint16_t result;
+    uint32_t mask = ((uint32_t)1 << bitsToRead) - 1;;
+
+    assert((bitsToRead > 0) && (bitsToRead <= (sizeof(result) * 8)));
+
+    bitstream_fill_buffer_unchecked(stream);
+
+    result = stream->buffer & mask;
+    stream->buffer >>= bitsToRead;
+    stream->bits_in_buffer -= bitsToRead;
+
+    return result;
+}
+
 int bitstream_peek(bitstream* stream, uint16_t* result)
 {
     bitstream_fill_buffer(stream);
@@ -121,15 +150,17 @@ int bitstream_peek(bitstream* stream, uint16_t* result)
     return (stream->bits_in_buffer <= 16) ? stream->bits_in_buffer : 16;
 }
 
-int bitstream_consume_bits(bitstream* stream, int bits)
+int bitstream_peek_unchecked(bitstream* stream, uint16_t* result)
 {
-    if (bits > stream->bits_in_buffer)
-    {
-        bits = stream->bits_in_buffer;
-    }
+    bitstream_fill_buffer_unchecked(stream);
 
+    *result = (uint16_t)stream->buffer;
+    return (stream->bits_in_buffer <= 16) ? stream->bits_in_buffer : 16;
+}
+
+void bitstream_consume_bits(bitstream* stream, int bits)
+{
+    assert(bits <= stream->bits_in_buffer);
     stream->buffer >>= bits;
     stream->bits_in_buffer -= bits;
-
-    return bits;
 }

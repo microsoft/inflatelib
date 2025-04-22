@@ -1073,10 +1073,7 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
 
         if (extraBits > 0)
         {
-            opResult = bitstream_read_bits(&state->bitstream, extraBits, &symbol);
-            assert(opResult); /* Should have enough input */
-
-            blockLength += symbol;
+            blockLength += bitstream_read_bits_unchecked(&state->bitstream, extraBits);
         }
 
         /* Now we need to read a distance */
@@ -1097,10 +1094,7 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
 
         if (extraBits > 0)
         {
-            opResult = bitstream_read_bits(&state->bitstream, extraBits, &symbol);
-            assert(opResult); /* Should have enough input */
-
-            blockDistance += symbol;
+            blockDistance += bitstream_read_bits_unchecked(&state->bitstream, extraBits);
         }
 
         /* NOTE: In Deflate64, the longest possible length is greater than the window size by two bytes, meaning we may

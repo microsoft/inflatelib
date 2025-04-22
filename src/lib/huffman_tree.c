@@ -290,7 +290,7 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
     uint16_t input;
     int bits;
 
-    bits = bitstream_peek(bitstream, &input);
+    bits = bitstream_peek_unchecked(bitstream, &input);
     tableEntry = &tree->data[input & tree->table_mask];
     assert((tableEntry->code_length <= bits) || (tableEntry->code_length > tree->table_bits)); /* Otherwise, not enough input */
 

@@ -28,16 +28,16 @@ extern "C"
     void bitstream_byte_align(bitstream* stream);
 
     /*
-     * Reads the specified number of bits, writing to 'result'. This function returns 1 if all bits could be read and 0
-     * if more data is needed. In the failure case, the contents of 'result' are unspecified and no data is consumed
-     */
-    int bitstream_read_bits(bitstream* stream, int bitsToRead, uint16_t* result);
-
-    /*
      * Copies at most the specified number of bytes to 'dest', returning the number of bytes that were actually copied.
      * The data in the stream must be byte aligned, otherwise the behavior is undefined.
      */
     int bitstream_copy_bytes(bitstream* stream, int bytesToRead, uint8_t* dest);
+
+    /*
+     * Reads the specified number of bits, writing to 'result'. This function returns 1 if all bits could be read and 0
+     * if more data is needed. In the failure case, the contents of 'result' are unspecified and no data is consumed
+     */
+    int bitstream_read_bits(bitstream* stream, int bitsToRead, uint16_t* result);
 
     /*
      * Peeks whatever data is available, returning the number of bits in the result. The data is NOT consumed
@@ -45,10 +45,15 @@ extern "C"
     int bitstream_peek(bitstream* stream, uint16_t* result);
 
     /*
-     * Consumes the specified number of bits, 1-16, from the input buffer and disposes of them. Returns the number of
-     * bits that were consumed.
+     * Consumes the specified number of bits, 1-16, from the input buffer and disposes of them. The caller is
+     * responsible for ensuring that the buffer has at least the specified number of bits (e.g. by first calling
+     * bitstream_peek).
      */
-    int bitstream_consume_bits(bitstream* stream, int bits);
+    void bitstream_consume_bits(bitstream* stream, int bits);
+
+    /* Same as the above functions, but does not check to verify that the bitstream has enough input data */
+    uint16_t bitstream_read_bits_unchecked(bitstream* stream, int bitsToRead);
+    int bitstream_peek_unchecked(bitstream* stream, uint16_t* result);
 
 #ifdef __cplusplus
 }
