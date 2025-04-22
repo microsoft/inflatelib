@@ -12,27 +12,6 @@
 #include <span>
 #include <stdexcept>
 
-// MSVC has historically defined __cplusplus to be a value that is not consistent with the C++ standard being used
-#if _MSVC_LANG > __cplusplus
-#define INFLATELIB_CPP_VERSION _MSVC_LANG
-#else
-#define INFLATELIB_CPP_VERSION __cplusplus
-#endif
-
-// MSVC does not yet implement the optimization for [[no_unique_address]], so use the compiler-specific attribute
-#if _MSC_VER >= 1929
-#define INFLATELIB_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
-#elif defined(__has_cpp_attribute)
-#if __has_cpp_attribute(no_unique_address)
-#define INFLATELIB_NO_UNIQUE_ADDRESS [[no_unique_address]]
-#endif
-#endif
-
-#ifndef INFLATELIB_NO_UNIQUE_ADDRESS
-// Default to no definition
-#define INFLATELIB_NO_UNIQUE_ADDRESS
-#endif
-
 namespace inflatelib
 {
     struct stream
