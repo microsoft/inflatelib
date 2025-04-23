@@ -59,6 +59,9 @@ extern "C"
     /* Writes a single byte to the window */
     int window_write_byte(window* window, uint8_t byte);
 
+    /* Same as the above, only it assumes that 'unconsumed_bytes' is 0 and it immediately consumes the byte */
+    void window_write_byte_consume(window* window, uint8_t byte);
+
 #ifdef __cplusplus
 }
 #endif

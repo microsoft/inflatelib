@@ -772,13 +772,18 @@ static int inflater_read_compressed(inflatelib_stream* stream)
     const inflater_tables* tables = inflate_tables[state->mode];
     const size_t maxOpSize = max_compressed_op_size[state->mode];
 
+    /* On entry, try and write any data we previously wrote to the window, but did not consume */
+    bytesCopied = window_copy_output(&state->window, out, outSize);
+    out += bytesCopied;
+    outSize -= bytesCopied;
+
     while (keepGoing)
     {
         switch (state->ifstate)
         {
         case ifstate_reading_literal_length_code:
             /* The fast path requires that we start in 'ifstate_reading_literal_length_code' */
-            if (state->bitstream.length >= maxOpSize)
+            if ((state->bitstream.length >= maxOpSize) && outSize)
             {
                 stream->next_out = out;
                 stream->avail_out = outSize;
@@ -820,6 +825,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
                 {
                     /* Not enough data in the window; try and read some data to free up space */
                     /* TODO: This doesn't update out/outSize??? */
+                    __debugbreak();
                     if (!window_copy_output(&state->window, out, outSize))
                     {
                         keepGoing = 0; /* Not enough data in the output */
@@ -1011,7 +1017,7 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
     const size_t maxOpSize = max_compressed_op_size[state->mode];
 
     assert(state->ifstate == ifstate_reading_literal_length_code);
-    while (state->bitstream.length >= maxOpSize)
+    while ((state->bitstream.length >= maxOpSize) && outSize)
     {
         opResult = huffman_tree_lookup_unchecked(&state->literal_length_tree, stream, &symbol);
         if (opResult < 0)
@@ -1024,21 +1030,9 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
 
         if (symbol < 256) /* Literal */
         {
-            /* TODO: Remove this from the fast path */
-            if (!window_write_byte(&state->window, (uint8_t)symbol))
-            {
-                /* Not enough data in the window; try and read some data to free up space */
-                /* TODO: This doesn't update out/outSize??? */
-                if (!window_copy_output(&state->window, out, outSize))
-                {
-                    state->ifstate = ifstate_decoding_literal_length_code;
-                    break;
-                }
-
-                /* Otherwise, we copyied at least one byte and therefore this write should succeed */
-                opResult = window_write_byte(&state->window, (uint8_t)symbol);
-                assert(opResult);
-            }
+            window_write_byte_consume(&state->window, (uint8_t)symbol);
+            *out++ = (uint8_t)symbol;
+            --outSize;
 
             /* Go back to reading a new symbol */
             continue;
