@@ -75,7 +75,7 @@ int window_copy_length_distance(window* window, uint32_t distance, uint32_t leng
     uint32_t writeSpaceRemaining = DEFLATE64_WINDOW_SIZE - window->unconsumed_bytes;
 
     /* The distance can't reference data that hasn't been written yet */
-    if (distance > window->total_bytes)
+    if ((distance > window->total_bytes))
     {
         return -1; /* Invalid distance */
     }

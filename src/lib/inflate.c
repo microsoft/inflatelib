@@ -453,7 +453,8 @@ static void inflater_init_static_tables(inflatelib_stream* stream)
     uint8_t buffer[LITERAL_TREE_MAX_ELEMENT_COUNT];
     inflatelib_state* state = stream->internal;
 
-    /* TODO: We can encode both of these tables in static data; it's not clear yet if/how much that might improve things */
+    /* TODO: We can encode both of these tables in static data; it's not clear yet if/how much that might improve things
+     * and all indications are that this code path is insignificant enough to warrent such optimizations */
 
     /*
      * The static literal/length code lengths are specified by RFC 1951, section 3.2.6 as follows:
@@ -732,6 +733,10 @@ static const inflater_tables deflate_tables = {
     .lengths = {{3, 0},  {4, 0},  {5, 0},  {6, 0},   {7, 0},   {8, 0},   {9, 0},   {10, 0},  {11, 1}, {13, 1},
                 {15, 1}, {17, 1}, {19, 2}, {23, 2},  {27, 2},  {31, 2},  {35, 3},  {43, 3},  {51, 3}, {59, 3},
                 {67, 4}, {83, 4}, {99, 4}, {115, 4}, {131, 5}, {163, 5}, {195, 5}, {227, 5}, {258, 0}},
+    /* NOTE: We choose an size of 32 for the distances array because that's what Deflate64 needs, however Deflate only
+     * makes use of the first 30. That said, HDIST is 5 bits, meaning it's possible to specify Huffman codes for symbols
+     * 30 and 31, even for Deflate, so to make things simpler, we include entries for them here, but define their bases
+     * to zero so that we can identify these error conditions */
     .distances = {{1, 0},     {2, 0},     {3, 0},     {4, 0},      {5, 1},      {7, 1},      {9, 2},     {13, 2},
                   {17, 3},    {25, 3},    {33, 4},    {49, 4},     {65, 5},     {97, 5},     {129, 6},   {193, 6},
                   {257, 7},   {385, 7},   {513, 8},   {769, 8},    {1025, 9},   {1537, 9},   {2049, 10}, {3073, 10},
@@ -824,14 +829,16 @@ static int inflater_read_compressed(inflatelib_stream* stream)
                 if (!window_write_byte(&state->window, (uint8_t)state->data.compressed.symbol))
                 {
                     /* Not enough data in the window; try and read some data to free up space */
-                    /* TODO: This doesn't update out/outSize??? */
-                    __debugbreak();
-                    if (!window_copy_output(&state->window, out, outSize))
+                    bytesCopied = window_copy_output(&state->window, out, outSize);
+                    if (!bytesCopied)
                     {
                         keepGoing = 0; /* Not enough data in the output */
                         state->ifstate = ifstate_decoding_literal_length_code;
                         break;
                     }
+
+                    out += bytesCopied;
+                    outSize -= bytesCopied;
 
                     /* Otherwise, we copyied at least one byte and therefore this write should succeed */
                     opResult = window_write_byte(&state->window, (uint8_t)state->data.compressed.symbol);
@@ -901,11 +908,22 @@ static int inflater_read_compressed(inflatelib_stream* stream)
                 break;
             }
 
-            /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the exact size of the table */
-            /* TODO: This is only true for Deflat64 */
+            /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the size of the 'distances' table */
             assert(symbol < inflatelib_arraysize(tables->distances));
             state->data.compressed.block_distance = tables->distances[symbol].base;
             state->data.compressed.extra_bits = tables->distances[symbol].extra_bits;
+
+            if (!state->data.compressed.block_distance)
+            {
+                keepGoing = 0;
+                if (format_error_message(stream, "Distance code %u is not valid in Deflate", symbol) < 0)
+                {
+                    stream->error_msg = "Distance code is not valid in Deflate";
+                }
+                errno = EINVAL;
+                result = INFLATELIB_ERROR_DATA;
+                break;
+            }
             /* Fallthrough */
 
         case ifstate_reading_distance_extra_bits:
@@ -1026,7 +1044,7 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
             result = INFLATELIB_ERROR_DATA;
             break;
         }
-        assert(opResult != 0); /* We should have enough input */
+        assert(opResult != 0); /* Impossible to return 0 */
 
         if (symbol < 256) /* Literal */
         {
@@ -1040,6 +1058,8 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
         else if (symbol == 256) /* End of block */
         {
             /* Let the slow path take care of copying data */
+            /* NOTE: We should only be in this state if we've already read all data from the window, however this will
+             * correctly take care of transitioning to EOF state etc. */
             state->ifstate = ifstate_copying_output_from_window;
             break;
         }
@@ -1050,6 +1070,7 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
              * go from 0 to 287. If we move this error "up" and error out if HLIT is greater than 29, we can eliminate
              * this error check, which could potentially give us some perf wins at the cost of potentially rejecting
              * otherwise valid inputs. */
+            /* NOTE: From experimentation, the benefit is very minor - slightly over a 1% speed up */
             if (format_error_message(stream, "Invalid symbol '%u' from literal/length tree", symbol) < 0)
             {
                 stream->error_msg = "Invalid symbol from literal/length tree";
@@ -1078,13 +1099,23 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
             result = INFLATELIB_ERROR_DATA;
             break;
         }
-        assert(opResult != 0); /* We should have enough input */
+        assert(opResult != 0); /* Impossible to return 0 */
 
-        /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the exact size of the table */
-        /* TODO: This is only true for Deflat64 */
+        /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the size of the 'distances' table */
         assert(symbol < inflatelib_arraysize(tables->distances));
         blockDistance = tables->distances[symbol].base;
         extraBits = tables->distances[symbol].extra_bits;
+
+        if (!blockDistance)
+        {
+            if (format_error_message(stream, "Distance code %u is not valid in Deflate", symbol) < 0)
+            {
+                stream->error_msg = "Distance code is not valid in Deflate";
+            }
+            errno = EINVAL;
+            result = INFLATELIB_ERROR_DATA;
+            break;
+        }
 
         if (extraBits > 0)
         {
