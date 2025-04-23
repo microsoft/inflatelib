@@ -753,6 +753,14 @@ static const inflater_tables deflate64_tables = {
 /* The "active" table is indexed using the current "mode" */
 static const inflater_tables* const inflate_tables[] = {&deflate_tables, &deflate64_tables};
 
+/* The maximum number of bytes that a single compressed block operation can consume. These values are used to optimize
+ * the likely path where we have enough data for a single operation so we don't have to continuously check to see if we
+ * have enough data */
+static const size_t max_compressed_op_size[] = { 6, 8 };
+
+/* static int inflater_read_compressed_fast(inflatelib_stream* stream); */
+static int inflater_read_compressed_fast(inflatelib_stream* stream);
+
 static int inflater_read_compressed(inflatelib_stream* stream)
 {
     int result = INFLATELIB_OK;
@@ -762,12 +770,33 @@ static int inflater_read_compressed(inflatelib_stream* stream)
     uint16_t symbol;
     int opResult, keepGoing = 1;
     const inflater_tables* tables = inflate_tables[state->mode];
+    const size_t maxOpSize = max_compressed_op_size[state->mode];
 
     while (keepGoing)
     {
         switch (state->ifstate)
         {
         case ifstate_reading_literal_length_code:
+            /* The fast path requires that we start in 'ifstate_reading_literal_length_code' */
+            if (state->bitstream.length >= maxOpSize)
+            {
+                stream->next_out = out;
+                stream->avail_out = outSize;
+                result = inflater_read_compressed_fast(stream);
+                out = stream->next_out;
+                outSize = stream->avail_out;
+
+                if (result < INFLATELIB_OK)
+                {
+                    keepGoing = 0;
+                    break;
+                }
+
+                /* NOTE: It's possible for 'inflater_read_compressed_fast' to exit in a state other than
+                 * 'ifstate_reading_literal_length_code', so need to re-evaluate */
+                break;
+            }
+
             /* We're in the process of reading a value from the literal/length tree */
             opResult = huffman_tree_lookup(&state->literal_length_tree, stream, &state->data.compressed.symbol);
             if (opResult == 0)
@@ -790,6 +819,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
                 if (!window_write_byte(&state->window, (uint8_t)state->data.compressed.symbol))
                 {
                     /* Not enough data in the window; try and read some data to free up space */
+                    /* TODO: This doesn't update out/outSize??? */
                     if (!window_copy_output(&state->window, out, outSize))
                     {
                         keepGoing = 0; /* Not enough data in the output */
@@ -866,6 +896,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
             }
 
             /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the exact size of the table */
+            /* TODO: This is only true for Deflat64 */
             assert(symbol < inflatelib_arraysize(tables->distances));
             state->data.compressed.block_distance = tables->distances[symbol].base;
             state->data.compressed.extra_bits = tables->distances[symbol].extra_bits;
@@ -958,6 +989,152 @@ static int inflater_read_compressed(inflatelib_stream* stream)
     bytesCopied = window_copy_output(&state->window, out, outSize);
     out += bytesCopied;
     outSize -= bytesCopied;
+
+    /* Update the output buffers to reflect what we wrote */
+    stream->next_out = out;
+    stream->avail_out = outSize;
+
+    return result;
+}
+
+static int inflater_read_compressed_fast(inflatelib_stream* stream)
+{
+    int result = INFLATELIB_OK;
+    inflatelib_state* state = stream->internal;
+    uint8_t* out = (uint8_t*)stream->next_out;
+    size_t bytesCopied, outSize = stream->avail_out;
+    uint8_t extraBits;
+    uint16_t symbol;
+    uint32_t blockLength, blockDistance;
+    int opResult;
+    const inflater_tables* tables = inflate_tables[state->mode];
+    const size_t maxOpSize = max_compressed_op_size[state->mode];
+
+    assert(state->ifstate == ifstate_reading_literal_length_code);
+    while (state->bitstream.length >= maxOpSize)
+    {
+        opResult = huffman_tree_lookup_unchecked(&state->literal_length_tree, stream, &symbol);
+        if (opResult < 0)
+        {
+            /* Error in the data; NOTE: We've already set the error message */
+            result = INFLATELIB_ERROR_DATA;
+            break;
+        }
+        assert(opResult != 0); /* We should have enough input */
+
+        if (symbol < 256) /* Literal */
+        {
+            /* TODO: Remove this from the fast path */
+            if (!window_write_byte(&state->window, (uint8_t)symbol))
+            {
+                /* Not enough data in the window; try and read some data to free up space */
+                /* TODO: This doesn't update out/outSize??? */
+                if (!window_copy_output(&state->window, out, outSize))
+                {
+                    state->ifstate = ifstate_decoding_literal_length_code;
+                    break;
+                }
+
+                /* Otherwise, we copyied at least one byte and therefore this write should succeed */
+                opResult = window_write_byte(&state->window, (uint8_t)symbol);
+                assert(opResult);
+            }
+
+            /* Go back to reading a new symbol */
+            continue;
+        }
+        else if (symbol == 256) /* End of block */
+        {
+            /* Let the slow path take care of copying data */
+            state->ifstate = ifstate_copying_output_from_window;
+            break;
+        }
+        else if (symbol > 285)
+        {
+            /* NOTE: HLIT is 5 bits, which means that there are at most 288 code lengths specified for the
+             * literal/length tree (257 + 31). This means that in theory, someone could author a block where symbols can
+             * go from 0 to 287. If we move this error "up" and error out if HLIT is greater than 29, we can eliminate
+             * this error check, which could potentially give us some perf wins at the cost of potentially rejecting
+             * otherwise valid inputs. */
+            if (format_error_message(stream, "Invalid symbol '%u' from literal/length tree", symbol) < 0)
+            {
+                stream->error_msg = "Invalid symbol from literal/length tree";
+            }
+            errno = EINVAL;
+            result = INFLATELIB_ERROR_DATA;
+            break;
+        }
+
+        /* Otherwise, 'symbol' references a length */
+        symbol -= 257;
+        assert(symbol < inflatelib_arraysize(tables->lengths)); /* Shouldn't have passed check above */
+        blockLength = tables->lengths[symbol].base;
+        extraBits = tables->lengths[symbol].extra_bits;
+
+        if (extraBits > 0)
+        {
+            blockLength += bitstream_read_bits_unchecked(&state->bitstream, extraBits);
+        }
+
+        /* Now we need to read a distance */
+        opResult = huffman_tree_lookup_unchecked(&state->distance_tree, stream, &symbol);
+        if (opResult < 0)
+        {
+            /* Error in the data; NOTE: We've already set the error message */
+            result = INFLATELIB_ERROR_DATA;
+            break;
+        }
+        assert(opResult != 0); /* We should have enough input */
+
+        /* NOTE: HDIST is 5 bits, giving a maximum of 32 distance symbols, the exact size of the table */
+        /* TODO: This is only true for Deflat64 */
+        assert(symbol < inflatelib_arraysize(tables->distances));
+        blockDistance = tables->distances[symbol].base;
+        extraBits = tables->distances[symbol].extra_bits;
+
+        if (extraBits > 0)
+        {
+            blockDistance += bitstream_read_bits_unchecked(&state->bitstream, extraBits);
+        }
+
+        /* NOTE: In Deflate64, the longest possible length is greater than the window size by two bytes, meaning we may
+         * not be able to copy a full length/distance with a single copy call. This is assumed to be unlikely and we
+         * optimize for the case where a single copy can copy all bytes */
+        opResult =
+            window_copy_length_distance(&state->window, blockDistance, blockLength);
+
+        if (opResult < 0)
+        {
+            if (format_error_message(
+                    stream,
+                    "Compressed block has a distance '%u' which exceeds the size of the window (%llu bytes)",
+                    blockDistance,
+                    state->window.total_bytes) < 0)
+            {
+                stream->error_msg = "Compressed block has a distance which exceeds the size of the window";
+            }
+            errno = EINVAL;
+            result = INFLATELIB_ERROR_DATA;
+            break;
+        }
+
+        bytesCopied = window_copy_output(&state->window, out, outSize);
+        out += bytesCopied;
+        outSize -= bytesCopied;
+
+        /* There are two scenarios where the operation is not yet complete at this point: (1) 'block_length' was too
+         * long to copy all data in a single operation, or (2) we ran out of space in the output buffer */
+        if (((uint32_t)opResult < blockLength) || (state->window.unconsumed_bytes != 0))
+        {
+            state->data.compressed.block_length = blockLength - (uint32_t)opResult;
+            state->data.compressed.block_distance = blockDistance;
+            state->ifstate = ifstate_copying_length_distance_from_window;
+            assert((state->data.compressed.block_length != 0) || (outSize == 0));
+
+            /* Let the slow path take care of this */
+            break;
+        }
+    }
 
     /* Update the output buffers to reflect what we wrote */
     stream->next_out = out;

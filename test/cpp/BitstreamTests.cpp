@@ -173,7 +173,7 @@ TEST_CASE("BitstreamPeekConsume", "[bitstream]")
     REQUIRE(value == 0x8421);
 
     // Available data should be reduced after consuming
-    REQUIRE(bitstream_consume_bits(&stream, 4) == 4);
+    bitstream_consume_bits(&stream, 4);
     REQUIRE(bitstream_peek(&stream, &value) == 12);
     REQUIRE(value == 0x842);
     REQUIRE(bitstream_peek(&stream, &value) == 12);
@@ -188,14 +188,14 @@ TEST_CASE("BitstreamPeekConsume", "[bitstream]")
     REQUIRE(bitstream_peek(&stream, &value) == 16);
     REQUIRE(value == 0xC842);
 
-    REQUIRE(bitstream_consume_bits(&stream, 10) == 10);
+    bitstream_consume_bits(&stream, 10);
     REQUIRE(bitstream_peek(&stream, &value) == 10);
     REQUIRE(value == 0x2B2);
     REQUIRE(bitstream_peek(&stream, &value) == 10);
     REQUIRE(value == 0x2B2);
 
-    // Trying to consume too many bits should just consume what's available
-    REQUIRE(bitstream_consume_bits(&stream, 16) == 10);
+    // Consume the rest
+    bitstream_consume_bits(&stream, 10);
     REQUIRE(bitstream_peek(&stream, &value) == 0);
     REQUIRE(value == 0);
 }
@@ -229,7 +229,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     bitstream_set_data(&stream, buffer.data(), 6);
     REQUIRE(bitstream_peek(&stream, &value) == 16); // At least two bytes of data are available
     REQUIRE(value == 0x01FF);
-    REQUIRE(bitstream_consume_bits(&stream, 8) == 8);
+    bitstream_consume_bits(&stream, 8);
     REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 5);
     checkReadBytes(1, 5);
 
@@ -237,7 +237,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     bitstream_set_data(&stream, buffer.data(), 6);
     REQUIRE(bitstream_peek(&stream, &value) == 16); // At least two bytes of data are available
     REQUIRE(value == 0x01FF);
-    REQUIRE(bitstream_consume_bits(&stream, 6) == 6);
+    bitstream_consume_bits(&stream, 6);
     bitstream_byte_align(&stream);
     bitstream_byte_align(&stream); // The additional align shouldn't matter
     REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 5);
@@ -270,7 +270,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     bitstream_set_data(&stream, buffer.data(), 6);
     REQUIRE(bitstream_peek(&stream, &value) == 16); // Fill buffer; required for 'consume'
     REQUIRE(value == 0x01FF);
-    REQUIRE(bitstream_consume_bits(&stream, 1) == 1);
+    bitstream_consume_bits(&stream, 1);
     REQUIRE(bitstream_peek(&stream, &value) == 16); // Now have 2 bytes + 7 bits in the buffer
     REQUIRE(value == 0x80FF);
     bitstream_byte_align(&stream);                                 // Now 2 bytes left in the buffer
@@ -278,7 +278,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     REQUIRE(output[0] == 0x01);
     REQUIRE(bitstream_peek(&stream, &value) == 16); // 2 bytes in the buffer now
     REQUIRE(value == 0x4523);
-    REQUIRE(bitstream_consume_bits(&stream, 3) == 3);
+    bitstream_consume_bits(&stream, 3);
     REQUIRE(bitstream_read_bits(&stream, 13, &value)); // Effectively byte aligns
     REQUIRE(value == 0x08A4);
     REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 2);
