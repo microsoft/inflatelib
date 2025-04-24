@@ -760,8 +760,10 @@ static const inflater_tables* const inflate_tables[] = {&deflate_tables, &deflat
 
 /* The maximum number of bytes that a single compressed block operation can consume. These values are used to optimize
  * the likely path where we have enough data for a single operation so we don't have to continuously check to see if we
- * have enough data */
-static const size_t max_compressed_op_size[] = { 6, 8 };
+ * have enough data. These values are calculated as follows:
+ * Deflate: 15 bit length + 5 extra bits + 15 bit distance + 13 extra bits = 48 bits = 6 bytes
+ * Deflate64: 15 bit length + 16 extra bits + 15 bit distance + 14 extra bits = 60 bits = 8 bytes (rounded up) */
+static const size_t max_compressed_op_size[] = {6, 8};
 
 /* static int inflater_read_compressed_fast(inflatelib_stream* stream); */
 static int inflater_read_compressed_fast(inflatelib_stream* stream);
@@ -1125,8 +1127,7 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
         /* NOTE: In Deflate64, the longest possible length is greater than the window size by two bytes, meaning we may
          * not be able to copy a full length/distance with a single copy call. This is assumed to be unlikely and we
          * optimize for the case where a single copy can copy all bytes */
-        opResult =
-            window_copy_length_distance(&state->window, blockDistance, blockLength);
+        opResult = window_copy_length_distance(&state->window, blockDistance, blockLength);
 
         if (opResult < 0)
         {

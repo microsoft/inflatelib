@@ -160,7 +160,7 @@ int window_write_byte(window* window, uint8_t byte)
 
 void window_write_byte_consume(window* window, uint8_t byte)
 {
-    assert(window->unconsumed_bytes == 0); /* Pre-condition */
+    assert(window->unconsumed_bytes == 0);               /* Pre-condition */
     assert(window->write_offset == window->read_offset); /* Sanity check */
 
     window->data[window->write_offset] = byte;

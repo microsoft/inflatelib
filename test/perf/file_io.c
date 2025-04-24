@@ -71,7 +71,7 @@ char* resolve_test_file_path(const char* filename)
 
 file_data read_file(const char* filename)
 {
-    file_data result = { 0 };
+    file_data result = {0};
     char* fullPath = NULL;
     FILE* file = NULL;
     uint8_t* buffer = NULL;

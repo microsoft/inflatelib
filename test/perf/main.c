@@ -28,8 +28,8 @@ static const char* const deflate64_files[] = {
     "file.us-constitution.deflate64.txt.in.bin",
 };
 
-const pinflater deflate_inflaters[] = { &inflatelib_inflater.vtable, &zlib_inflater.vtable };
-const pinflater deflate64_inflaters[] = { &inflatelib_inflater64.vtable };
+const pinflater deflate_inflaters[] = {&inflatelib_inflater.vtable, &zlib_inflater.vtable};
+const pinflater deflate64_inflaters[] = {&inflatelib_inflater64.vtable};
 
 typedef struct test_desc
 {
@@ -82,7 +82,8 @@ static void test_desc_destroy(test_desc* self)
     memset(self, 0, sizeof(*self));
 }
 
-static int test_desc_init(test_desc* self, deflate_algorithm alg, const char* const* fileNames, size_t fileCount, const pinflater* inflaters, size_t inflaterCount)
+static int test_desc_init(
+    test_desc* self, deflate_algorithm alg, const char* const* fileNames, size_t fileCount, const pinflater* inflaters, size_t inflaterCount)
 {
     size_t histogramCount = inflaterCount * (fileCount + 1);
 
@@ -190,12 +191,14 @@ int main()
     test_desc deflate_tests = {0};
     test_desc deflate64_tests = {0};
 
-    if (!test_desc_init(&deflate_tests, deflate_algorithm_deflate, deflate_files, ARRAYSIZE(deflate_files), deflate_inflaters, ARRAYSIZE(deflate_inflaters)))
+    if (!test_desc_init(
+            &deflate_tests, deflate_algorithm_deflate, deflate_files, ARRAYSIZE(deflate_files), deflate_inflaters, ARRAYSIZE(deflate_inflaters)))
     {
         return 1;
     }
 
-    if (!test_desc_init(&deflate64_tests, deflate_algorithm_deflate64, deflate64_files, ARRAYSIZE(deflate64_files), deflate64_inflaters, ARRAYSIZE(deflate64_inflaters)))
+    if (!test_desc_init(
+            &deflate64_tests, deflate_algorithm_deflate64, deflate64_files, ARRAYSIZE(deflate64_files), deflate64_inflaters, ARRAYSIZE(deflate64_inflaters)))
     {
         test_desc_destroy(&deflate_tests);
         return 1;
@@ -436,7 +439,6 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
             printf("%c", lastPrinted[x]);
         }
 
-
         printf("\n");
     }
 
@@ -488,7 +490,7 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
         {
             /* This prints out 5 characters, which is 4 more than we otherwise would and therefore need to advance our
              * counter by this extra amount. We add an additional one to ensure enough space for a ' ' */
-            printf("%5.2f ", base  * labelDist);
+            printf("%5.2f ", base * labelDist);
             x += 5;
         }
         else

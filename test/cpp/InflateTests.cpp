@@ -535,7 +535,7 @@ TEST_CASE("InflateExtraData", "[inflate][inflate64]")
 
         inflatelib::stream stream;
         REQUIRE((stream.*inflateFunc)(inputSpan, outputSpan) == false); // 'false' means we've decoded all data
-        REQUIRE(!inputSpan.empty());                               // Since there's extra data at the end
+        REQUIRE(!inputSpan.empty());                                    // Since there's extra data at the end
         REQUIRE(outputSpan.empty());
 
         // Calling again should immediately return false since we've already hit end of stream

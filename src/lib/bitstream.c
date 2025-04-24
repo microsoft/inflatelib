@@ -129,7 +129,7 @@ int bitstream_read_bits(bitstream* stream, int bitsToRead, uint16_t* result)
 uint16_t bitstream_read_bits_unchecked(bitstream* stream, int bitsToRead)
 {
     uint16_t result;
-    uint32_t mask = ((uint32_t)1 << bitsToRead) - 1;;
+    uint32_t mask = ((uint32_t)1 << bitsToRead) - 1;
 
     assert((bitsToRead > 0) && (bitsToRead <= (sizeof(result) * 8)));
 
