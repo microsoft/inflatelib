@@ -68,9 +68,8 @@ static file_contents read_file(const std::filesystem::path& path)
         throw std::system_error(errno, std::generic_category(), "Failed to seek to end of file");
     }
 
-    file_contents result;
-    result.size = ::ftell(file.get());
-    if (result.size == -1)
+    auto fileSize = ::ftell(file.get());
+    if (fileSize == -1)
     {
         throw std::system_error(errno, std::generic_category(), "Failed to get file size");
     }
@@ -80,7 +79,7 @@ static file_contents read_file(const std::filesystem::path& path)
         throw std::system_error(errno, std::generic_category(), "Failed to seek to start of file");
     }
 
-    result.buffer = std::make_unique<std::byte[]>(result.size);
+    file_contents result = {std::make_unique<std::byte[]>(fileSize), static_cast<std::size_t>(fileSize)};
     for (std::size_t i = 0; i < result.size;)
     {
         auto read = ::fread(result.buffer.get() + i, 1, result.size - i, file.get());
@@ -115,7 +114,7 @@ static void inflate_test_worker(
 
     int result;
     std::size_t readOffset = 0, writeOffset = 0;
-    while ((readOffset < input.size) || (writeOffset < outputBufferSize))
+    do
     {
         auto readSizeBefore = inputSpan.size();
         auto writeSizeBefore = outputSpan.size();
@@ -155,6 +154,7 @@ static void inflate_test_worker(
             break;
         }
     }
+    while ((readOffset < input.size) || (writeOffset < outputBufferSize));
 
     if (result < 0)
     {

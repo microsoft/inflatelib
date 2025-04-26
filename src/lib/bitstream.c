@@ -38,9 +38,9 @@ void bitstream_byte_align(bitstream* stream)
     stream->bits_in_buffer -= bitsToConsume;
 }
 
-int bitstream_copy_bytes(bitstream* stream, int bytesToRead, uint8_t* dest)
+uint16_t bitstream_copy_bytes(bitstream* stream, uint16_t bytesToRead, uint8_t* dest)
 {
-    int bytesFromBuffer, bytesFromData;
+    uint16_t bytesFromBuffer, bytesFromData;
 
     /* The caller should ensure that the stream is byte-aligned before calling this function. It may be the case that
      * some data is already in the buffer - e.g. if the previous operation was a peek - in which case there should be
@@ -48,10 +48,10 @@ int bitstream_copy_bytes(bitstream* stream, int bytesToRead, uint8_t* dest)
     assert((stream->bits_in_buffer % 8) == 0);
     assert(bytesToRead > 0);
 
-    bytesFromBuffer = stream->bits_in_buffer / 8;
+    bytesFromBuffer = (uint16_t)(stream->bits_in_buffer / 8);
     bytesFromBuffer = (bytesFromBuffer > bytesToRead) ? bytesToRead : bytesFromBuffer;
 
-    for (int i = 0; i < bytesFromBuffer; ++i)
+    for (uint16_t i = 0; i < bytesFromBuffer; ++i)
     {
         *dest++ = (uint8_t)stream->buffer;
         stream->buffer >>= 8;
@@ -59,9 +59,9 @@ int bitstream_copy_bytes(bitstream* stream, int bytesToRead, uint8_t* dest)
     }
     bytesToRead -= bytesFromBuffer;
 
-    bytesFromData = (stream->length > (size_t)bytesToRead) ? bytesToRead : (int)stream->length;
+    bytesFromData = (stream->length > bytesToRead) ? bytesToRead : (uint16_t)stream->length;
 
-    memcpy(dest, stream->data, (size_t)bytesFromData);
+    memcpy(dest, stream->data, bytesFromData);
 
     stream->data += bytesFromData;
     stream->length -= bytesFromData;
@@ -106,7 +106,7 @@ static void bitstream_fill_buffer_unchecked(bitstream* stream)
     }
 }
 
-int bitstream_read_bits(bitstream* stream, int bitsToRead, uint16_t* result)
+int bitstream_read_bits(bitstream* stream, uint8_t bitsToRead, uint16_t* result)
 {
     uint32_t mask;
 
@@ -119,14 +119,14 @@ int bitstream_read_bits(bitstream* stream, int bitsToRead, uint16_t* result)
     }
 
     mask = ((uint32_t)1 << bitsToRead) - 1;
-    *result = stream->buffer & mask;
+    *result = (uint16_t)(stream->buffer & mask);
     stream->buffer >>= bitsToRead;
     stream->bits_in_buffer -= bitsToRead;
 
     return 1;
 }
 
-uint16_t bitstream_read_bits_unchecked(bitstream* stream, int bitsToRead)
+uint16_t bitstream_read_bits_unchecked(bitstream* stream, uint8_t bitsToRead)
 {
     uint16_t result;
     uint32_t mask = ((uint32_t)1 << bitsToRead) - 1;
@@ -136,7 +136,7 @@ uint16_t bitstream_read_bits_unchecked(bitstream* stream, int bitsToRead)
     bitstream_fill_buffer_unchecked(stream);
     assert(bitsToRead <= stream->bits_in_buffer);
 
-    result = stream->buffer & mask;
+    result = (uint16_t)(stream->buffer & mask);
     stream->buffer >>= bitsToRead;
     stream->bits_in_buffer -= bitsToRead;
 

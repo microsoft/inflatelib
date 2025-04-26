@@ -9,11 +9,13 @@
 
 static void* inflatelib_default_alloc(void* unusedUserData, size_t bytes)
 {
+    (void)unusedUserData; /* C doesn't allow unnamed parameters */
     return malloc(bytes);
 }
 
 static void inflatelib_default_free(void* unusedUserData, void* ptr)
 {
+    (void)unusedUserData; /* C doesn't allow unnamed parameters */
     free(ptr);
 }
 
@@ -384,7 +386,6 @@ static int inflater_process_data(inflatelib_stream* stream)
 static int inflater_read_uncompressed(inflatelib_stream* stream)
 {
     inflatelib_state* state = stream->internal;
-    int result = INFLATELIB_OK;
     size_t bytesCopied;
     uint16_t data;
 
@@ -453,6 +454,8 @@ static void inflater_init_static_tables(inflatelib_stream* stream)
     uint8_t buffer[LITERAL_TREE_MAX_ELEMENT_COUNT];
     inflatelib_state* state = stream->internal;
 
+    (void)result; /* Only used for asserts */
+
     /* TODO: We can encode both of these tables in static data; it's not clear yet if/how much that might improve things
      * and all indications are that this code path is insignificant enough to warrent such optimizations */
 
@@ -500,7 +503,8 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
 {
     int result = INFLATELIB_OK;
     inflatelib_state* state = stream->internal;
-    uint16_t data, prevCode, codeArraySize;
+    uint16_t data, codeArraySize;
+    uint8_t prevCode;
 
     assert(state->btype == btype_dynamic);
 
@@ -633,7 +637,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
             else
             {
                 /* Repeat zero some number of times */
-                int bitCount;
+                uint8_t bitCount;
                 uint16_t repeatBase;
                 if (state->data.dynamic_codes.length_code == 17)
                 {
@@ -717,7 +721,7 @@ typedef struct
     struct
     {
         uint16_t base;
-        uint16_t extra_bits;
+        uint8_t extra_bits;
     } lengths[29];
 
     /* The data for reading encoded distances. For some symbol N, 0 <= N <= 31, the distance is:
@@ -725,7 +729,7 @@ typedef struct
     struct
     {
         uint16_t base;
-        uint16_t extra_bits;
+        uint8_t extra_bits;
     } distances[32];
 } inflater_tables;
 

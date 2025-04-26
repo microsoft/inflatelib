@@ -135,7 +135,7 @@ token lexer::peek()
                 if (current_line[index] != '#')
                 {
                     // Not a comment; must be the start of the next token
-                    current_token.location.column = index + 1;
+                    current_token.location.column = static_cast<std::uint32_t>(index + 1);
                     current_token.location.file_offset = current_line_file_offset + index;
                     read_token_at_current_position();
                     break; // ... out of the loop & return the current token
@@ -448,7 +448,7 @@ void lexer::seek_to(const source_location& loc)
     }
 
     // Otherwise, we need to seek to the file position
-    if (std::fseek(file, lineFileOffset, SEEK_SET))
+    if (std::fseek(file, static_cast<long>(lineFileOffset), SEEK_SET))
     {
         std::println("{}: error: Failed to seek to line {}", file_path, loc.line);
         std::exit(1);
@@ -490,7 +490,7 @@ bool lexer::advance_line()
         // Otherwise, we previously didn't read a new line character, which implies we read all of the file
         assert(std::feof(file));
         current_token.location.file_offset = current_line_file_offset;
-        current_token.location.column = current_line.size() + 1;
+        current_token.location.column = static_cast<std::uint32_t>(current_line.size() + 1);
         return false;
     }
 

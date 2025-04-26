@@ -28,5 +28,25 @@ if (MSVC)
     # TODO: /Gy?
 endif()
 
+# Max warning levels/set warnings as errors
+if (MSVC)
+    # MSVC-like command syntax
+    add_compile_options(/W4 /WX)
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        # MSVC-specific options
+        add_compile_options(/permissive-)
+    else()
+        # Assume clang-cl
+        add_compile_options(
+            -fno-delayed-template-parsing
+            -fno-ms-compatibility
+            )
+    endif()
+else()
+    # Assume GNU-like command syntax
+    add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
+
 add_subdirectory(src)
 add_subdirectory(test)

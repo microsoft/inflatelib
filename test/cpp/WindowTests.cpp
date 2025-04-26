@@ -189,10 +189,10 @@ TEST_CASE("WindowWrite", "[window]")
         writeSomeBytes(256);
 
         auto writeData = [&](std::uint32_t iteration) {
-            auto repetitions = 1 << iteration;
+            auto repetitions = 1u << iteration;
             std::uint32_t len = 256 << iteration;
 
-            REQUIRE(window_copy_length_distance(&window, len, len) == len);
+            REQUIRE(window_copy_length_distance(&window, len, len) == static_cast<int>(len));
             REQUIRE(window_copy_output(&window, output, std::size(output)) == len);
             for (uint32_t i = 0; i < repetitions; ++i)
             {

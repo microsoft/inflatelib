@@ -45,7 +45,7 @@ bool binary_writer::write_bits(const std::uint32_t* data, std::size_t size, std:
                 buffer[write_index] = 0;
             }
 
-            auto writeSize = std::min<std::uint8_t>(bits, 8 - bit_index);
+            auto writeSize = std::min(bits, static_cast<std::uint8_t>(8 - bit_index));
             auto mask = static_cast<std::uint8_t>(0xFF >> (8 - writeSize));
 
             buffer[write_index] |= (value & mask) << bit_index;
@@ -230,7 +230,7 @@ bool parser::parse_output(scope* parent, bool isScoped)
                         }
 
                         static_cast<binary_output*>(currOutput.get())
-                            ->add_bits(static_cast<std::uint32_t>(value), std::min<std::uint8_t>(bitCount, 32));
+                            ->add_bits(static_cast<std::uint32_t>(value), std::min(bitCount, static_cast<std::uint8_t>(32)));
                         if (bitCount > 32)
                         {
                             static_cast<binary_output*>(currOutput.get())->add_bits(static_cast<std::uint32_t>(value >> 32), bitCount - 32);
@@ -526,7 +526,7 @@ bool parser::parse_output(scope* parent, bool isScoped)
                     else
                     {
                         bool valid = true;
-                        std::uint8_t byte;
+                        std::uint8_t byte = 0;
                         switch (text[++i])
                         {
                         case '0':
@@ -558,7 +558,7 @@ bool parser::parse_output(scope* parent, bool isScoped)
                             break;
                         default:
                             valid = false;
-                            lex.emit_error(tok.location, i, 2, "Invalid escape sequence");
+                            lex.emit_error(tok.location, static_cast<std::uint32_t>(i), 2, "Invalid escape sequence");
                             break;
                         }
 

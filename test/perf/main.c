@@ -157,6 +157,7 @@ static uint64_t current_time()
 {
     LARGE_INTEGER result;
     BOOL success = QueryPerformanceCounter(&result);
+    (void)success; /* Only used for assert */
     assert(success);
 
     return (uint64_t)result.QuadPart;
@@ -166,6 +167,7 @@ static double time_to_ms(uint64_t time)
 {
     LARGE_INTEGER frequency;
     BOOL success = QueryPerformanceFrequency(&frequency);
+    (void)success; /* Only used for assert */
     assert(success);
 
     return ((double)time / (double)frequency.QuadPart) * 1000.0;
@@ -175,6 +177,7 @@ static double time_to_ms_f(double time)
 {
     LARGE_INTEGER frequency;
     BOOL success = QueryPerformanceFrequency(&frequency);
+    (void)success; /* Only used for assert */
     assert(success);
 
     return (time / (double)frequency.QuadPart) * 1000.0;
@@ -485,7 +488,7 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
     {
         double start = startXMs + (x * strideXMs);
         double end = start + strideXMs;
-        uint64_t base = end / labelDist;
+        uint64_t base = (uint64_t)(end / labelDist);
         if (base != (uint64_t)(start / labelDist))
         {
             /* This prints out 5 characters, which is 4 more than we otherwise would and therefore need to advance our

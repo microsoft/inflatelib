@@ -91,12 +91,12 @@ int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint
     uint16_t bitLengthCount[MAX_CODE_LENGTH + 1]; /* NOTE: +1 because we index by length (index 0 effectively "wasted") */
     uint16_t nextCodes[MAX_CODE_LENGTH + 1];
     uint16_t nextCode;
-    huffman_table_entry* treeBase = tree->data + (0x01 << tree->table_bits);
+    huffman_table_entry* treeBase = tree->data + ((size_t)0x01 << tree->table_bits);
     huffman_table_entry* nextTreeInsertPtr = treeBase;
     uint16_t nextTreeInsertIndex = 0;
 
     /* Zero out the lookup table. This ensures that data is listed as "invalid" by default */
-    memset(tree->data, 0, (0x01 << tree->table_bits) * sizeof(huffman_table_entry));
+    memset(tree->data, 0, ((size_t)0x01 << tree->table_bits) * sizeof(huffman_table_entry));
 
     /* Calculate the Huffman code for each symbol based on the code length for each symbol. This algorithm is described
      * in RFC 1951, section 3.2.2 */
@@ -167,12 +167,10 @@ int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint
             {
                 /* This needs to go into the binary tree portion */
                 huffman_table_entry* entry = &tree->data[code & tree->table_mask];
-                uint8_t currentLen = 0;
 
                 /* Should be impossible given how codes are calculated */
                 assert((entry->code_length == 0) || (entry->code_length > tree->table_bits));
 
-                currentLen += tree->table_bits;
                 code >>= tree->table_bits;
                 for (uint8_t currentLen = tree->table_bits; currentLen < len; ++currentLen)
                 {
@@ -240,7 +238,7 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
     if (tableEntry->code_length > tree->table_bits)
     {
         /* This is a "pointer" inside the tree */
-        huffman_table_entry* tableBase = tree->data + (0x01 << tree->table_bits);
+        huffman_table_entry* tableBase = tree->data + ((size_t)0x01 << tree->table_bits);
         int bitsRead = tree->table_bits;
         uint16_t remainingInput = input >> tree->table_bits;
 
@@ -295,7 +293,7 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
     if (tableEntry->code_length > tree->table_bits)
     {
         /* This is a "pointer" inside the tree */
-        huffman_table_entry* tableBase = tree->data + (0x01 << tree->table_bits);
+        huffman_table_entry* tableBase = tree->data + ((size_t)0x01 << tree->table_bits);
         int bitsRead = tree->table_bits;
         uint16_t remainingInput = input >> tree->table_bits;
 

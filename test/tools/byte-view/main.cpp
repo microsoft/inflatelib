@@ -73,7 +73,7 @@ int main(int argc, char** argv)
         auto ptr = buffer.get();
         while (len > 0)
         {
-            auto lineSize = std::min<std::size_t>(len, line_size - bytesInLastOutput);
+            auto lineSize = std::min(len, static_cast<std::size_t>(line_size - bytesInLastOutput));
             len -= lineSize;
             bytesInLastOutput += static_cast<std::uint8_t>(lineSize);
             for (std::size_t i = 0; i < lineSize; ++i)

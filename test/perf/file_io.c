@@ -76,7 +76,8 @@ file_data read_file(const char* filename)
     FILE* file = NULL;
     uint8_t* buffer = NULL;
     uint8_t* writeBuffer = NULL;
-    long fileSize = 0, bytesRemaining = 0;
+    long fileSize = 0;
+    size_t bytesRemaining = 0;
 
     fullPath = resolve_test_file_path(filename);
     if (!fullPath)
@@ -140,7 +141,7 @@ file_data read_file(const char* filename)
     }
 
     writeBuffer = buffer;
-    bytesRemaining = fileSize;
+    bytesRemaining = (size_t)fileSize;
     while (1)
     {
         size_t bytesRead = fread(writeBuffer, 1, bytesRemaining + 1, file);

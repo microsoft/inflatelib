@@ -78,7 +78,7 @@ void histogram_finalize(histogram* self)
 
     /* Calculate the median*/
     midpoint = self->size / 2;
-    self->median = self->counts[midpoint];
+    self->median = (double)self->counts[midpoint];
     if (self->size % 2 == 0)
     {
         self->median = (self->median + self->counts[midpoint - 1]) / 2;

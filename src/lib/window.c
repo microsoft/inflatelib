@@ -47,9 +47,9 @@ uint16_t window_copy_bytes(window* window, bitstream* bitstream, uint16_t count)
     while (count > 0)
     {
         uint32_t buffRemaining = DEFLATE64_WINDOW_SIZE - window->write_offset; /* Space until end of buffer */
-        uint32_t bytesToCopy = (count <= buffRemaining) ? count : buffRemaining;
+        uint16_t bytesToCopy = (count <= buffRemaining) ? count : (uint16_t)buffRemaining;
 
-        int bytesCopied = bitstream_copy_bytes(bitstream, bytesToCopy, window->data + window->write_offset);
+        uint16_t bytesCopied = bitstream_copy_bytes(bitstream, bytesToCopy, window->data + window->write_offset);
         count -= bytesCopied;
         result += bytesCopied;
         window->write_offset += bytesCopied; /* This will overflow back to zero correctly */
@@ -86,7 +86,7 @@ int window_copy_length_distance(window* window, uint32_t distance, uint32_t leng
 
     /*
      * We can't just copy all bytes in one fell swoop for several reasons:
-     *      1.  The distnace between 'copyIndex' and the end of the buffer may be less than 'length', in which case we
+     *      1.  The distance between 'copyIndex' and the end of the buffer may be less than 'length', in which case we
      *          need to wrap back around and copy from the start of the buffer.
      *      2.  'length' may be greater than 'distance'. I.e. some of the data we are copying from has not been written
      *          yet.
@@ -131,10 +131,10 @@ int window_copy_length_distance(window* window, uint32_t distance, uint32_t leng
         memmove(window->data + window->write_offset, window->data + copyIndex, copySize);
 
         /* Integer overflow will take care of resetting each of these back to zero properly */
-        window->write_offset += copySize;
+        window->write_offset = (uint16_t)(window->write_offset + copySize);
         window->unconsumed_bytes += copySize;
         window->total_bytes += copySize;
-        copyIndex += copySize;
+        copyIndex = (uint16_t)(copyIndex + copySize);
         writeSpaceRemaining -= copySize;
         length -= copySize;
         result += copySize;

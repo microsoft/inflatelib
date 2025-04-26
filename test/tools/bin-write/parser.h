@@ -76,7 +76,7 @@ struct binary_output final : public output_node
     {
         while (count > 0)
         {
-            auto bitCount = std::min<std::uint8_t>(count, 32 - next_bit);
+            auto bitCount = std::min(count, static_cast<std::uint8_t>(32 - next_bit));
             auto mask = static_cast<std::uint32_t>(0xFFFFFFFF) >> (32 - bitCount);
 
             bits.back() |= (value & mask) << next_bit;

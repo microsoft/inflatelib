@@ -228,7 +228,7 @@ int main(int argc, char** argv)
     }
 
     auto fileSize = ftell(file);
-    if (fileSize < sizeof(end_of_central_directory))
+    if (fileSize < static_cast<long>(sizeof(end_of_central_directory)))
     {
         std::println("ERROR: File is too small to contain a ZIP central directory");
         return 1;
@@ -249,7 +249,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    if (fread(cd_buffer.get(), 1, readSize, file) != readSize)
+    if (fread(cd_buffer.get(), 1, static_cast<std::size_t>(readSize), file) != static_cast<std::size_t>(readSize))
     {
         std::println("ERROR: Failed to read file");
         return 1;
@@ -281,21 +281,21 @@ int main(int argc, char** argv)
         std::println("ERROR: Central directory is too small to contain a file header");
         return 1;
     }
-    else if (cdFileOffset + cdSize > fileSize)
+    else if (cdFileOffset + cdSize > static_cast<std::uint32_t>(fileSize))
     {
         std::println("ERROR: Central directory extends beyond the end of the file");
         return 1;
     }
 
     bool cdNeedsRead = false;
-    if (cdSize > cd_buffer_size)
+    if (cdSize > static_cast<std::uint32_t>(cd_buffer_size))
     {
         // Round up size to a power of two
         cd_buffer_size = std::bit_ceil(cdSize);
         cd_buffer = std::make_unique<std::uint8_t[]>(cd_buffer_size);
         cdNeedsRead = true;
     }
-    else if (cdFileOffset < readFileOffset)
+    else if (cdFileOffset < static_cast<std::uint32_t>(readFileOffset))
     {
         cdNeedsRead = true;
     }
@@ -309,7 +309,7 @@ int main(int argc, char** argv)
             std::println("ERROR: Failed to seek file");
             return 1;
         }
-        else if (fread(cd_buffer.get(), 1, readSize, file) != readSize)
+        else if (fread(cd_buffer.get(), 1, static_cast<std::size_t>(readSize), file) != static_cast<std::size_t>(readSize))
         {
             std::println("ERROR: Failed to read file");
             return 1;
@@ -318,7 +318,7 @@ int main(int argc, char** argv)
 
     // We want the central directory to remain in memory, so we'll need a separate buffer for file contents
     // Large enough to hold any local file header, rounded up to next power of two
-    static constexpr const long file_buffer_size = 256 * 1024;
+    static constexpr const std::size_t file_buffer_size = 256 * 1024;
     auto file_buffer = std::make_unique<std::uint8_t[]>(file_buffer_size);
 
     auto cdStartBufferOffset = cdFileOffset - readFileOffset;
@@ -366,15 +366,14 @@ int main(int argc, char** argv)
         // Figure out how much data we need to read for both the header and the contents
         // NOTE: We've already read the local file header & have "seeked" past it; don't read again
         auto totalSize = localHeader->size() + localHeader->compressed_size.get();
-        auto readSize = static_cast<long>(
-            std::min<std::size_t>(totalSize - sizeof(local_file_header), file_buffer_size - sizeof(local_file_header)));
-        if (fread(file_buffer.get() + sizeof(local_file_header), 1, readSize, file) != readSize)
+        auto dataReadSize = std::min(totalSize - sizeof(local_file_header), file_buffer_size - sizeof(local_file_header));
+        if (fread(file_buffer.get() + sizeof(local_file_header), 1, dataReadSize, file) != dataReadSize)
         {
             std::println("ERROR: Failed to read local file header/data for {}", currentEntry->file_name());
             return 1;
         }
 
-        readSize += sizeof(local_file_header); // Since the buffer also contains the start of the header
+        dataReadSize += sizeof(local_file_header); // Since the buffer also contains the start of the header
 
         // Sanity check that the local header and CD header are in-sync. Realistically. Most of this data doesn't
         // matter, however mis-matches in some of this data result in ambiguities in the data we need to read/report
@@ -408,14 +407,14 @@ int main(int argc, char** argv)
         std::uint32_t totalBytesWritten = 0;
 #endif
 
-        // NOTE: At this point, 'localHeader' is assumed to be invalid since we may need to read more data
+        // NOTE: At this point, 'localHeader' is assumed to be an invalid pointer since we may need to read more data
         while (true)
         {
             auto ptr = reinterpret_cast<const std::uint8_t*>(file_buffer.get()) + offset;
-            std::size_t outputSize = readSize - offset;
+            std::size_t outputSize = dataReadSize - offset;
             while (outputSize > 0)
             {
-                auto lineSize = std::min<std::size_t>(outputSize, line_size - bytesInLastOutput);
+                auto lineSize = std::min(outputSize, static_cast<std::size_t>(line_size - bytesInLastOutput));
                 outputSize -= lineSize;
                 bytesInLastOutput += static_cast<std::uint8_t>(lineSize);
 #ifdef _DEBUG
@@ -435,16 +434,16 @@ int main(int argc, char** argv)
                 }
             }
 
-            totalSize -= readSize;
+            totalSize -= dataReadSize;
             if (totalSize <= 0)
             {
                 break;
             }
 
             // Read more data
-            readSize = static_cast<long>(std::min<std::size_t>(totalSize, file_buffer_size));
+            dataReadSize = std::min(totalSize, file_buffer_size);
             offset = 0;
-            if (fread(file_buffer.get(), 1, readSize, file) != readSize)
+            if (fread(file_buffer.get(), 1, dataReadSize, file) != dataReadSize)
             {
                 std::println("ERROR: Failed to read file data for {}", currentEntry->file_name());
                 return 1;

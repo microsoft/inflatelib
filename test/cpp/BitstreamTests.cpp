@@ -11,12 +11,12 @@ static void DoBitstreamReadBitsTest(std::uint16_t value)
     const std::uint8_t aligned[] = {(std::uint8_t)value, (std::uint8_t)(value >> 8)};
     const std::uint8_t unaligned[] = {(std::uint8_t)(0x15 | (value << 5)), (std::uint8_t)(value >> 3), (std::uint8_t)(value >> 11)};
 
-    int deadBits[] = {0, 5}; // Number of bits to "throw away"
+    std::uint8_t deadBits[] = {0, 5}; // Number of bits to "throw away"
     std::span<const std::uint8_t> data[] = {aligned, unaligned};
     for (std::size_t i = 0; i < std::size(data); ++i)
     {
         // Read all possible number of bits
-        for (int bits = 1; bits <= 16; ++bits)
+        for (std::uint8_t bits = 1; bits <= 16; ++bits)
         {
             bitstream stream;
             bitstream_init(&stream);
@@ -125,9 +125,9 @@ TEST_CASE("BitstreamCopyBytes", "[bitstream]")
     static constexpr const std::uint8_t input[] = {
         0xC3, 0xA5, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
 
-    for (int readCount = 1; readCount <= 16; ++readCount)
+    for (std::uint8_t readCount = 1; readCount <= 16; ++readCount)
     {
-        auto doTest = [&](bitstream& stream, int bytesToRead, int expectedRead) {
+        auto doTest = [&](bitstream& stream, std::uint8_t bytesToRead, std::uint32_t expectedRead) {
             std::uint16_t ignore;
             REQUIRE(bitstream_read_bits(&stream, readCount, &ignore));
             bitstream_byte_align(&stream); // Skip to next byte
@@ -221,7 +221,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     REQUIRE(bitstream_read_bits(&stream, 6, &value));
     REQUIRE(value == 0x3F);
     bitstream_byte_align(&stream);
-    REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 5);
+    REQUIRE(bitstream_copy_bytes(&stream, static_cast<std::uint16_t>(output.size()), output.data()) == 5);
     checkReadBytes(1, 5);
 
     // Second test: do a peek, which should read at least two bytes into the buffer, but only consume a few bits. When
@@ -230,7 +230,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     REQUIRE(bitstream_peek(&stream, &value) == 16); // At least two bytes of data are available
     REQUIRE(value == 0x01FF);
     bitstream_consume_bits(&stream, 8);
-    REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 5);
+    REQUIRE(bitstream_copy_bytes(&stream, static_cast<std::uint16_t>(output.size()), output.data()) == 5);
     checkReadBytes(1, 5);
 
     // Third test: do the same as the above, only this time consume a few bits & byte align
@@ -240,7 +240,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     bitstream_consume_bits(&stream, 6);
     bitstream_byte_align(&stream);
     bitstream_byte_align(&stream); // The additional align shouldn't matter
-    REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 5);
+    REQUIRE(bitstream_copy_bytes(&stream, static_cast<std::uint16_t>(output.size()), output.data()) == 5);
     checkReadBytes(1, 5);
 
     // Fourth test: same as the previous two, but read a couple bits before the first peek, so we read more than two
@@ -251,7 +251,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     REQUIRE(bitstream_peek(&stream, &value) == 16);
     REQUIRE(value == 0x301F);
     bitstream_byte_align(&stream);
-    REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 5);
+    REQUIRE(bitstream_copy_bytes(&stream, static_cast<std::uint16_t>(output.size()), output.data()) == 5);
     checkReadBytes(1, 5);
 
     // Fifth test: similar to the above, but use 'bitstream_copy_bytes' to consume a byte from the buffer & ensure that
@@ -263,7 +263,7 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     REQUIRE(output[0] == 0xFF);
     REQUIRE(bitstream_read_bits(&stream, 16, &value));
     REQUIRE(value == 0x2301);
-    REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 3);
+    REQUIRE(bitstream_copy_bytes(&stream, static_cast<std::uint16_t>(output.size()), output.data()) == 3);
     checkReadBytes(3, 3);
 
     // Final test: Use all three operations to consume data from the buffer
@@ -281,6 +281,6 @@ TEST_CASE("BitstreamAlternatingReads", "[bitstream]")
     bitstream_consume_bits(&stream, 3);
     REQUIRE(bitstream_read_bits(&stream, 13, &value)); // Effectively byte aligns
     REQUIRE(value == 0x08A4);
-    REQUIRE(bitstream_copy_bytes(&stream, output.size(), output.data()) == 2);
+    REQUIRE(bitstream_copy_bytes(&stream, static_cast<std::uint16_t>(output.size()), output.data()) == 2);
     checkReadBytes(4, 2);
 }

@@ -32,6 +32,7 @@ static int inflatelib_inflater_init(void* pThis)
 
 const char* inflatelib_inflater_name(void* pThis)
 {
+    (void)pThis; /* C doesn't allow unnamed parameters */
     return "inflatelib";
 }
 
@@ -156,6 +157,7 @@ void zlib_inflater_destroy(void* self)
 
 const char* zlib_inflater_name(void* pThis)
 {
+    (void)pThis; /* C doesn't allow unnamed parameters */
     return "zlib";
 }
 
@@ -168,12 +170,13 @@ int zlib_inflater_inflate(void* self, const file_data* input, uint8_t* outputBuf
 
     /* Initialize stream buffers */
     pThis->stream.next_in = input->buffer;
-    pThis->stream.avail_in = input->bytes;
+    pThis->stream.avail_in = (uInt)input->bytes;
+    assert((size_t)pThis->stream.avail_in == input->bytes); /* Cast should succeed */
 
     while (1)
     {
         pThis->stream.next_out = outputBuffer;
-        pThis->stream.avail_out = output_buffer_size;
+        pThis->stream.avail_out = (uInt)output_buffer_size;
         inflateResult = inflate(&pThis->stream, 0);
         if (inflateResult == Z_STREAM_END)
         {

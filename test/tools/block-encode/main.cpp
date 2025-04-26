@@ -24,7 +24,7 @@ struct sized_offset_encoding_data
     std::uint16_t max_extra_data;
 
     constexpr sized_offset_encoding_data(std::uint32_t baseOffset, std::uint8_t extraBits) noexcept :
-        extra_bits(extraBits), base_offset(baseOffset)
+        base_offset(baseOffset), extra_bits(extraBits)
     {
         max_extra_data = static_cast<std::uint16_t>((1 << extra_bits) - 1);
         max_offset = base_offset + max_extra_data;
@@ -350,7 +350,8 @@ static bool read_input_as_symbols(std::istream& stream, const encoding_data& enc
             }
             output.push_back(
                 output_symbol::make_length(
-                    257 + lengthIndex, static_cast<std::uint16_t>(length - encoding.lengths[lengthIndex].base_offset)));
+                    static_cast<std::uint16_t>(257 + lengthIndex),
+                    static_cast<std::uint16_t>(length - encoding.lengths[lengthIndex].base_offset)));
 
             auto distanceIndex = findInfo(encoding.distances, distance);
             if (distanceIndex == encoding.distances.size())
@@ -359,7 +360,8 @@ static bool read_input_as_symbols(std::istream& stream, const encoding_data& enc
             }
             output.push_back(
                 output_symbol::make_distance(
-                    distanceIndex, static_cast<std::uint16_t>(distance - encoding.distances[distanceIndex].base_offset)));
+                    static_cast<std::uint16_t>(distanceIndex),
+                    static_cast<std::uint16_t>(distance - encoding.distances[distanceIndex].base_offset)));
 
             index = pos;
             break;
@@ -387,8 +389,8 @@ static bool read_input_as_symbols(std::istream& stream, const encoding_data& enc
             }
 
             std::uint16_t extraData = 0;
-            auto& info = encoding.lengths[symbol - 257];
-            if (info.extra_bits > 0)
+            auto& lengthInfo = encoding.lengths[symbol - 257];
+            if (lengthInfo.extra_bits > 0)
             {
                 index = line.find_first_not_of(IGNORED_CHARACTERS, index);
                 if (index == std::string::npos)
@@ -402,10 +404,9 @@ static bool read_input_as_symbols(std::istream& stream, const encoding_data& enc
                     return false;
                 }
 
-                auto& info = encoding.lengths[symbol - 257];
-                if (extraData > info.max_extra_data)
+                if (extraData > lengthInfo.max_extra_data)
                 {
-                    std::println("ERROR: Extra data '{}' exceeds maximum of {}", extraData, info.max_extra_data);
+                    std::println("ERROR: Extra data '{}' exceeds maximum of {}", extraData, lengthInfo.max_extra_data);
                     return false;
                 }
             }
@@ -446,10 +447,10 @@ static bool read_input_as_symbols(std::istream& stream, const encoding_data& enc
                     return false;
                 }
 
-                auto& info = encoding.distances[symbol];
-                if (extraData > info.max_extra_data)
+                auto& distInfo = encoding.distances[symbol];
+                if (extraData > distInfo.max_extra_data)
                 {
-                    std::println("ERROR: Extra data '{}' exceeds maximum of {}", extraData, info.max_extra_data);
+                    std::println("ERROR: Extra data '{}' exceeds maximum of {}", extraData, distInfo.max_extra_data);
                     return false;
                 }
             }
@@ -836,8 +837,8 @@ int main(int argc, char** argv)
     // thankfully pretty easy and straightforward to do
     // First, write all the data we're going to write to a single array to make things easier
     // NOTE: Add one to each max because the range starts at zero
-    auto hlit = std::max<std::uint16_t>(maxLiteralLength + 1, 257);
-    auto hdist = std::max<std::uint8_t>(maxDistance + 1, 1);
+    auto hlit = static_cast<std::uint16_t>(std::max(maxLiteralLength + 1, 257));
+    auto hdist = static_cast<std::uint8_t>(std::max(maxDistance + 1, 1));
     auto lensToEncodeCount = hlit + hdist;
     std::uint8_t lensToEncode[288 + 32] = {};
     for (std::size_t i = 0; i < hlit; ++i)
@@ -881,7 +882,7 @@ int main(int argc, char** argv)
             // repeat of 3, however we're currently in the process of determining both of those counts. We don't strive
             // to be _that_ perfect, so in such sitations we assume that a literal zero is the better option.
             std::uint16_t longRepeatCount = count / 138; // Might be one more
-            std::uint16_t remainder = count % 138;
+            auto remainder = static_cast<std::uint8_t>(count % 138);
             if (remainder == 0)
             {
                 // Nothing to do; we'll properly handle this later
@@ -891,21 +892,21 @@ int main(int argc, char** argv)
                 // See above, we'll just write a literal 0
                 count -= remainder;
                 codeLenCounts[0] += remainder;
-                codeLens[codeLenSize++] = {0, 0};
+                codeLens[codeLenSize++] = {};
                 if (remainder == 2)
                 {
                     // This will happen if count is originally 2. Nothing we can do except write it twice
                     assert((i - start) == 2);
-                    codeLens[codeLenSize++] = {0, 0};
+                    codeLens[codeLenSize++] = {};
                 }
             }
             else if (remainder <= 10)
             {
                 // See comment above; be greedy and consume as much as we can
-                auto toRepeat = (longRepeatCount != 0) ? 10 : remainder;
+                auto toRepeat = (longRepeatCount != 0) ? static_cast<std::uint8_t>(10) : remainder;
                 count -= toRepeat;
                 ++codeLenCounts[17];
-                codeLens[codeLenSize++] = {17, toRepeat - 3};
+                codeLens[codeLenSize++] = {static_cast<std::uint8_t>(17), static_cast<std::uint8_t>(toRepeat - 3)};
             }
             else
             {
@@ -916,10 +917,10 @@ int main(int argc, char** argv)
             codeLenCounts[18] += longRepeatCount;
             while (longRepeatCount--)
             {
-                auto toRepeat = std::min<std::uint16_t>(count, 138);
+                auto toRepeat = std::min(count, static_cast<std::uint16_t>(138));
                 assert(toRepeat >= 11);
                 count -= toRepeat;
-                codeLens[codeLenSize++] = {18, toRepeat - 11};
+                codeLens[codeLenSize++] = {static_cast<std::uint8_t>(18), static_cast<std::uint8_t>(toRepeat - 11)};
             }
             assert(count == 0);
         }
@@ -938,29 +939,29 @@ int main(int argc, char** argv)
             codeLenCounts[symbol] += literalCount;
             while (literalCount--)
             {
-                codeLens[codeLenSize++] = {symbol, 0};
+                codeLens[codeLenSize++] = {symbol, static_cast<std::uint8_t>(0)};
             }
 
             std::uint16_t repeatCount = count / 6;
-            std::uint16_t remainder = count % 6;
+            auto remainder = static_cast<std::uint8_t>(count % 6);
             if (remainder != 0)
             {
                 // We need to repeat at least 3 times. This will steal at most 2 from one of the later repeats, however
                 // this is fine as it'll just bump the count from 6 down to 4, which is still valid.
                 assert((remainder >= 3) || (repeatCount != 0));
-                remainder = std::max<std::uint16_t>(remainder, 3);
+                remainder = std::max(remainder, static_cast<std::uint8_t>(3));
                 count -= remainder;
                 ++codeLenCounts[16];
-                codeLens[codeLenSize++] = {16, remainder - 3};
+                codeLens[codeLenSize++] = {static_cast<std::uint8_t>(16), static_cast<std::uint8_t>(remainder - 3)};
             }
 
             codeLenCounts[16] += repeatCount;
             while (repeatCount--)
             {
-                auto toRepeat = std::min<std::uint16_t>(count, 6);
+                auto toRepeat = std::min(count, static_cast<std::uint16_t>(6));
                 assert(toRepeat >= 3);
                 count -= toRepeat;
-                codeLens[codeLenSize++] = {16, toRepeat - 3};
+                codeLens[codeLenSize++] = {static_cast<std::uint8_t>(16), static_cast<std::uint8_t>(toRepeat - 3)};
             }
             assert(count == 0);
         }
@@ -992,7 +993,7 @@ int main(int argc, char** argv)
     {
         return 1;
     }
-    auto hclen = std::max<std::uint8_t>(maxCodeLength + 1, 4); // +1 because this is length, but 'codeLengthOrder' is based off indices
+    auto hclen = static_cast<std::uint8_t>(std::max(maxCodeLength + 1, 4)); // +1 because this is length, but 'codeLengthOrder' is based off indices
 
     // Figure out the code for each symbol
     std::uint16_t literalLengthCodes[288] = {};
