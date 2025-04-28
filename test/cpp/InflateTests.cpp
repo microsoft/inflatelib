@@ -153,8 +153,7 @@ static void inflate_test_worker(
             // E.g. EOF - we *should* meet the criteria for terminating the loop; we'll check that below
             break;
         }
-    }
-    while ((readOffset < input.size) || (writeOffset < outputBufferSize));
+    } while ((readOffset < input.size) || (writeOffset < outputBufferSize));
 
     if (result < 0)
     {
