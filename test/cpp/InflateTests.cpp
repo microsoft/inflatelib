@@ -321,6 +321,8 @@ TEST_CASE("InflateCompressedDynamic", "[inflate]")
 
     inflate_error_test("dynamic.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
     inflate_error_test("dynamic.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
+    inflate_error_test("dynamic.error.invalid-distance.30.deflate.in.bin", "Distance code 30 is not valid in Deflate");
+    inflate_error_test("dynamic.error.invalid-distance.31.deflate.in.bin", "Distance code 31 is not valid in Deflate");
 
     inflate_error_test(
         "dynamic.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
@@ -396,6 +398,8 @@ TEST_CASE("InflateCompressedStatic", "[inflate]")
 
     inflate_error_test("static.error.invalid-symbol.286.in.bin", "Invalid symbol '286' from literal/length tree");
     inflate_error_test("static.error.invalid-symbol.287.in.bin", "Invalid symbol '287' from literal/length tree");
+    inflate_error_test("static.error.invalid-distance.30.deflate.in.bin", "Distance code 30 is not valid in Deflate");
+    inflate_error_test("static.error.invalid-distance.31.deflate.in.bin", "Distance code 31 is not valid in Deflate");
 
     inflate_error_test(
         "static.error.distance-oob.short.in.bin", "Compressed block has a distance '1' which exceeds the size of the window (0 bytes)");
