@@ -1,0 +1,39 @@
+
+name: Pull Request Build & Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  windows:
+    name: 'Windows '
+    strategy:
+      matrix:
+        arch: [ x64, x64_x86 ]
+        compiler: [ msvc, clang ]
+        config: [ debug, release, relwithdebinfo, minsizerel ]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout$v4
+
+      - name: Find vcvarsall.bat
+        run: |
+          $VCVarsAll = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere" -latest -find BuildTools\VC\Auxiliary\Build\vcvarsall.bat
+          if (!$VCVarsAll) { exit 1 }
+          echo "Using VCVarsAll: ${VCVarsAll}"
+          Add-Content $env:GITHUB_ENV "VCVarsAll=$VCVarsAll"
+
+      - name: Initialize CMake
+        run: |
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} & scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}}
+
+      - name: Build
+        run: |
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} & scripts\build-all.cmd
+
+      - name: Test
+        run: |
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} & scripts\test-all.cmd
