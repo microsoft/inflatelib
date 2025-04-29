@@ -17,7 +17,7 @@ jobs:
         config: [ debug, release, relwithdebinfo, minsizerel ]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout$v4
+      - uses: actions/checkout@v4
 
       - name: Find vcvarsall.bat
         run: |
