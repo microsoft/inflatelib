@@ -111,7 +111,7 @@ histogram_buckets histogram_bucketize(histogram* self, uint64_t start, uint64_t 
     next = start + stride;
     for (size_t i = 0; i < bucketCount; ++i)
     {
-        uint64_t count = 0;
+        size_t count = 0;
         while (histIndex < self->size)
         {
             if (self->counts[histIndex] < next)

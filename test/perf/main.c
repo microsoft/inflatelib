@@ -218,7 +218,7 @@ int main()
     return result;
 }
 
-int print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint64_t width, uint64_t height);
+int print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint32_t width, uint32_t height);
 
 static int run_tests(test_desc* data)
 {
@@ -315,7 +315,7 @@ static int run_tests(test_desc* data)
 /* TODO: Maybe just use colors? */
 static const char histogram_symbols[] = {'#', '*', 'X', 'O'};
 
-int print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint64_t width, uint64_t height)
+int print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint32_t width, uint32_t height)
 {
     size_t titleLen = strlen(title);
     uint64_t minX = 0xFFFFFFFFFFFFFFFFull, maxX = 0;

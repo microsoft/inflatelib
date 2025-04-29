@@ -440,7 +440,7 @@ void lexer::seek_to(const source_location& loc)
     if ((lineFileOffset >= bufferStartFileOffset) && (lineFileOffset < bufferEndFileOffset))
     {
         current_line_file_offset = lineFileOffset;
-        current_line_offset = lineFileOffset - bufferStartFileOffset;
+        current_line_offset = static_cast<std::size_t>(lineFileOffset - bufferStartFileOffset);
         current_token.location = loc;
         ensure_current_line();
         read_token_at_current_position();

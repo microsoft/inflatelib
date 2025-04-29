@@ -336,7 +336,7 @@ int main(int argc, char** argv)
 
         auto nextEntry = currentEntry->next();
         auto nextEntryCdOffset = reinterpret_cast<const std::uint8_t*>(nextEntry) - reinterpret_cast<const std::uint8_t*>(firstEntry);
-        if (nextEntryCdOffset > cdSize)
+        if (static_cast<std::size_t>(nextEntryCdOffset) > cdSize)
         {
             std::println("ERROR: Central directory entry extends beyond the end of the central directory");
             return 1;
@@ -455,7 +455,7 @@ int main(int argc, char** argv)
 #endif
         std::println("\n\n");
 
-        if (nextEntryCdOffset == cdSize)
+        if (static_cast<std::size_t>(nextEntryCdOffset) == cdSize)
         {
             break;
         }
