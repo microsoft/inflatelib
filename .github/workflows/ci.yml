@@ -28,12 +28,12 @@ jobs:
 
       - name: Initialize CMake
         run: |
-          cmd /c "$env:VCVarsAll" ${{matrix.arch}} & scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}}
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}}
 
       - name: Build
         run: |
-          cmd /c "$env:VCVarsAll" ${{matrix.arch}} & scripts\build-all.cmd
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\build-all.cmd
 
       - name: Test
         run: |
-          cmd /c "$env:VCVarsAll" ${{matrix.arch}} & scripts\test-all.cmd
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\test-all.cmd
