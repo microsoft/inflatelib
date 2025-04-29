@@ -21,7 +21,7 @@ jobs:
 
       - name: Find vcvarsall.bat
         run: |
-          $VCVarsAll = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere" -latest -find BuildTools\VC\Auxiliary\Build\vcvarsall.bat
+          $VCVarsAll = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere" -latest -find VC\Auxiliary\Build\vcvarsall.bat
           if (!$VCVarsAll) { exit 1 }
           echo "Using VCVarsAll: ${VCVarsAll}"
           Add-Content $env:GITHUB_ENV "VCVarsAll=$VCVarsAll"
