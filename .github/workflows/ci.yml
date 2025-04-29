@@ -36,4 +36,4 @@ jobs:
 
       - name: Test
         run: |
-          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\test-all.cmd
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\run-tests.cmd
