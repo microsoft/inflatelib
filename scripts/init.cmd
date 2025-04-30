@@ -3,7 +3,7 @@ setlocal
 setlocal EnableDelayedExpansion
 
 :: Globals
-set BUILD_ROOT=%~dp0\..\build
+set BUILD_ROOT=%~dp0\..\build\win
 
 goto :init
 
@@ -31,7 +31,6 @@ goto :init
     set GENERATOR=
     set BUILD_TYPE=
     set CMAKE_ARGS=
-    set BITNESS=
     set VCPKG_ROOT_PATH=
 
 :parse
@@ -156,16 +155,18 @@ goto :init
     set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT_PATH%\scripts\buildsystems\vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     :: Figure out the platform
-    if "%Platform%"=="" echo ERROR: The init.cmd script must be run from a Visual Studio command window & exit /B 1
-    if "%Platform%"=="x86" (
-        set BITNESS=32
+    if "%Platform%"=="" (
+        echo ERROR: The init.cmd script must be run from a Visual Studio command window & exit /B 1
+    ) else if "%Platform%"=="x86" (
         if %COMPILER%==clang set CFLAGS=-m32 & set CXXFLAGS=-m32
+    ) else if "%Platform%"=="arm" (
+        if "%COMPILER%"=="clang" set CFLAGS=-target arm-win32-msvc & set CXXFLAGS=-target arm-win32-msvc
+    ) else if "%Platform%"=="arm64" (
+        if "%COMPILER%"=="clang" set CFLAGS=-target aarch64-win32-msvc & set CXXFLAGS=-target aarch64-win32-msvc
     )
-    if "%Platform%"=="x64" set BITNESS=64
-    if "%BITNESS%"=="" echo ERROR: Unrecognized/unsupported platform %Platform% & exit /B 1
 
     :: Set up the build directory
-    set BUILD_DIR=%BUILD_ROOT%\%COMPILER%%BITNESS%%BUILD_TYPE%
+    set BUILD_DIR=%BUILD_ROOT%\%COMPILER%%Platform%%BUILD_TYPE%
     mkdir %BUILD_DIR% > NUL 2>&1
 
     :: Run CMake
@@ -175,7 +176,7 @@ goto :init
     echo Using build type..... %BUILD_TYPE%
     echo Using build root..... %CD%
     echo.
-    cmake %CMAKE_ARGS% ..\..
+    cmake %CMAKE_ARGS% ..\..\..
     popd
 
     goto :eof

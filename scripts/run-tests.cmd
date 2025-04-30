@@ -2,11 +2,18 @@
 setlocal
 setlocal EnableDelayedExpansion
 
-set BUILD_ROOT=%~dp0\..\build
+set BUILD_ROOT=%~dp0\..\build\win
 
 set COMPILERS=clang msvc
 set BUILD_TYPES=debug release relwithdebinfo minsizerel
-set ARCHITECTURES=32 64
+set ARCHITECTURES=
+if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
+    set ARCHITECTURES=x86 x64
+) else if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
+    set ARCHITECTURES=arm arm64
+) else (
+    echo ERROR: Unknown host architecture %PROCESSOR_ARCHITECTURE%
+)
 
 for %%c in (%COMPILERS%) do (
     for %%a in (%ARCHITECTURES%) do (
