@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstring>
 
 lexer::lexer()
 {

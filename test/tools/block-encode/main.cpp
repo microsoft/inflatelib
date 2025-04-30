@@ -3,6 +3,7 @@
 #include <charconv>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <print>
 #include <queue>
 #include <span>

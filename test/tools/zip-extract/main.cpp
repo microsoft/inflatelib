@@ -1,11 +1,23 @@
 
+#define __STDC_WANT_LIB_EXT1__ 1 /* For fopen_s */
+#include <cstdio>
+
+#ifndef __STDC_LIB_EXT1__
+#include <errno.h>
+static int fopen_s(FILE** streamptr, const char* filename, const char* mode)
+{
+    *streamptr = fopen(filename, mode);
+    return (*streamptr == nullptr) ? errno : 0;
+}
+#endif
+
 #include <algorithm>
 #include <array>
 #include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
+#include <cstring>
 #include <memory>
 #include <print>
 #include <span>

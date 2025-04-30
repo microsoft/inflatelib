@@ -28,8 +28,8 @@ char* resolve_test_file_path(const char* filename)
         return NULL;
     }
 
-    /* Path will be something like: C:\inflatelib\build\clang64release\tests\perf\perftests.exe
-     *                     We want: C:\inflatelib\build\clang64release\tests\
+    /* Path will be something like: C:\inflatelib\build\win\clang64release\tests\perf\perftests.exe
+     *                     We want: C:\inflatelib\build\win\clang64release\tests\
      * So we can append 'filename'. We therefore need to find the position after the second to last '\' */
     for (int slashesSeen = 0; moduleLen > 0; --moduleLen)
     {
@@ -63,7 +63,8 @@ char* resolve_test_file_path(const char* filename)
     memcpy(result + testsPathLen + 5, filename, filenameLen);
     result[testsPathLen + 5 + filenameLen] = '\0';
 #else
-
+    /* TODO */
+    (void)filenameLen;
 #endif
 
     return result;

@@ -1,9 +1,20 @@
 
 #include <catch.hpp>
 
+#define __STDC_WANT_LIB_EXT1__ 1 /* For fopen_s */
+#include <cstdio>
+
+#ifndef __STDC_LIB_EXT1__
+#include <errno.h>
+static int fopen_s(FILE** streamptr, const char* filename, const char* mode)
+{
+    *streamptr = fopen(filename, mode);
+    return (*streamptr == nullptr) ? errno : 0;
+}
+#endif
+
 #include <inflatelib.hpp>
 #include <filesystem>
-#include <stdio.h>
 
 // These tests have backing test files compiled from 'test/data' and placed into '${buildRoot}/test/data'. When running
 // this test, that path is '../data' relative to the test executable.

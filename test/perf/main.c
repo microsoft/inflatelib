@@ -153,7 +153,7 @@ static histogram* test_desc_file_histogram(test_desc* self, size_t inflaterIndex
 }
 
 #ifdef _WIN32
-static uint64_t current_time()
+static uint64_t current_time(void)
 {
     LARGE_INTEGER result;
     BOOL success = QueryPerformanceCounter(&result);
@@ -183,12 +183,28 @@ static double time_to_ms_f(double time)
     return (time / (double)frequency.QuadPart) * 1000.0;
 }
 #else
+/* TODO */
+static uint64_t current_time(void)
+{
+    return 0;
+}
 
+static double time_to_ms(uint64_t time)
+{
+    (void)time;
+    return 0;
+}
+
+static double time_to_ms_f(double time)
+{
+    (void)time;
+    return 0;
+}
 #endif
 
 static int run_tests(test_desc* data);
 
-int main()
+int main(void)
 {
     int result = 0;
     test_desc deflate_tests = {0};

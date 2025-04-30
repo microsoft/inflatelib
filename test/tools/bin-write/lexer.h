@@ -1,7 +1,18 @@
 #ifndef LEXER_H
 
-#include <cstdint>
+#define __STDC_WANT_LIB_EXT1__ 1 /* For fopen_s */
 #include <cstdio>
+
+#ifndef __STDC_LIB_EXT1__
+#include <errno.h>
+inline int fopen_s(FILE** streamptr, const char* filename, const char* mode)
+{
+    *streamptr = fopen(filename, mode);
+    return (*streamptr == nullptr) ? errno : 0;
+}
+#endif
+
+#include <cstdint>
 #include <memory>
 #include <print>
 #include <string_view>
