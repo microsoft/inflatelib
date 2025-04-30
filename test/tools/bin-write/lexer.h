@@ -3,7 +3,7 @@
 #define __STDC_WANT_LIB_EXT1__ 1 /* For fopen_s */
 #include <cstdio>
 
-#ifndef __STDC_LIB_EXT1__
+#if !defined(__STDC_LIB_EXT1__) && !defined(_WIN32)
 #include <errno.h>
 inline int fopen_s(FILE** streamptr, const char* filename, const char* mode)
 {
