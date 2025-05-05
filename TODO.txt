@@ -1,0 +1,4 @@
+* Tests (no children means all ideas have been implemented)
+* Fuzzing
+* CI pipeline
+* Packaging

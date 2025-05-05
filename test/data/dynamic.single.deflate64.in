@@ -1,0 +1,155 @@
+
+# Single block that outputs "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG" 100 times
+# NOTE: This test is only applicable to Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+# The string we are repeating contains 43 characters. We use the following lengths/distance to write all of the text:
+#
+#   *   (4, 31) to repeat "THE " in the original string
+#   *   (43, 43) to repeat the string once (2 total)
+#   *   (86, 86) to repeat the string twice (4 total)
+#   *   (129, 43) to repeat the string 3 times (7 total)
+#   *   (172, 86) to repeat the string 4 times (11 total)
+#   *   (215, 129) to repeat the string 5 times (16 total)
+#   *   (258, 172) to repeat the string 6 times (22 total)
+#   *   (1204, 860) to repeat the string 28 times (50 total)
+#   *   (2150, 2150) to repeat the string 50 times (100 total)
+#
+# The following was passed to 'block-encode' to generate the data below:
+#
+# "THE QUICK BROWN FOX JUMPS OVER "
+# (4, 31)
+# "LAZY DOG"
+# (43, 43)
+# (86, 86)
+# (129, 43)
+# (172, 86)
+# (215, 129)
+# (258, 172)
+# (1204, 860)
+# (2150, 2150)
+# 256
+
+11101   # HLIT = 286 (29 + 257)
+10110   # HDIST = 23 (22 + 1)
+1100    # HCLEN = 16 (12 + 4)
+
+# Code Length Alphabet Code Lengths:
+011 100 011 011 000 000 000 010 000 011 000 101 000 011 000 101
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+110 >1 0010101 >>1
+011
+110 >1 0010101 >>1
+100
+101 >1 00 >>1
+101 >1 11 >>1
+101 >1 01 >>1
+11111
+100
+00
+100
+00
+00
+100
+00
+101 >1 01 >>1
+110 >1 1111111 >>1
+110 >1 0010000 >>1
+00
+010
+00
+110 >1 0000100 >>1
+00
+1110 >1 000 >>1
+00
+010
+00
+010
+00
+00
+00
+100
+1110 >1 110 >>1
+011
+11110
+010
+11110
+010
+011
+1110 >1 001 >>1
+011
+010
+010
+011
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   ' '         3           000
+#   'A'         5           00110
+#   'B'         5           00111
+#   'C'         5           01000
+#   'D'         5           01001
+#   'E'         5           01010
+#   'F'         5           01011
+#   'G'         5           01100
+#   'H'         5           01101
+#   'I'         5           01110
+#   'J'         5           01111
+#   'K'         5           10000
+#   'L'         5           10001
+#   'M'         5           10010
+#   'N'         5           10011
+#   'O'         4           0010
+#   'P'         5           10100
+#   'Q'         6           110000
+#   'R'         5           10101
+#   'S'         6           110001
+#   'T'         6           110010
+#   'U'         5           10110
+#   'V'         6           110011
+#   'W'         6           110100
+#   'X'         6           110101
+#   'Y'         6           110110
+#   'Z'         6           110111
+#   END         6           111000
+#   258         6           111001
+#   274         6           111010
+#   278         6           111011
+#   280         6           111100
+#   282         6           111101
+#   283         6           111110
+#   284         6           111111
+#   285         5           10111
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   9           3           100
+#   10          2           00
+#   12          2           01
+#   14          3           101
+#   19          3           110
+#   22          3           111
+
+# Encoded Data:
+110010 01101 01010 000              # "THE "
+110000 10110 01110 01000 10000 000  # "QUICK "
+00111 10101 0010 110100 10011 000   # "BROWN "
+01011 0010 110101 000               # "FOX "
+01111 10110 10010 10100 110001 000  # "JUMPS "
+0010 110011 01010 10101 000         # "OVER "
+111001 100 >1 110 >>1               # Repeat "THE "
+10001 00110 110111 110110 000       # "LAZY "
+01001 0010 01100                    # "DOG"
+111010 >1 000 >>1 00 >1 1010 >>1    # Repeat 1 time
+111011 >1 0011 >>1 01 >1 10101 >>1  # Repeat 2 times
+111100 >1 1110 >>1 00 >1 1010 >>1   # Repeat 3 times
+111101 >1 01001 >>1 01 >1 10101 >>1 # Repeat 4 times
+111110 >1 10100 >>1 101 >1 000000 >>1 # Repeat 5 times
+111111 >1 11111 >>1 101 >1 101011 >>1 # Repeat 6 times
+10111 >1 0000010010110001 >>1 110 >1 01011011 >>1 # Repeat 28 times
+10111 >1 0000100001100011 >>1 111 >1 0001100101 >>1 # Repeat 50 times
+111000 # END

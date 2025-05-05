@@ -1,0 +1,75 @@
+
+# This writes "This tests overlapped writes" as uncompressed data and then copies it the following number of times, each
+# using dynamic and static tables
+#   * Repeat the string 9 times, offset at the beginning of the string (overlapping 8 times): (252, 28)
+#   * Repeat the string 9 times, offset 4 strings back (overlapping 5 times): (252, 112)
+#   * Repeat the string 9 times, offset 8 strings back (overlapping once): (252, 224)
+# NOTE: This test is only applicable to Deflate
+
+# First block: uncompressed
+>1
+0       # bfinal = false
+00      # No compression
+
+>16
+001C    # LEN = 1344
+FFE3    # NLEN = ~LEN
+
+>8
+"This tests overlapped writes"
+
+# Now with dynamic compression
+>1
+0       # bfinal = false
+10      # Dynamic compression
+
+11100   # HLIT = 285 (28 + 257)
+01111   # HDIST = 16 (15 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 011 010 011 000 000 000 000 000 000 000 000 000 000 000 010 000 010
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+10 >1 1111111 >>1
+10 >1 1101011 >>1
+00
+10 >1 0010000 >>1
+00
+111 >1 110 >>1
+00
+111 >1 000 >>1
+01
+110
+01
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   END         1           0
+#   284         1           1
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   9           1           0
+#   13          2           10
+#   15          2           11
+
+# Encoded Data:
+>>1
+1 >1 11001 >>1 0 >1 011 >>1
+1 >1 11001 >>1 10 >1 01111 >>1
+1 >1 11001 >>1 11 >1 011111 >>1
+0
+
+# And finally, with static compression
+>1
+1       # bfinal = true
+01      # Static compression
+
+# Encoded Data:
+>>1
+11000100 >1 11001 >>1 01001 >1 011 >>1
+11000100 >1 11001 >>1 01101 >1 01111 >>1
+11000100 >1 11001 >>1 01111 >1 011111 >>1
+0000000

@@ -1,0 +1,17 @@
+
+# Produces a single block that should fail when reading the code length symbols for the dynamic Huffman tables since the
+# first entry instructs us to copy the previous 3 code lengths, which obviously don't exist
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+0000    # HCLEN = 4 (0 + 4)
+
+# We just need a single code of 16
+001 000 000 000
+
+# A single code of 16 at the beginning should raise an error because there's no previous code to repeat
+0 00

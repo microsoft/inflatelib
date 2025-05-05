@@ -1,0 +1,78 @@
+
+# Produces a single block whose distance alphabet's code lengths are chosen such that the tree has leaves with no
+# assigned symbols. These lengths are also chosen such that these invalid codes are greater than 7 bits in length (the
+# length of the lookup table portion of the Huffman tree).
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00111   # HLIT = 264 (7 + 257)
+01101   # HDIST = 14 (13 + 1)
+1011    # HCLEN = 15 (11 + 4)
+
+# The lookup table for the literal/length tree is 7 bits. Our invalid code is 11 bits in length
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+000 000 011 000 011 000 000 000 011 011 000 011 011 011 011
+
+# We need to actually use the distance codes, so we need some length codes. We also need at least one byte to copy from
+>>1
+111 >1 1111111 >>1 # Copy 0 138 times
+000 # Literal=138, 3 bits
+111 >1 1101011 >>1 # Copy 0 118 times (total of 257 codes)
+000 # Length=3, 3 bits
+000 # Length=4, 3 bits
+000 # Length=5, 3 bits
+000 # Length=6, 3 bits
+000 # Length=7, 3 bits
+000 # Length=8, 3 bits
+000 # Length=9, 3 bits
+
+# The tree looks like this:
+#         start
+#          /
+#   /              \
+#  / \       /           \
+# 25 /\     / \       /      \
+#   3  9   33 /\     /\      /
+#            2  4   13 97   /
+#                          /
+#                       /    \
+#                      7   /    \
+#                         /\    /
+#                        1  65 /
+#                             / \
+#                            17 /\
+#                              5  49
+100 # Distance=1, 10 bits
+010 # Distance=2, 5 bits
+001 # Distance=3, 4 bits
+010 # Distance=4, 5 bits
+110 # Distance=5, 13 bits (+1 extra bit)
+011 # Distance=7, 8 bits (+1 extra bit)
+001 # Distance=9, 4 bits (+2 extra bits)
+010 # Distance=13, 5 bits (+2 extra bits)
+101 # Distance=17, 12 bits (+3 extra bits)
+000 # Distance=25, 3 bits (+3 extra bits)
+001 # Distance=33, 4 bits (+4 extra bits)
+110 # Distance=49, 13 bits (+4 extra bits)
+100 # Distance=65, 10 bits (+5 extra bits)
+010 # Distance=97, 5 bits (+5 extra bits)
+
+# Data
+000 # Literal 138
+111 0111000100                # Distance=1, Length=9 -- 10 bytes total
+110 01110000 1                # Distance=8, Length=8 -- 18 bytes total
+101 01100 >1 10 >>1           # Distance=15, Length=7 -- 25 bytes total
+100 011100011000 >1 100 >>1   # Distance=21, Length=6 -- 31 bytes total
+011 000 >1 011 >>1            # Distance=28, Length=5 -- 36 bytes total
+010 0111000110010 1           # Distance=6, Length=4 -- 40 bytes total
+001 0100 >1 0001 >>1          # Distance=34, Length=3 -- 43 bytes total
+111 01010                     # Distance=2, Length=9 -- 52 bytes total
+111 0111000110011 >1 0000 >>1 # Distance=49, Length=9 -- 61 bytes total
+111 01011                     # Distance=4, Length=9 -- 70 bytes total
+111 0011 11                   # Distance=12, Length=9 -- 79 bytes total
+111 0111000101 >1 01010 >>1   # Distance=75, Length=9 -- 88 bytes total
+111 0010                      # Distance=3, Length=9 -- 97 bytes total
+010 01101 >1 00000 >>1        # Distance=97, Length=4 -- 101 bytes total
+101 01110001101               # INVALID DISTANCE

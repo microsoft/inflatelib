@@ -1,0 +1,15 @@
+
+# This generates a file with a single uncompressed block whose reported size is one greater than the number of bytes available
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true since this is the only block
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+007A    # LEN = 122
+FF85    # NLEN = ~LEN
+
+# And finally, the data
+>8
+"This string is only 121 characters even though the file reports a length of 122 characters, meaning we will never get EOF"

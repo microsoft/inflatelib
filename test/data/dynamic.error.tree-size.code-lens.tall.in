@@ -1,0 +1,17 @@
+
+# Produces a single block whose code lengths alphabet specifies nine symbols, six of witch have lengths 1, 2, ..., 6 and
+# the remaining three have lengths of 7, which should fail when trying to create the Huffman tree
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT (unused)
+00000   # HDIST (unused)
+0101    # HCLEN = 9 (5 + 4)
+
+# Build the tree such that bits 1-6 have a single node and 7 has 3, which should give us an error
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+111 111 111 110 101 100 011 010 001
+
+# We shouldn't progress this far, so leaving it blank should be fine

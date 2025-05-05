@@ -1,0 +1,14 @@
+
+# Produces a single block that first writes 65535 bytes and then tries to copy data from the window with a distance of
+# 65536 bytes, which exceeds the number of bytes written to the window.
+# NOTE: This test is only applicable to Deflate64
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# This tests an OOB with a distance of 65536 by a single byte. We need to fill the buffer with 65535 values first
+>>1
+10111010                                # Literal 138
+11000101 >1 1111111111111011 >>1 00000  # Repeat 138 65534 times
+0000001 11111 >1 11111111111111 >>1     # INVALID DISTANCE
+0000000                                 # End of block

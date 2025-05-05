@@ -1,0 +1,25 @@
+
+# Tests several scenarios where window copies overlap itself. The inputs are as follows
+#   * Write the string "This tests overlapped writes" (28 characters)
+#   * Repeat the string 9 times, offset at the beginning of the string (overlapping 8 times): (252, 28)
+#   * Repeat the string 9 times, offset 4 strings back (overlapping 5 times): (252, 112)
+#   * Repeat the string 9 times, offset 8 strings back (overlapping once): (252, 224)
+#   * Write the literal '0'
+#   * Copy '0' 258 times (overlapping 257 times): (258, 1)
+# NOTE: This test is only applicable to Deflate
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# Encoded Data:
+>>1
+10000100 10011000 10011001 10100011 01010000
+10100100 10010101 10100011 10100100 10100011 01010000
+10011111 10100110 10010101 10100010 10011100 10010001 10100000 10100000 10010101 10010100 01010000
+10100111 10100010 10011001 10100100 10010101 10100011
+11000100 >1 11001 >>1 01001 >1 011 >>1
+11000100 >1 11001 >>1 01101 >1 01111 >>1
+11000100 >1 11001 >>1 01111 >1 011111 >>1
+00110000
+11000100 >1 11111 >>1 00000
+0000000
