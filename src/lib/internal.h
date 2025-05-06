@@ -60,8 +60,8 @@ typedef enum inflate_state
 /* Internal state */
 typedef struct inflatelib_state
 {
-    bitstream bitstream;
-    window window;
+    struct bitstream bitstream;
+    struct window window;
 
     /* Formatted (allocated) error message */
     char* error_msg_fmt;
