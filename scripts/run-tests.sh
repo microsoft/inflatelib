@@ -9,8 +9,25 @@ if $($rootDir/scripts/check-wsl.sh); then
     buildRoot="$buildRoot/wsl"
 fi
 
-# TODO: Architecture
-architectures=(x86 x64)
+architectures=
+case $($rootDir/scripts/host-arch.sh) in
+    x86)
+        architectures=(x86)
+        ;;
+    x64)
+        architectures=(x86 x64)
+        ;;
+    arm)
+        architectures=(arm)
+        ;;
+    arm64)
+        architectures=(arm arm64)
+        ;;
+    *)
+        echo "ERROR: Unknown architecture $(uname -m)"
+        exit 1
+        ;;
+esac
 
 for compiler in gcc clang; do
     for buildType in debug release relwithdebinfo minsizerel; do

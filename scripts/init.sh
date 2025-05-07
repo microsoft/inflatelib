@@ -145,8 +145,12 @@ elif [ "$buildType" == "minsizerel" ]; then
     cmakeArgs="$cmakeArgs -DCMAKE_BUILD_TYPE=MinSizeRel"
 fi
 
-# TODO: Architecture
-arch=x64
+# TODO: Figure out how to cross-compile reliably. For now, just support the machine architecture
+arch=$($rootDir/scripts/host-arch.sh)
+if [ $? != 0 ]; then
+    echo "ERROR: Unable to determine the host architecture"
+    exit 1
+fi
 
 cmakeArgs="$cmakeArgs -DCMAKE_TOOLCHAIN_FILE=$vcpkgRoot/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 
