@@ -111,7 +111,7 @@ if [ "$vcpkgRoot" == "" ]; then
         vcpkgPath=$(/bin/which vcpkg)
         if [ $? == 0 ]; then
             vcpkgRoot=$(dirname $vcpkgPath)
-            echo "Found vcpkg from PATH ($(dirname $vcpkgPath)) as $vcpkgRoot"
+            echo "Found vcpkg from PATH ($vcpkgPath) as $vcpkgRoot"
         fi
     fi
 fi
