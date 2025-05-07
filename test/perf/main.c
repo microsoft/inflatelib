@@ -10,6 +10,8 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+#include <time.h>
 #endif
 
 /* Enough to get a reasonable amount of data */
@@ -183,22 +185,24 @@ static double time_to_ms_f(double time)
     return (time / (double)frequency.QuadPart) * 1000.0;
 }
 #else
-/* TODO */
 static uint64_t current_time(void)
 {
-    return 0;
+    struct timespec result;
+    int success = clock_gettime(CLOCK_MONOTONIC, &result);
+    (void)success; /* Only used for assert */
+    assert(success);
+
+    return (uint64_t)result.tv_sec * 1000000000ull + (uint64_t)result.tv_nsec;
 }
 
 static double time_to_ms(uint64_t time)
 {
-    (void)time;
-    return 0;
+    return (double)time / 1000000.0;
 }
 
 static double time_to_ms_f(double time)
 {
-    (void)time;
-    return 0;
+    return time / 1000000.0;
 }
 #endif
 
