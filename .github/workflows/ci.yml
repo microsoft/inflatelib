@@ -48,10 +48,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Ninja
-        id: ninja
-        uses: turtlesec-no/get-ninja@main
-
       - name: Initialize CMake
         run: |
           ./scripts/init.sh -c ${{matrix.compiler}} -b ${{matrix.config}}
