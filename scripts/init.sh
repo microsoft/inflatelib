@@ -109,7 +109,7 @@ if [ "$vcpkgRoot" == "" ]; then
         # Try and find vcpkg in the PATH
         vcpkgPath=$(/bin/which vcpkg)
         if [ $? == 0 ]; then
-            vcpkgRoot=$(realpth $vcpkgPath | dirname)
+            vcpkgRoot=$(dirname $(realpth $vcpkgPath))
         fi
     fi
 fi
