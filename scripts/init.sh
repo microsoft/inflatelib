@@ -105,13 +105,11 @@ fi
 if [ "$vcpkgRoot" == "" ]; then
     if [ "$VCPKG_ROOT" != "" ]; then
         vcpkgRoot=$(realpath "$VCPKG_ROOT")
-        echo "Found VCPKG_ROOT ($VCPKG_ROOT) from environment as $vcpkgRoot"
     else
         # Try and find vcpkg in the PATH
         vcpkgPath=$(/bin/which vcpkg)
         if [ $? == 0 ]; then
             vcpkgRoot=$(dirname $vcpkgPath)
-            echo "Found vcpkg from PATH ($vcpkgPath) as $vcpkgRoot"
         fi
     fi
 fi
@@ -167,4 +165,7 @@ echo "Using architecture... $arch"
 echo "Using build type..... $buildType"
 echo "Using build root..... $(pwd)"
 cmake $rootDir $cmakeArgs
+result=$?
 popd > /dev/null
+
+exit $result
