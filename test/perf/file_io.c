@@ -6,20 +6,25 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#define PATH_SEPARATOR_CHR '\\'
+#define PATH_SEPARATOR_STR "\\"
 #include <Windows.h>
 #else
-/* TODO? */
+#define PATH_SEPARATOR_CHR '/'
+#define PATH_SEPARATOR_STR "/"
+#include <limits.h>
+#include <stdlib.h>
 #endif
 
 char* resolve_test_file_path(const char* filename)
 {
     char* result = NULL;
     size_t filenameLen = strlen(filename);
+    size_t testsPathLen = 0;
 
 #ifdef _WIN32
     DWORD moduleLen;
     char buffer[MAX_PATH];
-    size_t testsPathLen = 0;
 
     moduleLen = GetModuleFileNameA(NULL, buffer, MAX_PATH);
     if (!moduleLen || (moduleLen == MAX_PATH))
@@ -27,13 +32,24 @@ char* resolve_test_file_path(const char* filename)
         printf("ERROR: Failed to get executable path\n");
         return NULL;
     }
+#else
+    uint32_t moduleLen;
+    char buffer[PATH_MAX];
+    if (realpath("/proc/self/exe", buffer) == NULL)
+    {
+        printf("ERROR: Failed to get executable path\n");
+        return NULL;
+    }
+
+    moduleLen = strlen(buffer);
+#endif
 
     /* Path will be something like: C:\inflatelib\build\win\clang64release\tests\perf\perftests.exe
      *                     We want: C:\inflatelib\build\win\clang64release\tests\
      * So we can append 'filename'. We therefore need to find the position after the second to last '\' */
     for (int slashesSeen = 0; moduleLen > 0; --moduleLen)
     {
-        if (buffer[moduleLen - 1] == '\\')
+        if (buffer[moduleLen - 1] == PATH_SEPARATOR_CHR)
         {
             ++slashesSeen;
             if (slashesSeen == 2)
@@ -59,13 +75,9 @@ char* resolve_test_file_path(const char* filename)
     }
 
     memcpy(result, buffer, testsPathLen);
-    memcpy(result + testsPathLen, "data\\", 5);
+    memcpy(result + testsPathLen, "data" PATH_SEPARATOR_STR, 5);
     memcpy(result + testsPathLen + 5, filename, filenameLen);
     result[testsPathLen + 5 + filenameLen] = '\0';
-#else
-    /* TODO */
-    (void)filenameLen;
-#endif
 
     return result;
 }
