@@ -61,7 +61,7 @@ TEST_CASE("BitstreamReadBits", "[bitstream]")
 
         REQUIRE(!bitstream_read_bits(&stream, 16, &value));
         REQUIRE(stream.length == 0); // Should have consumed all data
-        REQUIRE(stream.bits_in_buffer == 12);
+        REQUIRE(stream.bits_consumed == 4);
         REQUIRE(!bitstream_read_bits(&stream, 15, &value)); // Should still fail
         REQUIRE(!bitstream_read_bits(&stream, 14, &value));
         REQUIRE(!bitstream_read_bits(&stream, 13, &value));
@@ -71,7 +71,7 @@ TEST_CASE("BitstreamReadBits", "[bitstream]")
 
         // All data consumed with the last read
         REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 0);
+        REQUIRE(stream.bits_consumed == 0);
 
         // Reset the buffer, but add one byte at a time until we have enough data
         bitstream_set_data(&stream, data, 1);
@@ -80,18 +80,18 @@ TEST_CASE("BitstreamReadBits", "[bitstream]")
 
         REQUIRE(!bitstream_read_bits(&stream, 16, &value));
         REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 4);
+        REQUIRE(stream.bits_consumed == 4);
 
         bitstream_set_data(&stream, data + 1, 1);
         REQUIRE(!bitstream_read_bits(&stream, 16, &value));
         REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 12);
+        REQUIRE(stream.bits_consumed == 4);
 
         bitstream_set_data(&stream, data + 2, 1);
         REQUIRE(bitstream_read_bits(&stream, 16, &value)); // Finally success
         REQUIRE(value == 0x3CDA);
         REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 4);
+        REQUIRE(stream.bits_consumed == 4);
     }
 
     // Reading two 16-bit values back-to-back after a partial read should succeed (i.e. buffer is large enough)
@@ -115,7 +115,7 @@ TEST_CASE("BitstreamReadBits", "[bitstream]")
         REQUIRE(value == 0xC639);
 
         REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 1);
+        REQUIRE(stream.bits_consumed == 7);
     }
 }
 
