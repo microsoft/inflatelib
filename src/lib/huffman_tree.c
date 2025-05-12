@@ -141,8 +141,8 @@ int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint
         uint8_t len = codeLengths[i];
         if (len != 0)
         {
-            uint16_t code = reverse_bits(nextCodes[len]++, len);
-            assert((code & (uint16_t)0xFFFF << len) == 0); /* Should have errored above */
+            size_t code = reverse_bits(nextCodes[len]++, len);
+            assert((code & 0xFFFF << len) == 0); /* Should have errored above */
 
             if (len <= tree->table_bits)
             {
@@ -172,7 +172,7 @@ int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint
                 assert((entry->code_length == 0) || (entry->code_length > tree->table_bits));
 
                 code >>= tree->table_bits;
-                for (uint8_t currentLen = tree->table_bits; currentLen < len; ++currentLen)
+                for (size_t currentLen = tree->table_bits; currentLen < len; ++currentLen)
                 {
                     if (entry->code_length == 0)
                     {
@@ -194,7 +194,7 @@ int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint
                         /* Already set; due to how codes are assigned, it should be impossible for overlap */
                         assert(entry->code_length > currentLen);
                         assert(entry->symbol < nextTreeInsertIndex); /* Sanity check */
-                        entry = treeBase + (entry->symbol * 2) + (code & 0x01);
+                        entry = treeBase + ((size_t)entry->symbol * 2) + (code & 0x01);
                     }
 
                     code >>= 1;
@@ -225,10 +225,12 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
 {
     bitstream* bitstream = &stream->internal->bitstream;
     huffman_table_entry* tableEntry;
-    uint16_t input;
-    int bits;
+    size_t input;
+    uint16_t input16;
+    size_t bits;
 
-    bits = bitstream_peek(bitstream, &input);
+    bits = bitstream_peek(bitstream, &input16);
+    input = input16;
     tableEntry = &tree->data[input & tree->table_mask];
     if ((tableEntry->code_length > bits) && (bits <= tree->table_bits))
     {
@@ -239,8 +241,8 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
     {
         /* This is a "pointer" inside the tree */
         huffman_table_entry* tableBase = tree->data + ((size_t)0x01 << tree->table_bits);
-        int bitsRead = tree->table_bits;
-        uint16_t remainingInput = input >> tree->table_bits;
+        size_t bitsRead = tree->table_bits;
+        size_t remainingInput = input >> tree->table_bits;
 
         do
         {
@@ -250,7 +252,7 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
                 return 0; /* Not enough data */
             }
 
-            tableEntry = tableBase + (2 * tableEntry->symbol) + (remainingInput & 0x01);
+            tableEntry = tableBase + (2 * (size_t)tableEntry->symbol) + (remainingInput & 0x01);
             assert(tableEntry < (tree->data + tree->data_size)); /* Otherwise data in the table is corrupt */
             ++bitsRead;
             remainingInput >>= 1;
@@ -285,7 +287,7 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
 {
     bitstream* bitstream = &stream->internal->bitstream;
     huffman_table_entry* tableEntry;
-    uint16_t input;
+    size_t input;
 
     input = bitstream_peek_unchecked(bitstream);
     tableEntry = &tree->data[input & tree->table_mask];
@@ -294,14 +296,14 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
     {
         /* This is a "pointer" inside the tree */
         huffman_table_entry* tableBase = tree->data + ((size_t)0x01 << tree->table_bits);
-        int bitsRead = tree->table_bits;
-        uint16_t remainingInput = input >> tree->table_bits;
+        size_t bitsRead = tree->table_bits;
+        size_t remainingInput = input >> tree->table_bits;
 
         do
         {
             assert(bitsRead < 15); /* Largest code is 15 bits */
 
-            tableEntry = tableBase + (2 * tableEntry->symbol) + (remainingInput & 0x01);
+            tableEntry = tableBase + (2 * (size_t)tableEntry->symbol) + (remainingInput & 0x01);
             assert(tableEntry < (tree->data + tree->data_size)); /* Otherwise data in the table is corrupt */
             ++bitsRead;
             remainingInput >>= 1;

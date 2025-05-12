@@ -68,9 +68,9 @@ typedef struct inflatelib_state
 
     /* Inflater state */
     inflate_state ifstate;
-    uint8_t mode : 1;  // See 'INFLATELIB_MODE*' for possible values
-    uint8_t btype : 2; // block_type, but 'block_type' is signed and any value gretaer than 1 is negative...
-    int bfinal : 1;
+    size_t mode;  // See 'INFLATELIB_MODE*' for possible values
+    size_t btype; // block_type, but 'block_type' is signed and any value gretaer than 1 is negative...
+    size_t bfinal;
 
     /* Compressed block state */
     huffman_tree code_length_tree;
@@ -89,15 +89,15 @@ typedef struct inflatelib_state
         /* Info when reading dynamic Huffman codes */
         struct
         {
-            uint16_t literal_length_code_count : 9; /* HLIT (257-288) */
-            uint8_t distance_code_count : 6;        /* HDIST (1-32) */
-            uint8_t code_length_code_count : 5;     /* HCLEN (4-19) */
+            uint16_t literal_length_code_count; /* HLIT (257-288) */
+            uint8_t distance_code_count;        /* HDIST (1-32) */
+            uint8_t code_length_code_count;     /* HCLEN (4-19) */
 
             /* The last symbol read from the code length tree (0-18) */
-            uint8_t length_code : 5;
+            uint8_t length_code;
 
             /* Loop counter that persists across multiple calls. This needs to control loops that range from 0 to 320 */
-            uint32_t loop_counter : 9;
+            size_t loop_counter;
 
             /* We only need the array to initialize the Huffman trees, so we don't need to keep 3 around. However,
              * distance and literal/length codes are specified in "one chunk" which dictates the array size */

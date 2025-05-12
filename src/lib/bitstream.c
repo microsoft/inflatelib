@@ -98,15 +98,17 @@ static void bitstream_fill_buffer_unchecked(bitstream* stream)
     if (stream->bits_in_buffer < 16)
     {
         assert(stream->length >= 2); /* Caller should have verified */
-        stream->buffer |= ((uint32_t)stream->data[0]) << stream->bits_in_buffer;
-        stream->buffer |= ((uint32_t)stream->data[1]) << (stream->bits_in_buffer + 8);
+
+        uint16_t val;
+        memcpy(&val, stream->data, 2);
+        stream->buffer |= (uint32_t)val << stream->bits_in_buffer;
         stream->bits_in_buffer += 16;
         stream->data += 2;
         stream->length -= 2;
     }
 }
 
-int bitstream_read_bits(bitstream* stream, uint8_t bitsToRead, uint16_t* result)
+size_t bitstream_read_bits(bitstream* stream, uint8_t bitsToRead, uint16_t* result)
 {
     uint32_t mask;
 
@@ -143,7 +145,7 @@ uint16_t bitstream_read_bits_unchecked(bitstream* stream, uint8_t bitsToRead)
     return result;
 }
 
-int bitstream_peek(bitstream* stream, uint16_t* result)
+size_t bitstream_peek(bitstream* stream, uint16_t* result)
 {
     bitstream_fill_buffer(stream);
 
@@ -157,7 +159,7 @@ uint16_t bitstream_peek_unchecked(bitstream* stream)
     return (uint16_t)stream->buffer;
 }
 
-void bitstream_consume_bits(bitstream* stream, int bits)
+void bitstream_consume_bits(bitstream* stream, size_t bits)
 {
     assert(bits <= stream->bits_in_buffer);
     stream->buffer >>= bits;

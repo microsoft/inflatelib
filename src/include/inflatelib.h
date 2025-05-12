@@ -37,7 +37,7 @@ extern "C"
          * Total number of bytes read by the library so far. This value is never consumed by the library; it is only
          * ever incremented.
          */
-        uintmax_t total_in;
+        uint64_t total_in;
 
         /*
          * Pointer to the next byte of output data written by the library. This pointer is set by the caller and updated
@@ -54,7 +54,7 @@ extern "C"
          * Total number of bytes written by the library so far. This value is never consumed by the library; it is only
          * ever incremented.
          */
-        uintmax_t total_out;
+        uint64_t total_out;
 
         /*
          * Optional user data passed to any callback functions (such as alloc/free below)
