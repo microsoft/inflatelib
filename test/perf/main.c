@@ -292,6 +292,14 @@ void print_test_histogram(test_desc* tests, histogram* data, const char* title, 
 
     assert(count <= ARRAYSIZE(histogram_symbols));
 
+    /* GCC likes to complain later about a possibe out of bounds read */
+#ifdef __GNUC__
+    if (count > ARRAYSIZE(histogram_symbols))
+    {
+        __builtin_unreachable();
+    }
+#endif
+
     lastPrinted = (const char**)malloc(width * sizeof(*lastPrinted));
     if (!lastPrinted)
     {
