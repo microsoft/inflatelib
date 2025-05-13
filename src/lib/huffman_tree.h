@@ -60,8 +60,8 @@ extern "C"
          * to the current bit count required to get that far means that the node is a leaf node and 'symbol' is the
          * final value, whereas a value greater than the current bit count means that 'symbol' is another index into the
          * binary tree array. */
-        uint8_t code_length : 4;
-        uint16_t symbol : 11;
+        uint8_t code_length;
+        uint16_t symbol;
     } huffman_table_entry;
 
     typedef struct huffman_tree
