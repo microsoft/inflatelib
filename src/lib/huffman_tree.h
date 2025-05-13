@@ -68,13 +68,13 @@ extern "C"
     {
         uint8_t table_bits;        /* Either 7 or 9; see huffman_tree.c for more details */
         uint16_t table_mask;       /* = (1 << table_bits) - 1 */
-        uint16_t data_size;        /* For debug/assertion purposes; it's mathematically impossible to read/write past the end */
+        uint16_t data_size;        /* For assertions & deallocation; it's mathematically impossible to read/write past the end */
         huffman_table_entry* data; /* See above for data layout */
     } huffman_tree;
 
     /* The order of calls must follow: init, reset, reset, ..., reset, destroy */
     int huffman_tree_init(huffman_tree* tree, struct inflatelib_stream* stream, size_t dictionarySize);
-    int huffman_tree_reset(huffman_tree* tree, struct inflatelib_stream* stream, const uint8_t* codeLengths, size_t codeLengthsSize);
+    int huffman_tree_reset(huffman_tree* tree, struct inflatelib_stream* stream, const uint8_t* codeLengths, uint16_t codeLengthsSize);
     void huffman_tree_destroy(huffman_tree* tree, struct inflatelib_stream* stream);
 
     /* Looks up a symbol from the table, returning -1 on failure (symbol does not exist), 0 if not enough input, and 1

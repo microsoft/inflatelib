@@ -7,15 +7,24 @@
 
 #include "internal.h"
 
-static void* inflatelib_default_alloc(void* unusedUserData, size_t bytes)
+static void* inflatelib_default_alloc(void* unusedUserData, size_t bytes, size_t alignment)
 {
+    void* result;
+
     (void)unusedUserData; /* C doesn't allow unnamed parameters */
-    return malloc(bytes);
+    (void)alignment; /* Currently, we don't require any alignment that malloc can't provide */
+
+    result = malloc(bytes);
+    assert(((uintptr_t)result % alignment) == 0);
+
+    return result;
 }
 
-static void inflatelib_default_free(void* unusedUserData, void* ptr)
+static void inflatelib_default_free(void* unusedUserData, void* ptr, size_t bytes, size_t alignment)
 {
     (void)unusedUserData; /* C doesn't allow unnamed parameters */
+    (void)bytes; /* free does not need size/alignment information */
+    (void)alignment;
     free(ptr);
 }
 
@@ -117,10 +126,10 @@ int inflatelib_destroy(inflatelib_stream* stream)
                 stream->error_msg = "Generic failure";
             }
 
-            INFLATELIB_FREE(stream, state->error_msg_fmt);
+            INFLATELIB_FREE(stream, char, state->error_msg_fmt, state->error_msg_len);
         }
 
-        INFLATELIB_FREE(stream, stream->internal);
+        INFLATELIB_FREE(stream, inflatelib_state, stream->internal, 1);
         stream->internal = NULL;
     }
 
@@ -141,7 +150,7 @@ int format_error_message(inflatelib_stream* stream, const char* fmt, ...)
             stream->error_msg = NULL;
         }
 
-        INFLATELIB_FREE(stream, state->error_msg_fmt);
+        INFLATELIB_FREE(stream, char, state->error_msg_fmt, state->error_msg_len);
         state->error_msg_fmt = NULL;
     }
 
@@ -164,6 +173,7 @@ int format_error_message(inflatelib_stream* stream, const char* fmt, ...)
         errno = ENOMEM;
         return INFLATELIB_ERROR_OOM;
     }
+    state->error_msg_len = bufferSize;
 
     va_start(args, fmt);
     bufferSize = vsnprintf(state->error_msg_fmt, bufferSize, fmt, args);
@@ -350,6 +360,7 @@ static int inflater_process_data(inflatelib_stream* stream)
 
         default:
             assert(0); /* Otherwise invalid block_type */
+            INFLATELIB_UNREACHABLE();
         case btype_dynamic:
             if (state->ifstate < ifstate_reading_literal_length_code)
             {
@@ -443,6 +454,7 @@ static int inflater_read_uncompressed(inflatelib_stream* stream)
 
     default:
         assert(0); /* Invalid state for 'btype_uncompressed' */
+        INFLATELIB_UNREACHABLE();
     }
 
     return INFLATELIB_OK;
@@ -708,7 +720,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
 
     default:
         assert(0); /* Otherwise should not have called this function */
-        break;
+        INFLATELIB_UNREACHABLE();
     }
 
     return INFLATELIB_OK;
@@ -1011,7 +1023,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
 
         default:
             assert(0); /* Should not be evaluating this function then */
-            break;
+            INFLATELIB_UNREACHABLE();
         }
     }
 

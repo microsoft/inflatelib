@@ -86,7 +86,7 @@ int huffman_tree_init(huffman_tree* tree, inflatelib_stream* stream, size_t dict
     return INFLATELIB_OK;
 }
 
-int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint8_t* codeLengths, size_t codeLengthsSize)
+int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint8_t* codeLengths, uint16_t codeLengthsSize)
 {
     uint16_t bitLengthCount[MAX_CODE_LENGTH + 1]; /* NOTE: +1 because we index by length (index 0 effectively "wasted") */
     uint16_t nextCodes[MAX_CODE_LENGTH + 1];
@@ -102,7 +102,7 @@ int huffman_tree_reset(huffman_tree* tree, inflatelib_stream* stream, const uint
      * in RFC 1951, section 3.2.2 */
     /* STEP 1: Calculate number of codes for each code length */
     memset(bitLengthCount, 0, sizeof(bitLengthCount));
-    for (size_t i = 0; i < codeLengthsSize; ++i)
+    for (uint16_t i = 0; i < codeLengthsSize; ++i)
     {
         /* NOTE: Maximum code length is controlled by the number of bits we read, not user input */
         assert(codeLengths[i] < inflatelib_arraysize(bitLengthCount));
@@ -215,7 +215,7 @@ void huffman_tree_destroy(huffman_tree* tree, inflatelib_stream* stream)
 {
     if (tree->data)
     {
-        INFLATELIB_FREE(stream, tree->data);
+        INFLATELIB_FREE(stream, huffman_table_entry, tree->data, tree->data_size);
         tree->data = NULL;
         tree->data_size = 0;
     }

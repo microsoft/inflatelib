@@ -128,6 +128,9 @@ bool parser::parse_output(scope* parent, bool isScoped)
 
             default:
                 assert(false); // Invalid
+#if __cpp_lib_unreachable >= 202202L
+                std::unreachable();
+#endif
                 break;
             }
         }

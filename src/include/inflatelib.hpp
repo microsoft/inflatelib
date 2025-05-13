@@ -11,6 +11,7 @@
 #include <new>
 #include <span>
 #include <stdexcept>
+#include <utility>
 
 namespace inflatelib
 {
@@ -177,6 +178,9 @@ namespace inflatelib
                 throw std::invalid_argument(msg);
             default:
                 assert(false); // Should be unreachable
+#if __cpp_lib_unreachable >= 202202L
+                std::unreachable();
+#endif
                 [[fallthrough]];
             case INFLATELIB_ERROR_DATA:
                 throw std::runtime_error(msg);

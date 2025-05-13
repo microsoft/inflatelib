@@ -7,7 +7,7 @@
 using namespace std::literals;
 
 void DoHuffmanTreeTest(
-    const uint8_t* codeLengths, size_t codeLengthsSize, const uint8_t* input, size_t inputSize, const uint16_t* expectedOutput, size_t outputSize)
+    const uint8_t* codeLengths, uint16_t codeLengthsSize, const uint8_t* input, size_t inputSize, const uint16_t* expectedOutput, size_t outputSize)
 {
     // How much data to set on the input stream at a time
     size_t strides[] = {1, 7 /*prime value*/, inputSize};

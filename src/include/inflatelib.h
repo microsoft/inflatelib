@@ -16,8 +16,8 @@ extern "C"
 #define INFLATELIB_VERSION_MINOR 0
 #define INFLATELIB_VERSION_PATCH 1
 
-    typedef void* (*inflatelib_alloc)(void* userData, size_t bytes);
-    typedef void (*inflatelib_free)(void* userData, void* allocatedPtr);
+    typedef void* (*inflatelib_alloc)(void* userData, size_t bytes, size_t alignment);
+    typedef void (*inflatelib_free)(void* userData, void* allocatedPtr, size_t bytes, size_t alignment);
 
     struct inflatelib_state; /* Opaque to client applications */
 

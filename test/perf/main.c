@@ -49,42 +49,12 @@ typedef struct test_desc
     /* There's one histogram per-inflater for overall runtime. There's also one histogram per file per inflater. All of
      * these historgrams are stored in a single array. The indexing is as follows:
      *      + For the per-inflater histograms: results[inflater_index]
-     *      + For the per-file histograms: result[inflater_count + (file_index * file_count) + inflater_index]
+     *      + For the per-file histograms: result[inflater_count + (file_index * inflater_count) + inflater_index]
      */
     histogram* results;
 } test_desc;
 
-static void test_desc_destroy(test_desc* self)
-{
-    size_t histogramCount = self->inflater_count + (self->inflater_count * self->file_count);
-
-    if (self->files)
-    {
-        for (size_t i = 0; i < self->file_count; ++i)
-        {
-            free(self->files[i].buffer);
-        }
-        free(self->files);
-    }
-
-    if (self->results)
-    {
-        for (size_t i = 0; i < histogramCount; ++i)
-        {
-            histogram_destroy(&self->results[i]);
-        }
-        free(self->results);
-    }
-
-    for (size_t i = 0; i < self->inflater_count; ++i)
-    {
-        (*self->inflaters[i])->destroy((void*)self->inflaters[i]);
-    }
-
-    memset(self, 0, sizeof(*self));
-}
-
-static int test_desc_init(
+static void test_desc_init(
     test_desc* self, deflate_algorithm alg, const char* const* fileNames, size_t fileCount, const pinflater* inflaters, size_t inflaterCount)
 {
     size_t histogramCount = inflaterCount * (fileCount + 1);
@@ -101,8 +71,7 @@ static int test_desc_init(
         if (!(*self->inflaters[i])->init((void*)self->inflaters[i]))
         {
             printf("ERROR: Failed to initialize inflater\n");
-            test_desc_destroy(self);
-            return 0;
+            exit(1);
         }
     }
 
@@ -112,27 +81,20 @@ static int test_desc_init(
     if (!self->files)
     {
         printf("ERROR: Failed to allocate space for file data\n");
-        test_desc_destroy(self);
-        return 0;
+        exit(1);
     }
 
     for (size_t i = 0; i < fileCount; ++i)
     {
         self->files[i] = read_file(fileNames[i]);
-        if (!self->files[i].buffer)
-        {
-            /* Error message already printed */
-            test_desc_destroy(self);
-            return 0;
-        }
+        assert(self->files[i].buffer);
     }
 
     self->results = (histogram*)malloc(histogramCount * sizeof(*self->results));
     if (!self->results)
     {
         printf("ERROR: Failed to allocate space for histogram data\n");
-        test_desc_destroy(self);
-        return 0;
+        exit(1);
     }
 
     /* Initialize the histograms */
@@ -141,12 +103,9 @@ static int test_desc_init(
         if (!histogram_init(&self->results[i], test_iterations))
         {
             printf("ERROR: Failed to initialize histogram\n");
-            test_desc_destroy(self);
-            return 0;
+            exit(1);
         }
     }
-
-    return 1;
 }
 
 static histogram* test_desc_file_histogram(test_desc* self, size_t inflaterIndex, size_t fileIndex)
@@ -208,24 +167,20 @@ static double time_to_ms_f(double time)
 
 static int run_tests(test_desc* data);
 
+#include <locale.h>
+
 int main(void)
 {
     int result = 0;
     test_desc deflate_tests = {0};
     test_desc deflate64_tests = {0};
 
-    if (!test_desc_init(
-            &deflate_tests, deflate_algorithm_deflate, deflate_files, ARRAYSIZE(deflate_files), deflate_inflaters, ARRAYSIZE(deflate_inflaters)))
-    {
-        return 1;
-    }
+    setlocale(LC_ALL, "en_US.UTF-8");
 
-    if (!test_desc_init(
-            &deflate64_tests, deflate_algorithm_deflate64, deflate64_files, ARRAYSIZE(deflate64_files), deflate64_inflaters, ARRAYSIZE(deflate64_inflaters)))
-    {
-        test_desc_destroy(&deflate_tests);
-        return 1;
-    }
+    test_desc_init(
+        &deflate_tests, deflate_algorithm_deflate, deflate_files, ARRAYSIZE(deflate_files), deflate_inflaters, ARRAYSIZE(deflate_inflaters));
+    test_desc_init(
+        &deflate64_tests, deflate_algorithm_deflate64, deflate64_files, ARRAYSIZE(deflate64_files), deflate64_inflaters, ARRAYSIZE(deflate64_inflaters));
 
     /* Finally, run the tests */
     if ((run_tests(&deflate_tests) != 0) || (run_tests(&deflate64_tests) != 0))
@@ -233,12 +188,11 @@ int main(void)
         result = 1;
     }
 
-    test_desc_destroy(&deflate_tests);
-    test_desc_destroy(&deflate64_tests);
+    /* NOTE: Exiting process; no need to clean up */
     return result;
 }
 
-int print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint32_t width, uint32_t height);
+void print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint32_t width, uint32_t height);
 
 static int run_tests(test_desc* data)
 {
@@ -255,7 +209,7 @@ static int run_tests(test_desc* data)
     if (!outputBuffer)
     {
         printf("ERROR: Failed to allocate output buffer of size %zu\n", output_buffer_size);
-        return 1;
+        exit(1);
     }
 
     /* We don't want to profile our histogram functions, so delay pushing each new value until we're done with all files */
@@ -264,7 +218,7 @@ static int run_tests(test_desc* data)
     {
         free(outputBuffer);
         printf("ERROR: Failed to allocate memory for timing data\n");
-        return 1;
+        exit(1);
     }
 
     for (size_t iteration = 0; iteration < test_iterations; ++iteration)
@@ -283,9 +237,7 @@ static int run_tests(test_desc* data)
                 if (!(*data->inflaters[inflaterIndex])->inflate_file((void*)data->inflaters[inflaterIndex], &data->files[fileCount], outputBuffer))
                 {
                     printf("ERROR: Failed to inflate file '%s'\n", data->files[fileCount].filename);
-                    free(times);
-                    free(outputBuffer);
-                    return 1;
+                    exit(1);
                 }
                 times[fileCount] = current_time() - fileStartTime;
             }
@@ -308,20 +260,10 @@ static int run_tests(test_desc* data)
 
     /* TODO: Currently using a hard-coded width of 80... get the actual console size*/
     printf("\nSummary for %s:\n\n", deflate_algorithm_string(data->algorithm));
-    if (!print_test_histogram(data, data->results, "Total Runtime", data->inflater_count, 80, 15))
+    print_test_histogram(data, data->results, "Total Runtime", data->inflater_count, 80, 15);
+    for (size_t i = 0; i < data->file_count; ++i)
     {
-        result = 0;
-    }
-    else
-    {
-        for (size_t i = 0; i < data->file_count; ++i)
-        {
-            if (!print_test_histogram(data, test_desc_file_histogram(data, 0, i), data->files[i].filename, data->inflater_count, 80, 15))
-            {
-                result = 0;
-                break;
-            }
-        }
+        print_test_histogram(data, test_desc_file_histogram(data, 0, i), data->files[i].filename, data->inflater_count, 80, 15);
     }
 
     free(times);
@@ -333,9 +275,10 @@ static int run_tests(test_desc* data)
 }
 
 /* TODO: Maybe just use colors? */
-static const char histogram_symbols[] = {'#', '*', 'X', 'O'};
+/* The order is: { solid, medium, light, dark } */
+static const char* histogram_symbols[] = {"\u2588", "\u2592", "\u2591", "\u2593"};
 
-int print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint32_t width, uint32_t height)
+void print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint32_t width, uint32_t height)
 {
     size_t titleLen = strlen(title);
     uint64_t minX = 0xFFFFFFFFFFFFFFFFull, maxX = 0;
@@ -343,19 +286,23 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
     uint64_t maxY = 0;
     uint64_t strideY;
     uint64_t extra;
-    char* lastPrinted = NULL;
+    const char** lastPrinted = NULL;
     histogram_buckets* buckets;
     double startXMs, strideXMs, labelDist = 0.01, totalXMs;
 
     assert(count <= ARRAYSIZE(histogram_symbols));
 
-    lastPrinted = (char*)malloc(width * sizeof(*lastPrinted));
+    lastPrinted = (const char**)malloc(width * sizeof(*lastPrinted));
     if (!lastPrinted)
     {
         printf("ERROR: Failed to allocate memory for displaying summary\n");
-        return 0;
+        exit(1);
     }
-    memset(lastPrinted, ' ', width * sizeof(*lastPrinted));
+
+    for (uint32_t i = 0; i < width; ++i)
+    {
+        lastPrinted[i] = " ";
+    }
 
     /* We want to try and avoid the biggest outliers, so we don't consider a set percentage of the highest and lowest
      * times when calculating the min & max. These values are heuristically chosen */
@@ -394,8 +341,7 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
     if (!buckets)
     {
         printf("ERROR: Failed to allocate memory for displaying summary\n");
-        free(lastPrinted);
-        return 0;
+        exit(1);
     }
 
     for (size_t i = 0; i < count; ++i)
@@ -404,13 +350,7 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
         if (!buckets[i].counts)
         {
             printf("ERROR: Failed to allocate memory for displaying summary\n");
-            for (size_t j = 0; j < i; ++j)
-            {
-                histogram_destroy_buckets(buckets + j);
-            }
-            free(buckets);
-            free(lastPrinted);
-            return 0;
+            exit(1);
         }
     }
 
@@ -459,7 +399,7 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
                 }
             }
 
-            printf("%c", lastPrinted[x]);
+            printf("%s", lastPrinted[x]);
         }
 
         printf("\n");
@@ -527,7 +467,7 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
     printf("\nLegend:\n");
     for (size_t i = 0; i < count; ++i)
     {
-        printf("  %c: %s\n", histogram_symbols[i], (*tests->inflaters[i])->name((void*)tests->inflaters[i]));
+        printf("  %s: %s\n", histogram_symbols[i], (*tests->inflaters[i])->name((void*)tests->inflaters[i]));
     }
     printf("\n");
 
@@ -555,6 +495,4 @@ int print_test_histogram(test_desc* tests, histogram* data, const char* title, s
     free(buckets);
 
     free(lastPrinted);
-
-    return 1;
 }

@@ -3,7 +3,9 @@
 #define INFLATELIB_STATE_H
 
 #include <inflatelib.h>
+
 #include <errno.h>
+#include <stdalign.h>
 
 #include "bitstream.h"
 #include "huffman_tree.h"
@@ -65,6 +67,7 @@ typedef struct inflatelib_state
 
     /* Formatted (allocated) error message */
     char* error_msg_fmt;
+    size_t error_msg_len;
 
     /* Inflater state */
     inflate_state ifstate;
@@ -117,7 +120,22 @@ typedef struct inflatelib_state
 
 int format_error_message(inflatelib_stream* stream, const char* fmt, ...);
 
-#define INFLATELIB_ALLOC(stream, type, count) (type*)stream->alloc(stream->user_data, sizeof(type) * count)
-#define INFLATELIB_FREE(stream, ptr) stream->free(stream->user_data, ptr)
+#define INFLATELIB_ALLOC(stream, type, count) (type*)stream->alloc(stream->user_data, sizeof(type) * count, alignof(type))
+#define INFLATELIB_FREE(stream, type, ptr, count) stream->free(stream->user_data, ptr, sizeof(type) * count, alignof(type))
+
+#ifdef __has_builtin
+#if __has_builtin(__builtin_unreachable)
+#define INFLATELIB_UNREACHABLE() __builtin_unreachable()
+#endif
+#endif
+
+#ifndef INFLATELIB_UNREACHABLE
+#ifdef _MSC_VER
+#define INFLATELIB_UNREACHABLE() __assume(0)
+#else
+#define INFLATELIB_UNREACHABLE()
+#endif
+#endif
+
 
 #endif

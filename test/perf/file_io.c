@@ -30,7 +30,7 @@ char* resolve_test_file_path(const char* filename)
     if (!moduleLen || (moduleLen == MAX_PATH))
     {
         printf("ERROR: Failed to get executable path\n");
-        return NULL;
+        exit(1);
     }
 #else
     uint32_t moduleLen;
@@ -38,7 +38,7 @@ char* resolve_test_file_path(const char* filename)
     if (realpath("/proc/self/exe", buffer) == NULL)
     {
         printf("ERROR: Failed to get executable path\n");
-        return NULL;
+        exit(1);
     }
 
     moduleLen = strlen(buffer);
@@ -63,7 +63,7 @@ char* resolve_test_file_path(const char* filename)
     if (testsPathLen == 0)
     {
         printf("ERROR: Failed to find path to the 'data' directory\n");
-        return NULL;
+        exit(1);
     }
 
     /* +5 because we also append "data\" */
@@ -71,7 +71,7 @@ char* resolve_test_file_path(const char* filename)
     if (!result)
     {
         printf("ERROR: Failed to allocate space for path to file '%s'\n", filename);
-        return NULL;
+        exit(1);
     }
 
     memcpy(result, buffer, testsPathLen);
@@ -93,10 +93,6 @@ file_data read_file(const char* filename)
     size_t bytesRemaining = 0;
 
     fullPath = resolve_test_file_path(filename);
-    if (!fullPath)
-    {
-        return result; /* Error already displayed */
-    }
 
 #ifdef _WIN32
     if (fopen_s(&file, fullPath, "rb"))
@@ -111,35 +107,28 @@ file_data read_file(const char* filename)
     {
         printf("ERROR: Failed to open file '%s'\n", filename);
         printf("NOTE: Full path is '%s'\n", fullPath);
-        free(fullPath);
-        return result;
+        exit(1);
     }
 
     /* Determine the size of the file */
     if (fseek(file, 0, SEEK_END) != 0)
     {
         printf("ERROR: Failed to seek to end of file '%s'\n", filename);
-        fclose(file);
-        free(fullPath);
-        return result;
+        exit(1);
     }
 
     fileSize = ftell(file);
     if (fileSize < 0)
     {
         printf("ERROR: Failed to get file size for '%s'\n", filename);
-        fclose(file);
-        free(fullPath);
-        return result;
+        exit(1);
     }
 
     /* Seek back to the start */
     if (fseek(file, 0, SEEK_SET) != 0)
     {
         printf("ERROR: Failed to seek to start of file '%s'\n", filename);
-        fclose(file);
-        free(fullPath);
-        return result;
+        exit(1);
     }
 
     /* NOTE: We allocate one additional byte so that our last call to 'fread' will have enough space in the buffer to
@@ -148,9 +137,7 @@ file_data read_file(const char* filename)
     if (!buffer)
     {
         printf("ERROR: Failed to allocate buffer of size %ld for file '%s'\n", fileSize, filename);
-        fclose(file);
-        free(fullPath);
-        return result;
+        exit(1);
     }
 
     writeBuffer = buffer;
@@ -172,13 +159,13 @@ file_data read_file(const char* filename)
                 {
                     printf("ERROR: File '%s' changed size\n", filename);
                     printf("NOTE: Original size was %ld bytes; file became smaller\n", fileSize);
-                    free(buffer);
+                    exit(1);
                 }
                 else if (ferror(file))
                 {
                     /* We hit an error */
                     printf("ERROR: Failed to read data from file '%s'\n", filename);
-                    free(buffer);
+                    exit(1);
                 }
                 else
                 {
@@ -192,13 +179,13 @@ file_data read_file(const char* filename)
             {
                 printf("ERROR: File '%s' changed size\n", filename);
                 printf("NOTE: Original size was %ld bytes; file became larger\n", fileSize);
-                free(buffer);
+                exit(1);
             }
             else /* Case 3: We hit an error */
             {
                 assert(ferror(file));
                 printf("ERROR: Failed to read data from file '%s'\n", filename);
-                free(buffer);
+                exit(1);
             }
 
             fclose(file);
