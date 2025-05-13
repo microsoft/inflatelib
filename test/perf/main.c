@@ -276,7 +276,7 @@ static int run_tests(test_desc* data)
 
 /* TODO: Maybe just use colors? */
 /* The order is: { solid, medium, light, dark } */
-static const char* histogram_symbols[] = {"\u2588", "\u2592", "\u2591", "\u2593"};
+static const char* histogram_symbols[] = {"\xE2\x96\x88", "\xE2\x96\x92", "\xE2\x96\x91", "\xE2\x96\x93"};
 
 void print_test_histogram(test_desc* tests, histogram* data, const char* title, size_t count, uint32_t width, uint32_t height)
 {
