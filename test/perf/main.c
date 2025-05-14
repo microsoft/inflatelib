@@ -169,7 +169,7 @@ static int run_tests(test_desc* data);
 
 #include <locale.h>
 
-int main(void)
+int main(int argc, char** argv)
 {
     int result = 0;
     test_desc deflate_tests = {0};
@@ -177,15 +177,82 @@ int main(void)
 
     setlocale(LC_ALL, "en_US.UTF-8");
 
-    test_desc_init(
-        &deflate_tests, deflate_algorithm_deflate, deflate_files, ARRAYSIZE(deflate_files), deflate_inflaters, ARRAYSIZE(deflate_inflaters));
-    test_desc_init(
-        &deflate64_tests, deflate_algorithm_deflate64, deflate64_files, ARRAYSIZE(deflate64_files), deflate64_inflaters, ARRAYSIZE(deflate64_inflaters));
+    pinflater deflateInflaters[ARRAYSIZE(deflate_inflaters)];
+    size_t deflateInflaterCount = 0;
+    pinflater deflate64Inflaters[ARRAYSIZE(deflate64_inflaters)];
+    size_t deflate64InflaterCount = 0;
+
+    /* If the caller supplied arguments, then the inflaters we want to use for the tests come from the command line */
+    if (argc > 1)
+    {
+        int used[ARRAYSIZE(deflate_inflaters)] = {0};
+        int used64[ARRAYSIZE(deflate64_inflaters)] = {0};
+        for (int i = 1; i < argc; ++i)
+        {
+            char* arg = argv[i];
+            int wasUsed = 0;
+            if (strcmp(arg, "inflatelib") == 0)
+            {
+                wasUsed = !used[0];
+                used[0] = 1;
+                if (wasUsed)
+                {
+                    deflateInflaters[deflateInflaterCount++] = &inflatelib_inflater.vtable;
+                }
+            }
+            else if (strcmp(arg, "zlib") == 0)
+            {
+                wasUsed = !used[1];
+                used[1] = 1;
+                if (wasUsed)
+                {
+                    deflateInflaters[deflateInflaterCount++] = &zlib_inflater.vtable;
+                }
+            }
+            else if (strcmp(arg, "inflatelib64") == 0)
+            {
+                wasUsed = !used64[0];
+                used64[0] = 1;
+                if (wasUsed)
+                {
+                    deflate64Inflaters[deflate64InflaterCount++] = &inflatelib_inflater64.vtable;
+                }
+            }
+            else
+            {
+                printf("ERROR: Unknown inflater '%s'\n", arg);
+                printf("NOTE: Expected 'inflatelib', 'inflatelib64', or 'zlib'\n");
+                exit(1);
+            }
+
+            if (!wasUsed)
+            {
+                printf("ERROR: Inflater '%s' specified more than once\n", arg);
+                exit(1);
+            }
+        }
+    }
+    else
+    {
+        /* No command line, use all inflaters */
+        memcpy(deflateInflaters, deflate_inflaters, sizeof(deflate_inflaters));
+        deflateInflaterCount = ARRAYSIZE(deflate_inflaters);
+        memcpy(deflate64Inflaters, deflate64_inflaters, sizeof(deflate64_inflaters));
+        deflate64InflaterCount = ARRAYSIZE(deflate64_inflaters);
+    }
+
+    test_desc_init(&deflate_tests, deflate_algorithm_deflate, deflate_files, ARRAYSIZE(deflate_files), deflateInflaters, deflateInflaterCount);
+    test_desc_init(&deflate64_tests, deflate_algorithm_deflate64, deflate64_files, ARRAYSIZE(deflate64_files), deflate64Inflaters, deflate64InflaterCount);
 
     /* Finally, run the tests */
-    if ((run_tests(&deflate_tests) != 0) || (run_tests(&deflate64_tests) != 0))
+    if (deflateInflaterCount > 0)
     {
-        result = 1;
+        result += run_tests(&deflate_tests);
+    }
+
+    if (deflate64InflaterCount > 0)
+    {
+        result += run_tests(&deflate64_tests);
     }
 
     /* NOTE: Exiting process; no need to clean up */
