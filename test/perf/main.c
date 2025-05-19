@@ -235,9 +235,9 @@ int main(int argc, char** argv)
     else
     {
         /* No command line, use all inflaters */
-        memcpy(deflateInflaters, deflate_inflaters, sizeof(deflate_inflaters));
+        memcpy((void*)deflateInflaters, deflate_inflaters, sizeof(deflate_inflaters));
         deflateInflaterCount = ARRAYSIZE(deflate_inflaters);
-        memcpy(deflate64Inflaters, deflate64_inflaters, sizeof(deflate64_inflaters));
+        memcpy((void*)deflate64Inflaters, deflate64_inflaters, sizeof(deflate64_inflaters));
         deflate64InflaterCount = ARRAYSIZE(deflate64_inflaters);
     }
 

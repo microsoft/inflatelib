@@ -12,7 +12,7 @@ static void* inflatelib_default_alloc(void* unusedUserData, size_t bytes, size_t
     void* result;
 
     (void)unusedUserData; /* C doesn't allow unnamed parameters */
-    (void)alignment; /* Currently, we don't require any alignment that malloc can't provide */
+    (void)alignment;      /* Currently, we don't require any alignment that malloc can't provide */
 
     result = malloc(bytes);
     assert(((uintptr_t)result % alignment) == 0);
@@ -23,7 +23,7 @@ static void* inflatelib_default_alloc(void* unusedUserData, size_t bytes, size_t
 static void inflatelib_default_free(void* unusedUserData, void* ptr, size_t bytes, size_t alignment)
 {
     (void)unusedUserData; /* C doesn't allow unnamed parameters */
-    (void)bytes; /* free does not need size/alignment information */
+    (void)bytes;          /* free does not need size/alignment information */
     (void)alignment;
     free(ptr);
 }
@@ -439,7 +439,8 @@ static int inflater_read_uncompressed(inflatelib_stream* stream)
 
     case ifstate_reading_uncompressed_data:
         /* NOTE: Both these function calls are safe to call with sizes of zero */
-        state->data.uncompressed.block_len -= window_copy_bytes(&state->window, &state->bitstream, state->data.uncompressed.block_len);
+        state->data.uncompressed.block_len -=
+            (uint16_t)window_copy_bytes(&state->window, &state->bitstream, state->data.uncompressed.block_len);
 
         bytesCopied = window_copy_output(&state->window, (uint8_t*)stream->next_out, stream->avail_out);
         stream->next_out = (uint8_t*)stream->next_out + bytesCopied;
@@ -471,38 +472,17 @@ static void inflater_init_static_tables(inflatelib_stream* stream)
     /* TODO: We can encode both of these tables in static data; it's not clear yet if/how much that might improve things
      * and all indications are that this code path is insignificant enough to warrent such optimizations */
 
-    /*
-     * The static literal/length code lengths are specified by RFC 1951, section 3.2.6 as follows:
-     *      0-143: 8 bits long
-     *      144-255: 9 bits long
-     *      256-279: 7 bits long
-     *      280-287: 8 bits long
-     */
-    for (size_t i = 0; i < 144; ++i)
-    {
-        buffer[i] = 8;
-    }
-    for (size_t i = 144; i < 256; ++i)
-    {
-        buffer[i] = 9;
-    }
-    for (size_t i = 256; i < 280; ++i)
-    {
-        buffer[i] = 7;
-    }
-    for (size_t i = 280; i < 288; ++i)
-    {
-        buffer[i] = 8;
-    }
+    /* The static literal/length code lengths are specified by RFC 1951, section 3.2.6 as follows: */
+    memset(buffer, 8, 144 - 0);         /* 0-143: 8 bits long */
+    memset(buffer + 144, 9, 256 - 144); /* 144-255: 9 bits long */
+    memset(buffer + 256, 7, 280 - 256); /* 256-279: 7 bits long */
+    memset(buffer + 280, 8, 288 - 280); /* 280-287: 8 bits long */
 
     result = huffman_tree_reset(&state->literal_length_tree, stream, buffer, 288);
     assert(result == 0); /* We control the inputs; this can never fail */
 
     /* The distance code lengths are also specified by RFC 1951, section 3.2.6 as being 5 bits each */
-    for (size_t i = 0; i < 32; ++i)
-    {
-        buffer[i] = 5;
-    }
+    memset(buffer, 5, 32);
 
     result = huffman_tree_reset(&state->distance_tree, stream, buffer, 32);
     assert(result == 0); /* We control the inputs; this can never fail */
@@ -528,26 +508,25 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
             return INFLATELIB_OK; /* Not enough data */
         }
         state->data.dynamic_codes.literal_length_code_count = data + 257;
-        state->ifstate = ifstate_reading_num_dist_codes;
         /* Fallthrough */
 
     case ifstate_reading_num_dist_codes:
         if (!bitstream_read_bits(&state->bitstream, 5, &data))
         {
+            state->ifstate = ifstate_reading_num_dist_codes;
             return INFLATELIB_OK; /* Not enough data */
         }
         state->data.dynamic_codes.distance_code_count = (uint8_t)(data + 1);
-        state->ifstate = ifstate_reading_num_code_len_codes;
         /* Fallthrough */
 
     case ifstate_reading_num_code_len_codes:
         if (!bitstream_read_bits(&state->bitstream, 4, &data))
         {
+            state->ifstate = ifstate_reading_num_code_len_codes;
             return INFLATELIB_OK; /* Not enough data */
         }
         state->data.dynamic_codes.code_length_code_count = (uint8_t)(data + 4);
         state->data.dynamic_codes.loop_counter = 0;
-        state->ifstate = ifstate_reading_code_len_codes;
         /* Fallthrough */
 
     case ifstate_reading_code_len_codes:
@@ -557,6 +536,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
         {
             if (!bitstream_read_bits(&state->bitstream, 3, &data))
             {
+                state->ifstate = ifstate_reading_code_len_codes;
                 return INFLATELIB_OK; /* Not enough data */
             }
 
@@ -574,7 +554,8 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
         result = huffman_tree_reset(&state->code_length_tree, stream, state->data.dynamic_codes.code_lengths, CODE_LENGTH_TREE_ELEMENT_COUNT);
         if (result < 0)
         {
-            return result; /* Error message, etc. already set */
+            state->ifstate = ifstate_reading_code_len_codes; /* TODO: Error state? */
+            return result;                                   /* Error message, etc. already set */
         }
 
         state->data.dynamic_codes.loop_counter = 0; /* Reset for next operation */
@@ -649,7 +630,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
             else
             {
                 /* Repeat zero some number of times */
-                uint8_t bitCount;
+                size_t bitCount;
                 uint16_t repeatBase;
                 if (state->data.dynamic_codes.length_code == 17)
                 {
@@ -1045,7 +1026,7 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
     inflatelib_state* state = stream->internal;
     uint8_t* out = (uint8_t*)stream->next_out;
     size_t bytesCopied, outSize = stream->avail_out;
-    uint8_t extraBits;
+    size_t extraBits;
     uint16_t symbol;
     uint32_t blockLength, blockDistance;
     int opResult;

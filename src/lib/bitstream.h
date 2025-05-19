@@ -18,7 +18,7 @@ extern "C"
 
         // Partially read data
         uint32_t buffer;
-        int bits_in_buffer;
+        size_t bits_in_buffer;
     } bitstream;
 
     void bitstream_init(bitstream* stream);
@@ -31,28 +31,28 @@ extern "C"
      * Copies at most the specified number of bytes to 'dest', returning the number of bytes that were actually copied.
      * The data in the stream must be byte aligned, otherwise the behavior is undefined.
      */
-    uint16_t bitstream_copy_bytes(bitstream* stream, uint16_t bytesToRead, uint8_t* dest);
+    size_t bitstream_copy_bytes(bitstream* stream, size_t bytesToRead, uint8_t* dest);
 
     /*
      * Reads the specified number of bits, writing to 'result'. This function returns 1 if all bits could be read and 0
      * if more data is needed. In the failure case, the contents of 'result' are unspecified and no data is consumed
      */
-    int bitstream_read_bits(bitstream* stream, uint8_t bitsToRead, uint16_t* result);
+    size_t bitstream_read_bits(bitstream* stream, size_t bitsToRead, uint16_t* result);
 
     /*
      * Peeks whatever data is available, returning the number of bits in the result. The data is NOT consumed
      */
-    int bitstream_peek(bitstream* stream, uint16_t* result);
+    size_t bitstream_peek(bitstream* stream, uint16_t* result);
 
     /*
      * Consumes the specified number of bits, 1-16, from the input buffer and disposes of them. The caller is
      * responsible for ensuring that the buffer has at least the specified number of bits (e.g. by first calling
      * bitstream_peek).
      */
-    void bitstream_consume_bits(bitstream* stream, int bits);
+    void bitstream_consume_bits(bitstream* stream, size_t bits);
 
     /* Same as the above functions, but does not check to verify that the bitstream has enough input data */
-    uint16_t bitstream_read_bits_unchecked(bitstream* stream, uint8_t bitsToRead);
+    uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead);
     uint16_t bitstream_peek_unchecked(bitstream* stream);
 
 #ifdef __cplusplus

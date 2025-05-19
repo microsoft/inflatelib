@@ -30,8 +30,8 @@ extern "C"
         uint16_t write_offset;
 
         /* NOTE: We can't infer this from the two offsets because it's possible the window is full and therefore the two
-         * offsets are the same (would be ambiguous if empty or full). This is also why this must be 32-bits */
-        uint32_t unconsumed_bytes;
+         * offsets are the same (would be ambiguous if empty or full). This is also why this can't be 16-bits */
+        size_t unconsumed_bytes;
 
         /* Total bytes written to 'data' that should be considered valid. This is used to ensure that a length/distance
          * pair does not refer to garbage data. This may be larger than the buffer size, which is okay; we still enforce
@@ -50,11 +50,11 @@ extern "C"
 
     /* Attempts to copy 'count' bytes from the bitstream into the window, returning the number of bytes successfully
      * copied */
-    uint16_t window_copy_bytes(window* window, bitstream* bitstream, uint16_t count);
+    size_t window_copy_bytes(window* window, bitstream* bitstream, size_t count);
 
     /* Copies at most 'length' bytes from the window back to itself starting at the negative offset of 'distance',
      * returning the number of bytes that were successfully copied (e.g. before running out of unconsumed space) */
-    int window_copy_length_distance(window* window, uint32_t distance, uint32_t length);
+    int window_copy_length_distance(window* window, size_t distance, size_t length);
 
     /* Writes a single byte to the window */
     int window_write_byte(window* window, uint8_t byte);

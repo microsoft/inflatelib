@@ -60,21 +60,21 @@ extern "C"
          * to the current bit count required to get that far means that the node is a leaf node and 'symbol' is the
          * final value, whereas a value greater than the current bit count means that 'symbol' is another index into the
          * binary tree array. */
-        uint8_t code_length;
+        uint16_t code_length;
         uint16_t symbol;
     } huffman_table_entry;
 
     typedef struct huffman_tree
     {
-        uint8_t table_bits;        /* Either 7 or 9; see huffman_tree.c for more details */
-        uint16_t table_mask;       /* = (1 << table_bits) - 1 */
-        uint16_t data_size;        /* For assertions & deallocation; it's mathematically impossible to read/write past the end */
+        size_t table_bits;         /* Either 7 or 9; see huffman_tree.c for more details */
+        size_t table_mask;         /* = (1 << table_bits) - 1 */
+        size_t data_size;          /* For assertions & deallocation; it's mathematically impossible to read/write past the end */
         huffman_table_entry* data; /* See above for data layout */
     } huffman_tree;
 
     /* The order of calls must follow: init, reset, reset, ..., reset, destroy */
     int huffman_tree_init(huffman_tree* tree, struct inflatelib_stream* stream, size_t dictionarySize);
-    int huffman_tree_reset(huffman_tree* tree, struct inflatelib_stream* stream, const uint8_t* codeLengths, uint16_t codeLengthsSize);
+    int huffman_tree_reset(huffman_tree* tree, struct inflatelib_stream* stream, const uint8_t* codeLengths, size_t codeLengthsSize);
     void huffman_tree_destroy(huffman_tree* tree, struct inflatelib_stream* stream);
 
     /* Looks up a symbol from the table, returning -1 on failure (symbol does not exist), 0 if not enough input, and 1

@@ -33,26 +33,26 @@ size_t window_copy_output(window* window, uint8_t* output, size_t outputSize)
         /* Wait until after the loop to update 'unconsumed_bytes' since it's not used by the loop*/
     }
 
-    window->unconsumed_bytes -= (uint32_t)totalBytesToCopy;
+    window->unconsumed_bytes -= totalBytesToCopy;
 
     return totalBytesToCopy;
 }
 
-uint16_t window_copy_bytes(window* window, bitstream* bitstream, uint16_t count)
+size_t window_copy_bytes(window* window, bitstream* bitstream, size_t count)
 {
-    uint16_t result = 0;
+    size_t result = 0;
 
     assert((window->unconsumed_bytes + count) <= DEFLATE64_WINDOW_SIZE); /* Otherwise we will clobber data */
 
     while (count > 0)
     {
-        uint32_t buffRemaining = DEFLATE64_WINDOW_SIZE - window->write_offset; /* Space until end of buffer */
-        uint16_t bytesToCopy = (count <= buffRemaining) ? count : (uint16_t)buffRemaining;
+        size_t buffRemaining = DEFLATE64_WINDOW_SIZE - window->write_offset; /* Space until end of buffer */
+        size_t bytesToCopy = (count <= buffRemaining) ? count : buffRemaining;
 
-        uint16_t bytesCopied = bitstream_copy_bytes(bitstream, bytesToCopy, window->data + window->write_offset);
+        size_t bytesCopied = bitstream_copy_bytes(bitstream, bytesToCopy, window->data + window->write_offset);
         count -= bytesCopied;
         result += bytesCopied;
-        window->write_offset += bytesCopied; /* This will overflow back to zero correctly */
+        window->write_offset = (uint16_t)(window->write_offset + bytesCopied); /* This will overflow back to zero correctly */
         /* Wait until after the loop to update other counts as these values are not used by the loop */
 
         if (bytesCopied < bytesToCopy)
@@ -68,11 +68,13 @@ uint16_t window_copy_bytes(window* window, bitstream* bitstream, uint16_t count)
     return result;
 }
 
-int window_copy_length_distance(window* window, uint32_t distance, uint32_t length)
+int window_copy_length_distance(window* window, size_t distance, size_t length)
 {
-    int result = 0;
+    size_t result = 0;
     uint16_t copyIndex;
-    uint32_t writeSpaceRemaining = DEFLATE64_WINDOW_SIZE - window->unconsumed_bytes;
+    size_t writeSpaceRemaining = DEFLATE64_WINDOW_SIZE - window->unconsumed_bytes;
+    assert(window->unconsumed_bytes <= DEFLATE64_WINDOW_SIZE);
+    assert(distance <= DEFLATE64_WINDOW_SIZE);
 
     /* The distance can't reference data that hasn't been written yet */
     if ((distance > window->total_bytes))
@@ -95,7 +97,7 @@ int window_copy_length_distance(window* window, uint32_t distance, uint32_t leng
      */
     while ((length > 0) && (writeSpaceRemaining > 0))
     {
-        uint32_t readRemaining, writeRemaining, copySize;
+        size_t readRemaining, writeRemaining, copySize;
 
         if (copyIndex < window->write_offset)
         {
@@ -127,7 +129,7 @@ int window_copy_length_distance(window* window, uint32_t distance, uint32_t leng
             copySize = writeRemaining;
         }
 
-        /* We need to use a memmove because the data we are copying may overlap with what we are copying to */
+        /* We need to use a memmove because the data we are copying from may overlap with what we are copying to */
         memmove(window->data + window->write_offset, window->data + copyIndex, copySize);
 
         /* Integer overflow will take care of resetting each of these back to zero properly */
@@ -140,7 +142,7 @@ int window_copy_length_distance(window* window, uint32_t distance, uint32_t leng
         result += copySize;
     }
 
-    return result;
+    return (int)result;
 }
 
 int window_write_byte(window* window, uint8_t byte)

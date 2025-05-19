@@ -30,17 +30,16 @@ void bitstream_set_data(bitstream* stream, const uint8_t* data, size_t length)
 
 void bitstream_byte_align(bitstream* stream)
 {
-    /* It's possible to still have "extra" data in the buffer if we previously did a peek & consume prior to this
-     * operation, so we can't just set 'bits_in_buffer' to zero */
-    int bitsToConsume = stream->bits_in_buffer % 8;
+    /* It's possible to have more than one byte in the buffer, so we can't just set 'bits_in_buffer' to zero */
+    size_t bitsToConsume = stream->bits_in_buffer % 8;
 
     stream->buffer >>= bitsToConsume;
     stream->bits_in_buffer -= bitsToConsume;
 }
 
-uint16_t bitstream_copy_bytes(bitstream* stream, uint16_t bytesToRead, uint8_t* dest)
+size_t bitstream_copy_bytes(bitstream* stream, size_t bytesToRead, uint8_t* dest)
 {
-    uint16_t bytesFromBuffer, bytesFromData;
+    size_t bytesFromBuffer, bytesFromData;
 
     /* The caller should ensure that the stream is byte-aligned before calling this function. It may be the case that
      * some data is already in the buffer - e.g. if the previous operation was a peek - in which case there should be
@@ -48,10 +47,10 @@ uint16_t bitstream_copy_bytes(bitstream* stream, uint16_t bytesToRead, uint8_t* 
     assert((stream->bits_in_buffer % 8) == 0);
     assert(bytesToRead > 0);
 
-    bytesFromBuffer = (uint16_t)(stream->bits_in_buffer / 8);
+    bytesFromBuffer = stream->bits_in_buffer / 8;
     bytesFromBuffer = (bytesFromBuffer > bytesToRead) ? bytesToRead : bytesFromBuffer;
 
-    for (uint16_t i = 0; i < bytesFromBuffer; ++i)
+    for (size_t i = 0; i < bytesFromBuffer; ++i)
     {
         *dest++ = (uint8_t)stream->buffer;
         stream->buffer >>= 8;
@@ -59,7 +58,7 @@ uint16_t bitstream_copy_bytes(bitstream* stream, uint16_t bytesToRead, uint8_t* 
     }
     bytesToRead -= bytesFromBuffer;
 
-    bytesFromData = (stream->length > bytesToRead) ? bytesToRead : (uint16_t)stream->length;
+    bytesFromData = (stream->length > bytesToRead) ? bytesToRead : stream->length;
 
     memcpy(dest, stream->data, bytesFromData);
 
@@ -97,16 +96,18 @@ static void bitstream_fill_buffer_unchecked(bitstream* stream)
 {
     if (stream->bits_in_buffer < 16)
     {
+        uint32_t newData;
+
         assert(stream->length >= 2); /* Caller should have verified */
-        stream->buffer |= ((uint32_t)stream->data[0]) << stream->bits_in_buffer;
-        stream->buffer |= ((uint32_t)stream->data[1]) << (stream->bits_in_buffer + 8);
+        newData = ((uint32_t)stream->data[0]) | (((uint32_t)stream->data[1]) << 8);
+        stream->buffer |= newData << stream->bits_in_buffer;
         stream->bits_in_buffer += 16;
         stream->data += 2;
         stream->length -= 2;
     }
 }
 
-int bitstream_read_bits(bitstream* stream, uint8_t bitsToRead, uint16_t* result)
+size_t bitstream_read_bits(bitstream* stream, size_t bitsToRead, uint16_t* result)
 {
     uint32_t mask;
 
@@ -126,7 +127,7 @@ int bitstream_read_bits(bitstream* stream, uint8_t bitsToRead, uint16_t* result)
     return 1;
 }
 
-uint16_t bitstream_read_bits_unchecked(bitstream* stream, uint8_t bitsToRead)
+uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead)
 {
     uint16_t result;
     uint32_t mask = ((uint32_t)1 << bitsToRead) - 1;
@@ -143,7 +144,7 @@ uint16_t bitstream_read_bits_unchecked(bitstream* stream, uint8_t bitsToRead)
     return result;
 }
 
-int bitstream_peek(bitstream* stream, uint16_t* result)
+size_t bitstream_peek(bitstream* stream, uint16_t* result)
 {
     bitstream_fill_buffer(stream);
 
@@ -157,7 +158,7 @@ uint16_t bitstream_peek_unchecked(bitstream* stream)
     return (uint16_t)stream->buffer;
 }
 
-void bitstream_consume_bits(bitstream* stream, int bits)
+void bitstream_consume_bits(bitstream* stream, size_t bits)
 {
     assert(bits <= stream->bits_in_buffer);
     stream->buffer >>= bits;

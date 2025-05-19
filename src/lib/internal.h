@@ -137,5 +137,4 @@ int format_error_message(inflatelib_stream* stream, const char* fmt, ...);
 #endif
 #endif
 
-
 #endif
