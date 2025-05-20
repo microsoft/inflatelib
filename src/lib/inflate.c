@@ -388,6 +388,7 @@ static int inflater_process_data(inflatelib_stream* stream)
 
     if ((result == INFLATELIB_OK) && (state->ifstate == ifstate_eof))
     {
+        bitstream_byte_align(&state->bitstream);
         result = INFLATELIB_EOF;
     }
 
@@ -757,10 +758,11 @@ static const inflater_tables* const inflate_tables[] = {&deflate_tables, &deflat
 
 /* The maximum number of bytes that a single compressed block operation can consume. These values are used to optimize
  * the likely path where we have enough data for a single operation so we don't have to continuously check to see if we
- * have enough data. These values are calculated as follows:
- * Deflate: 15 bit length + 5 extra bits + 15 bit distance + 13 extra bits = 48 bits = 6 bytes
- * Deflate64: 15 bit length + 16 extra bits + 15 bit distance + 14 extra bits = 60 bits = 8 bytes (rounded up) */
-static const size_t max_compressed_op_size[] = {6, 8};
+ * have enough data. Thanks to the way that bitstream works, we also need to ensure that there are at least four bytes
+ * of remaining data before doing any one read. These values are calculated as follows:
+ * Deflate: 15 bit length + 5 extra bits + 15 bit distance (+ 13 extra bits) = 35 bits before extra data -> 10 bytes needed
+ * Deflate64: 15 bit length + 16 extra bits + 15 bit distance (+ 14 extra bits) = 46 bits before extra data -> 11 bytes needed */
+static const size_t max_compressed_op_size[] = {10, 11};
 
 /* static int inflater_read_compressed_fast(inflatelib_stream* stream); */
 static int inflater_read_compressed_fast(inflatelib_stream* stream);

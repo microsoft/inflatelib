@@ -80,13 +80,12 @@ size_t bitstream_read_bits(bitstream* stream, size_t bitsToRead, uint16_t* resul
 
 uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead)
 {
-    size_t bitsNeeded = stream->bits_consumed + bitsToRead;
     uint32_t value = 0;
 
     assert((bitsToRead > 0) && (bitsToRead <= (sizeof(uint16_t) * 8)));
-    assert((bitsNeeded / 8) <= stream->length);
+    assert(stream->length >= sizeof(value));
 
-    memcpy(&value, stream->data, (bitsNeeded + 7) / 8);
+    memcpy(&value, stream->data, sizeof(value));
     value >>= stream->bits_consumed;
     value &= ((uint32_t)1 << bitsToRead) - 1;
 
@@ -109,9 +108,11 @@ size_t bitstream_peek(bitstream* stream, uint16_t* result)
 
 uint16_t bitstream_peek_unchecked(bitstream* stream)
 {
-    uint32_t value = 0;
+    uint32_t value;
 
-    memcpy(&value, stream->data, (16 + stream->bits_consumed + 7) / 8);
+    assert(stream->length >= sizeof(value));
+
+    memcpy(&value, stream->data, sizeof(value));
     value >>= stream->bits_consumed;
 
     return (uint16_t)value;
