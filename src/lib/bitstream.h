@@ -17,8 +17,7 @@ extern "C"
         size_t length;
 
         // Partially read data
-        uint32_t buffer;
-        size_t bits_in_buffer;
+        size_t bits_consumed;
     } bitstream;
 
     void bitstream_init(bitstream* stream);

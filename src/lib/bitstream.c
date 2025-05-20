@@ -14,8 +14,7 @@ void bitstream_reset(bitstream* stream)
 {
     stream->data = 0;
     stream->length = 0;
-    stream->buffer = 0;
-    stream->bits_in_buffer = 0;
+    stream->bits_consumed = 0;
 }
 
 void bitstream_set_data(bitstream* stream, const uint8_t* data, size_t length)
@@ -30,33 +29,23 @@ void bitstream_set_data(bitstream* stream, const uint8_t* data, size_t length)
 
 void bitstream_byte_align(bitstream* stream)
 {
-    /* It's possible to have more than one byte in the buffer, so we can't just set 'bits_in_buffer' to zero */
-    size_t bitsToConsume = stream->bits_in_buffer % 8;
-
-    stream->buffer >>= bitsToConsume;
-    stream->bits_in_buffer -= bitsToConsume;
+    if (stream->bits_consumed != 0)
+    {
+        stream->bits_consumed = 0;
+        ++stream->data;
+        --stream->length;
+    }
 }
 
 size_t bitstream_copy_bytes(bitstream* stream, size_t bytesToRead, uint8_t* dest)
 {
-    size_t bytesFromBuffer, bytesFromData;
+    size_t bytesFromData;
 
     /* The caller should ensure that the stream is byte-aligned before calling this function. It may be the case that
      * some data is already in the buffer - e.g. if the previous operation was a peek - in which case there should be
      * a multiple of 8-bits in the buffer */
-    assert((stream->bits_in_buffer % 8) == 0);
+    assert(stream->bits_consumed == 0);
     assert(bytesToRead > 0);
-
-    bytesFromBuffer = stream->bits_in_buffer / 8;
-    bytesFromBuffer = (bytesFromBuffer > bytesToRead) ? bytesToRead : bytesFromBuffer;
-
-    for (size_t i = 0; i < bytesFromBuffer; ++i)
-    {
-        *dest++ = (uint8_t)stream->buffer;
-        stream->buffer >>= 8;
-        stream->bits_in_buffer -= 8;
-    }
-    bytesToRead -= bytesFromBuffer;
 
     bytesFromData = (stream->length > bytesToRead) ? bytesToRead : stream->length;
 
@@ -65,102 +54,76 @@ size_t bitstream_copy_bytes(bitstream* stream, size_t bytesToRead, uint8_t* dest
     stream->data += bytesFromData;
     stream->length -= bytesFromData;
 
-    return bytesFromBuffer + bytesFromData;
-}
-
-/* Tries to fill the buffer such that there's at least two bytes of data */
-static void bitstream_fill_buffer(bitstream* stream)
-{
-    if ((stream->bits_in_buffer < 16) && (stream->length != 0))
-    {
-        /* We have enough data to copy at least one more byte */
-        stream->buffer |= ((uint32_t)*stream->data) << stream->bits_in_buffer;
-        ++stream->data;
-        --stream->length;
-        stream->bits_in_buffer += 8;
-
-        if ((stream->bits_in_buffer < 16) && (stream->length != 0))
-        {
-            /* We can copy another one */
-            stream->buffer |= ((uint32_t)*stream->data) << stream->bits_in_buffer;
-            ++stream->data;
-            --stream->length;
-            stream->bits_in_buffer += 8;
-
-            assert(stream->bits_in_buffer >= 16); /* Should have two bytes by now */
-        }
-    }
-}
-
-static void bitstream_fill_buffer_unchecked(bitstream* stream)
-{
-    if (stream->bits_in_buffer < 16)
-    {
-        uint32_t newData;
-
-        assert(stream->length >= 2); /* Caller should have verified */
-        newData = ((uint32_t)stream->data[0]) | (((uint32_t)stream->data[1]) << 8);
-        stream->buffer |= newData << stream->bits_in_buffer;
-        stream->bits_in_buffer += 16;
-        stream->data += 2;
-        stream->length -= 2;
-    }
+    return bytesFromData;
 }
 
 size_t bitstream_read_bits(bitstream* stream, size_t bitsToRead, uint16_t* result)
 {
-    uint32_t mask;
+    size_t bitsNeeded = stream->bits_consumed + bitsToRead;
+    uint32_t value = 0;
 
     assert((bitsToRead > 0) && (bitsToRead <= (sizeof(*result) * 8)));
 
-    bitstream_fill_buffer(stream);
-    if (stream->bits_in_buffer < bitsToRead)
+    if ((stream->length * 8) < bitsNeeded)
     {
         return 0; /* Not enough data */
     }
 
-    mask = ((uint32_t)1 << bitsToRead) - 1;
-    *result = (uint16_t)(stream->buffer & mask);
-    stream->buffer >>= bitsToRead;
-    stream->bits_in_buffer -= bitsToRead;
+    memcpy(&value, stream->data, (bitsNeeded + 7) / 8);
+    value >>= stream->bits_consumed;
+    value &= ((uint32_t)1 << bitsToRead) - 1;
 
+    bitstream_consume_bits(stream, bitsToRead);
+    *result = (uint16_t)value;
     return 1;
 }
 
 uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead)
 {
-    uint16_t result;
-    uint32_t mask = ((uint32_t)1 << bitsToRead) - 1;
+    size_t bitsNeeded = stream->bits_consumed + bitsToRead;
+    uint32_t value = 0;
 
-    assert((bitsToRead > 0) && (bitsToRead <= (sizeof(result) * 8)));
+    assert((bitsToRead > 0) && (bitsToRead <= (sizeof(uint16_t) * 8)));
+    assert((bitsNeeded / 8) <= stream->length);
 
-    bitstream_fill_buffer_unchecked(stream);
-    assert(bitsToRead <= stream->bits_in_buffer);
+    memcpy(&value, stream->data, (bitsNeeded + 7) / 8);
+    value >>= stream->bits_consumed;
+    value &= ((uint32_t)1 << bitsToRead) - 1;
 
-    result = (uint16_t)(stream->buffer & mask);
-    stream->buffer >>= bitsToRead;
-    stream->bits_in_buffer -= bitsToRead;
-
-    return result;
+    bitstream_consume_bits(stream, bitsToRead);
+    return (uint16_t)value;
 }
 
 size_t bitstream_peek(bitstream* stream, uint16_t* result)
 {
-    bitstream_fill_buffer(stream);
+    size_t bitsAvail = (stream->length < 3) ? ((stream->length * 8) - stream->bits_consumed) : 16;
+    uint32_t value = 0;
 
-    *result = (uint16_t)stream->buffer;
-    return (stream->bits_in_buffer <= 16) ? stream->bits_in_buffer : 16;
+    memcpy(&value, stream->data, (bitsAvail + stream->bits_consumed + 7) / 8);
+    value >>= stream->bits_consumed;
+    value &= ((uint32_t)1 << bitsAvail) - 1;
+
+    *result = (uint16_t)value;
+    return bitsAvail;
 }
 
 uint16_t bitstream_peek_unchecked(bitstream* stream)
 {
-    bitstream_fill_buffer_unchecked(stream);
-    return (uint16_t)stream->buffer;
+    uint32_t value = 0;
+
+    memcpy(&value, stream->data, (16 + stream->bits_consumed + 7) / 8);
+    value >>= stream->bits_consumed;
+
+    return (uint16_t)value;
 }
 
 void bitstream_consume_bits(bitstream* stream, size_t bits)
 {
-    assert(bits <= stream->bits_in_buffer);
-    stream->buffer >>= bits;
-    stream->bits_in_buffer -= bits;
+    size_t bytesToAdvance = (bits + stream->bits_consumed) / 8;
+
+    assert((bits + stream->bits_consumed + 7) / 8 <= stream->length);
+
+    stream->data += bytesToAdvance;
+    stream->length -= bytesToAdvance;
+    stream->bits_consumed = (bits + stream->bits_consumed) % 8;
 }
