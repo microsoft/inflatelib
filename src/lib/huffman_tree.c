@@ -47,7 +47,7 @@
 #define DISTANCE_TREE_ARRAY_SIZE 204
 #define LITERAL_LENGTH_TREE_ARRAY_SIZE 1590
 
-static uint16_t reverse_bits(uint16_t value, int bitCount);
+static inline uint16_t reverse_bits(uint16_t value, int bitCount);
 
 int huffman_tree_init(huffman_tree* tree, inflatelib_stream* stream, size_t dictionarySize)
 {
@@ -329,7 +329,7 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
     return 1;
 }
 
-static uint16_t reverse_bits(uint16_t value, int bitCount)
+static inline uint16_t reverse_bits(uint16_t value, int bitCount)
 {
     uint16_t result = 0;
     int count = 0;

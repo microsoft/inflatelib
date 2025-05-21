@@ -49,7 +49,12 @@ extern "C"
      * responsible for ensuring that the buffer has at least the specified number of bits (e.g. by first calling
      * bitstream_peek).
      */
-    void bitstream_consume_bits(bitstream* stream, size_t bits);
+    static inline void bitstream_consume_bits(bitstream* stream, size_t bits)
+    {
+        assert(bits <= stream->bits_in_buffer);
+        stream->buffer >>= bits;
+        stream->bits_in_buffer -= bits;
+    }
 
     /* Same as the above functions, but does not check to verify that the bitstream has enough input data */
     uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead);

@@ -69,7 +69,7 @@ size_t bitstream_copy_bytes(bitstream* stream, size_t bytesToRead, uint8_t* dest
 }
 
 /* Tries to fill the buffer such that there's at least two bytes of data */
-static void bitstream_fill_buffer(bitstream* stream)
+static inline void bitstream_fill_buffer(bitstream* stream)
 {
     if ((stream->bits_in_buffer < 16) && (stream->length != 0))
     {
@@ -92,7 +92,7 @@ static void bitstream_fill_buffer(bitstream* stream)
     }
 }
 
-static void bitstream_fill_buffer_unchecked(bitstream* stream)
+static inline void bitstream_fill_buffer_unchecked(bitstream* stream)
 {
     if (stream->bits_in_buffer < 16)
     {
@@ -156,11 +156,4 @@ uint16_t bitstream_peek_unchecked(bitstream* stream)
 {
     bitstream_fill_buffer_unchecked(stream);
     return (uint16_t)stream->buffer;
-}
-
-void bitstream_consume_bits(bitstream* stream, size_t bits)
-{
-    assert(bits <= stream->bits_in_buffer);
-    stream->buffer >>= bits;
-    stream->bits_in_buffer -= bits;
 }
