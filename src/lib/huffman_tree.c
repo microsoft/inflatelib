@@ -5,8 +5,8 @@
 #include "internal.h"
 
 /*
- * The size of the each lookup table, N, is decided as follows: 7 bits for the code length and distance tree, and 9 bits
- * for the literal/length tree. To calculate the size needed for the binary tree portion of the array, we need to
+ * The size of the each lookup table, N, is decided as follows: 7 bits for the code length and distance tree, and 10
+ * bits for the literal/length tree. To calculate the size needed for the binary tree portion of the array, we need to
  * calculate the maximum number of nodes that can be in all of the subtrees combined. Thanks to the way that the Huffman
  * codes are specified, all but the "right side" of the corresponding Huffman tree is optimally "packed." That is, all
  * nodes have either zero or two children. This means that, with the exception of the right-most path, we can relate the
@@ -31,12 +31,12 @@
  *          is: one subtree contains 31 nodes and another contains a single node at max height. Solving for the total
  *          number of nodes gives '(31 * 2 - 2) + (2 * 8) = 76'. This gives a max array size of 128 + 76 = 204.
  *      3.  Literal/Length Tree: These code lengths are also encoded using the code length tree and therefore have a
- *          maximum of 15 bits. Unlike the above two trees, the lookup table uses 9-bit indices for the lookup table,
- *          leaving 6 bits for the binary tree portion of the array. The literal/length alphabet has a size of 288.
- *          Dividing this size by 64 - the maximum number of leaves in a single subtree - gives 4, remainder 32. One
- *          tree structure that give us max memory usage is: one subtree with 31 leaves, 4 subtrees with 64 leaves, and
- *          a final subtree with a single leaf at max height. Solving for the total number of nodes gives
- *          '(31 * 2 - 2) + 4 * (64 * 2 - 2) + (2 * 6) = 576'. This gives a max array size of 512 + 576 = 1088.
+ *          maximum of 15 bits. Unlike the above two trees, the lookup table uses 10-bit indices for the lookup table,
+ *          leaving 5 bits for the binary tree portion of the array. The literal/length alphabet has a size of 288.
+ *          Dividing this size by 32 - the maximum number of leaves in a single subtree - gives 9 remainder 0. One tree
+ *          structure that gives us max memory usage is: one subtree with 31 leaves, 8 subtrees with 32 leaves, and a
+ *          final subtree with a single leaf at max height. Solving for the total number of nodes gives
+ *          '(31 * 2 - 2) + 8 * (32 * 2 - 2) + (2 * 5) = 566'. This gives a max array size of 1024 + 574 = 1590.
  *
  * [1]  This can occur if the last subtree can be arranged such that the left half is "optimally packed" and the right
  *      half consists of the single, final node at max height. This trades off one "dead" node from the last tree for an
@@ -45,7 +45,7 @@
  */
 #define CODE_LENGTH_TREE_ARRAY_SIZE 128
 #define DISTANCE_TREE_ARRAY_SIZE 204
-#define LITERAL_LENGTH_TREE_ARRAY_SIZE 1088
+#define LITERAL_LENGTH_TREE_ARRAY_SIZE 1590
 
 static uint16_t reverse_bits(uint16_t value, int bitCount);
 
@@ -58,7 +58,7 @@ int huffman_tree_init(huffman_tree* tree, inflatelib_stream* stream, size_t dict
 
     if (dictionarySize == LITERAL_TREE_MAX_ELEMENT_COUNT)
     {
-        tree->table_bits = 9;
+        tree->table_bits = 10;
         tree->data_size = LITERAL_LENGTH_TREE_ARRAY_SIZE;
     }
     else if (dictionarySize == DIST_TREE_MAX_ELEMENT_COUNT)
