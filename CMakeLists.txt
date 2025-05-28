@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(inflatelib)
 
+option(INFLATELIB_ASAN "Build with Address Sanitizer" OFF)
+option(INFLATELIB_UBSAN "Build with Undefined Behavior Sanitizer" OFF)
+option(INFLATELIB_FUZZ "Build the fuzzing target" OFF)
+
 # Fix the CMake defaults. See: https://gitlab.kitware.com/cmake/cmake/-/issues/20812
 if (MSVC)
     # /Ob1 disables inlining for functions not marked inline. This is not desired except for minimum size
@@ -46,6 +50,101 @@ if (MSVC)
 else()
     # Assume GNU-like command syntax
     add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
+
+# Handle sanitizer options
+set(SANITIZER_FLAGS)
+set(SANITIZER_LIBS)
+if ((CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_C_COMPILER_ID MATCHES "GNU"))
+    if (INFLATELIB_ASAN OR INFLATELIB_FUZZ)
+        list(APPEND SANITIZER_FLAGS -fsanitize=address)
+
+        # Clang + ASan on Windows curerntly has some limitations. We try and manually handle those limitations here as
+        # opposed to difficult to track down and understand failures later on.
+        if (WIN32)
+            if (CMAKE_BUILD_TYPE MATCHES "Debug")
+                message(FATAL_ERROR "Clang does not currently support linking with debug runtime libraries with Address Sanitizer enabled on Windows")
+            else()
+                list(APPEND SANITIZER_FLAGS /MT)
+                if ($ENV{Platform} STREQUAL "x86")
+                    list(APPEND SANITIZER_LIBS
+                        clang_rt.asan_dynamic-i386
+                        clang_rt.asan_dynamic_runtime_thunk-i386.lib
+                        )
+                elseif ($ENV{Platform} STREQUAL "x64")
+                    list(APPEND SANITIZER_LIBS
+                        clang_rt.asan_dynamic-x86_64.lib
+                        clang_rt.asan_dynamic_runtime_thunk-x86_64.lib
+                        )
+                else()
+                    message(FATAL_ERROR "Address Sanitizer not supported on $ENV{Platform}")
+                endif()
+            endif()
+        endif()
+
+        if (INFLATELIB_FUZZ)
+            # Fuzzing requires a few extra flags
+            list(APPEND SANITIZER_FLAGS
+                -fsanitize-coverage=inline-8bit-counters
+                -fsanitize-coverage=edge
+                -fsanitize-coverage=trace-cmp
+                -fsanitize-coverage=trace-div
+                )
+            list(APPEND SANITIZER_LIBS libsancov.lib)
+
+            if (WIN32)
+                if ($ENV{Platform} STREQUAL "x86")
+                    list(APPEND SANITIZER_LIBS clang_rt.fuzzer_MT-i386)
+                elseif ($ENV{Platform} STREQUAL "x64")
+                    list(APPEND SANITIZER_LIBS clang_rt.fuzzer_MT-x86_64.lib)
+                endif()
+                # No 'else' clause because all paths handled above for ASan
+            endif()
+        endif()
+    endif()
+    if (INFLATELIB_UBSAN)
+        list(APPEND SANITIZER_FLAGS -fsanitize=undefined)
+    endif()
+elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+    if (INFLATELIB_ASAN OR INFLATELIB_FUZZ)
+        list(APPEND SANITIZER_FLAGS /fsanitize=address)
+
+        # Fuzzing requires a few extra flags
+        if (INFLATELIB_FUZZ)
+            list(APPEND SANITIZER_FLAGS
+                /fsanitize-coverage=inline-8bit-counters
+                /fsanitize-coverage=edge
+                /fsanitize-coverage=trace-cmp
+                /fsanitize-coverage=trace-div
+                )
+            list(APPEND SANITIZER_LIBS sancov.lib)
+
+            if ($ENV{Platform} STREQUAL "x86")
+                if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+                    list(APPEND SANITIZER_LIBS clang_rt.fuzzer_MDd-i386)
+                else()
+                    list(APPEND SANITIZER_LIBS clang_rt.fuzzer_MD-i386)
+                endif()
+            elseif ($ENV{Platform} STREQUAL "x64")
+                if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+                    list(APPEND SANITIZER_LIBS clang_rt.fuzzer_MDd-x86_64.lib)
+                else()
+                    list(APPEND SANITIZER_LIBS clang_rt.fuzzer_MD-x86_64.lib)
+                endif()
+            else()
+                message(FATAL_ERROR "Fuzzing not supported on $ENV{Platform}")
+            endif()
+        endif()
+    endif()
+    if (INFLATELIB_UBSAN)
+        message(FATAL_ERROR "MSVC does not support Undefined Behavior Sanitizer")
+    endif()
+else()
+    if (INFLATELIB_ASAN)
+        message(FATAL_ERROR "Address Sanitizer support is not configured for this compiler")
+    elseif (INFLATELIB_UBSAN)
+        message(FATAL_ERROR "Undefined Behavior Sanitizer support is not configured for this compiler")
+    endif()
 endif()
 
 add_subdirectory(src)

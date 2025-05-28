@@ -129,6 +129,10 @@ int inflatelib_destroy(inflatelib_stream* stream)
             INFLATELIB_FREE(stream, char, state->error_msg_fmt, state->error_msg_len);
         }
 
+        huffman_tree_destroy(&state->code_length_tree, stream);
+        huffman_tree_destroy(&state->literal_length_tree, stream);
+        huffman_tree_destroy(&state->distance_tree, stream);
+
         INFLATELIB_FREE(stream, inflatelib_state, stream->internal, 1);
         stream->internal = NULL;
     }

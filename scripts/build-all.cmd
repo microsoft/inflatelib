@@ -11,13 +11,16 @@ if "%Platform%"=="" (
 
 set COMPILERS=clang msvc
 set BUILD_TYPES=debug release relwithdebinfo minsizerel
+set SANITIZERS=none asan ubsan fuzz
 
 for %%c in (%COMPILERS%) do (
     for %%b in (%BUILD_TYPES%) do (
-        call :build %%c %%b
-        if !ERRORLEVEL! NEQ 0 (
-            call :error %%c %%b
-            exit /B 1
+        for %%s in (%SANITIZERS%) do (
+            call :build %%c %%b %%s
+            if !ERRORLEVEL! NEQ 0 (
+                call :error %%c %%b
+                exit /B 1
+            )
         )
     )
 )
@@ -28,7 +31,12 @@ goto :eof
 
 :: build [compiler] [type]
 :build
-set BUILD_DIR=%BUILD_ROOT%\%1%Platform%%2
+set SUFFIX=
+if "%3" NEQ "none" (
+    set SUFFIX=-%3
+)
+
+set BUILD_DIR=%BUILD_ROOT%\%1%Platform%%2%SUFFIX%
 if not exist %BUILD_DIR% (
     goto :eof
 )

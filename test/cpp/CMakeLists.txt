@@ -6,6 +6,7 @@ target_link_libraries(cpptests
     PRIVATE
         inflatelib
         Catch2::Catch2WithMain
+        ${SANITIZER_LIBS}
     )
 
 target_include_directories(cpptests
@@ -16,6 +17,11 @@ target_include_directories(cpptests
 target_compile_features(cpptests
     PRIVATE
         cxx_std_23
+    )
+
+target_compile_options(inflatelib
+    PRIVATE
+        ${SANITIZER_FLAGS}
     )
 
 target_sources(cpptests

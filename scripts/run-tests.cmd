@@ -6,6 +6,7 @@ set BUILD_ROOT=%~dp0\..\build\win
 
 set COMPILERS=clang msvc
 set BUILD_TYPES=debug release relwithdebinfo minsizerel
+set SANITIZERS=none asan ubsan fuzz
 set ARCHITECTURES=
 if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
     set ARCHITECTURES=x86 x64
@@ -18,10 +19,17 @@ if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
 for %%c in (%COMPILERS%) do (
     for %%a in (%ARCHITECTURES%) do (
         for %%b in (%BUILD_TYPES%) do (
-            call :execute_tests %%c%%a%%b
-            if !ERRORLEVEL! NEQ 0 (
-                call :error %%c%%a%%b
-                exit /B !ERRORLEVEL!
+            for %%s in (%SANITIZERS%) do (
+                set SUFFIX=
+                if "%%s" NEQ "none" (
+                    set SUFFIX=-%%s
+                )
+
+                call :execute_tests %%c%%a%%b!SUFFIX!
+                if !ERRORLEVEL! NEQ 0 (
+                    call :error %%c%%a%%b!SUFFIX!
+                    exit /B !ERRORLEVEL!
+                )
             )
         )
     )

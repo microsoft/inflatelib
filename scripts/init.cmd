@@ -10,14 +10,18 @@ goto :init
 :usage
     echo USAGE:
     echo     init.cmd [--help] [-c^|--compiler ^<clang^|msvc^>] [-g^|--generator ^<ninja^|msbuild^>]
-    echo         [-b^|--build-type ^<debug^|release^|relwithdebinfo^|minsizerel^>] [-p^|--vcpkg path/to/vcpkg/root]
+    echo         [-b^|--build-type ^<debug^|release^|relwithdebinfo^|minsizerel^>] [-s^|--sanitize ^<address^|undefined^>]
+    echo         [-f^|--fuzz] [-p^|--vcpkg path/to/vcpkg/root]
     echo.
     echo ARGUMENTS
     echo     -c^|--compiler       Controls the compiler used, either 'clang' (the default) or 'msvc'
     echo     -g^|--generator      Controls the CMake generator used, either 'ninja' (the default) or 'msbuild'
     echo     -b^|--build-type     Controls the value of 'CMAKE_BUILD_TYPE', either 'debug' (the default), 'release',
     echo                         'relwithdebinfo', or 'minsizerel'
-    echo     -p^|--vcpkg          Specifies the path to the root of your local vcpkg clone. If this value is not
+    echo     -s^|--sanitize       Specifies the sanitizer to use, either 'address' or 'ub'. If this argument is not
+    echo                         specified, no sanitizer will be used. This switch is incompatible with '--fuzz'
+    echo     -f^|--fuzz           Builds the fuzzing target. This switch is incompatible with '--sanitize'
+    echo     -p^|--vcpkg          Specifies the path to the root of your local vcpkg clone. If this argument is not
     echo                         specified, then several attempts will be made to try and deduce it. The first attempt
     echo                         will be to check for the presence of the %%VCPKG_ROOT%% environment variable. If that
     echo                         variable does not exist, the 'where' command will be used to try and locate the
@@ -32,6 +36,8 @@ goto :init
     set BUILD_TYPE=
     set CMAKE_ARGS=
     set VCPKG_ROOT_PATH=
+    set SANITIZER=
+    set FUZZ=0
 
 :parse
     if /I "%~1"=="" goto :execute
@@ -81,6 +87,35 @@ goto :init
         if "!BUILD_TYPE!"=="" echo ERROR: Unrecognized/missing build type %~2 & call :usage & exit /B 1
 
         shift
+        shift
+        goto :parse
+    )
+
+    set SANITIZER_SET=0
+    if /I "%~1"=="-s" set SANITIZER_SET=1
+    if /I "%~1"=="--sanitize" set SANITIZER_SET=1
+    if %SANITIZER_SET%==1 (
+        if "%SANITIZER%" NEQ "" echo ERROR: Sanitizer already specified & call :usage & exit /B 1
+        if %FUZZ%==1 echo ERROR: '~1' is incompatible with fuzzing & call :usage & exit /B 1
+
+        if /I "%~2"=="address" set SANITIZER=asan
+        if /I "%~2"=="undefined" set SANITIZER=ubsan
+        if "!SANITIZER!"=="" echo ERROR: Unrecognized/missing sanitizer %~2 & call :usage & exit /B 1
+
+        shift
+        shift
+        goto :parse
+    )
+
+    set FUZZ_SET=0
+    if /I "%~1"=="-f" set FUZZ_SET=1
+    if /I "%~1"=="--fuzz" set FUZZ_SET=1
+    if %FUZZ_SET%==1 (
+        if %SANITIZER_SET%==1 echo ERROR: '~1' is incompatible with sanitizers & call :usage & exit /B 1
+        if %FUZZ%==1 echo ERROR: Fuzzing already specified & call :usage & exit /B 1
+
+        set FUZZ=1
+
         shift
         goto :parse
     )
@@ -138,6 +173,19 @@ goto :init
         exit /B 1
     )
 
+    :: These errors cannot be determined until after we select the compiler
+    if %COMPILER%==msvc (
+        if "%SANITIZER%"=="ubsan" echo ERROR: MSVC does not support Undefined Behavior Sanitizer & exit /B 1
+    )
+
+    if %COMPILER%==clang (
+        if "%SANITIZER%"=="asan" (
+            if %BUILD_TYPE%==debug (
+                echo ERROR: Clang does not currently support linking with debug runtime libraries with Address Sanitizer enabled & exit /B 1
+            )
+        )
+    )
+
     :: Formulate CMake arguments
     if %GENERATOR%==ninja set CMAKE_ARGS=%CMAKE_ARGS% -G Ninja
 
@@ -150,6 +198,18 @@ goto :init
         if %BUILD_TYPE%==release set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release
         if %BUILD_TYPE%==relwithdebinfo set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=RelWithDebInfo
         if %BUILD_TYPE%==minsizerel set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=MinSizeRel
+    )
+
+    set SUFFIX=
+    if "%SANITIZER%"=="asan" (
+        set CMAKE_ARGS=%CMAKE_ARGS% -DINFLATELIB_ASAN=ON
+        set SUFFIX=-asan
+    ) else if "%SANITIZER%"=="ubsan" (
+        set CMAKE_ARGS=%CMAKE_ARGS% -DINFLATELIB_UBSAN=ON
+        set SUFFIX=-ubsan
+    ) else if %FUZZ%==1 (
+        set CMAKE_ARGS=%CMAKE_ARGS% -DINFLATELIB_FUZZ=ON
+        set SUFFIX=-fuzz
     )
 
     set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT_PATH%\scripts\buildsystems\vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -166,7 +226,7 @@ goto :init
     )
 
     :: Set up the build directory
-    set BUILD_DIR=%BUILD_ROOT%\%COMPILER%%Platform%%BUILD_TYPE%
+    set BUILD_DIR=%BUILD_ROOT%\%COMPILER%%Platform%%BUILD_TYPE%%SUFFIX%
     mkdir %BUILD_DIR% > NUL 2>&1
 
     :: Run CMake
