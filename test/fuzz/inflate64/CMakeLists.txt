@@ -1,14 +1,14 @@
 
 add_subdirectory(corpus)
 
-add_executable(fuzz-inflate)
+add_executable(fuzz-inflate64)
 
-target_link_libraries(fuzz-inflate
+target_link_libraries(fuzz-inflate64
     PRIVATE
         inflatelib
     )
 
-target_sources(fuzz-inflate
+target_sources(fuzz-inflate64
     PRIVATE
         main.cpp
     )

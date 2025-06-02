@@ -54,6 +54,7 @@ endif()
 
 # Handle sanitizer options
 set(SANITIZER_FLAGS)
+set(SANITIZER_LINKER_FLAGS)
 set(SANITIZER_LIBS)
 if ((CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_C_COMPILER_ID MATCHES "GNU"))
     if (INFLATELIB_ASAN OR INFLATELIB_FUZZ)
@@ -65,7 +66,6 @@ if ((CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_C_COMPILER_ID MATCHES "GNU")
             if (CMAKE_BUILD_TYPE MATCHES "Debug")
                 message(FATAL_ERROR "Clang does not currently support linking with debug runtime libraries with Address Sanitizer enabled on Windows")
             else()
-                list(APPEND SANITIZER_FLAGS /MT)
                 if ($ENV{Platform} STREQUAL "x86")
                     list(APPEND SANITIZER_LIBS
                         clang_rt.asan_dynamic-i386
@@ -93,6 +93,7 @@ if ((CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_C_COMPILER_ID MATCHES "GNU")
             list(APPEND SANITIZER_LIBS libsancov.lib)
 
             if (WIN32)
+                list(APPEND SANITIZER_FLAGS /MT)
                 if ($ENV{Platform} STREQUAL "x86")
                     list(APPEND SANITIZER_LIBS clang_rt.fuzzer_MT-i386)
                 elseif ($ENV{Platform} STREQUAL "x64")
@@ -104,6 +105,16 @@ if ((CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_C_COMPILER_ID MATCHES "GNU")
     endif()
     if (INFLATELIB_UBSAN)
         list(APPEND SANITIZER_FLAGS -fsanitize=undefined)
+
+        # Similar to ASan, UBSan has issues on Windows with Debug since the *ubsan_standalone* lib seems to have been
+        # built for non-debug
+        if (WIN32)
+            if (CMAKE_BUILD_TYPE MATCHES "Debug")
+                message(FATAL_ERROR "Clang does not currently support linking with debug runtime libraries with Undefined Behavior Sanitizer enabled on Windows")
+            else()
+                list(APPEND SANITIZER_FLAGS /MT)
+            endif()
+        endif()
     endif()
 elseif (CMAKE_C_COMPILER_ID MATCHES "MSVC")
     if (INFLATELIB_ASAN OR INFLATELIB_FUZZ)

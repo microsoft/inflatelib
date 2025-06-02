@@ -19,9 +19,14 @@ target_compile_features(cpptests
         cxx_std_23
     )
 
-target_compile_options(inflatelib
+target_compile_options(cpptests
     PRIVATE
         ${SANITIZER_FLAGS}
+    )
+
+target_link_options(cpptests
+    PRIVATE
+        ${SANITIZER_LINKER_FLAGS}
     )
 
 target_sources(cpptests

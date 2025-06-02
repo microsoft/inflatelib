@@ -6,7 +6,8 @@ set BUILD_ROOT=%~dp0\..\build\win
 
 set COMPILERS=clang msvc
 set BUILD_TYPES=debug release relwithdebinfo minsizerel
-set SANITIZERS=none asan ubsan fuzz
+:: NOTE: We don't build tests with fuzzing enabled, so it's not included here
+set SANITIZERS=none asan ubsan
 set ARCHITECTURES=
 if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
     set ARCHITECTURES=x86 x64
@@ -39,7 +40,7 @@ goto :eof
 
 :execute_tests
 set BUILD_DIR=%BUILD_ROOT%\%1
-if not exist %BUILD_DIR% (
+if not exist %BUILD_DIR%\test\cpp\cpptests.exe (
     goto :eof
 )
 

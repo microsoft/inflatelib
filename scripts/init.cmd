@@ -179,9 +179,13 @@ goto :init
     )
 
     if %COMPILER%==clang (
-        if "%SANITIZER%"=="asan" (
+        set DEBUG_ERROR=0
+        if "%SANITIZER%"=="asan" set DEBUG_ERROR=1
+        if "%SANITIZER%"=="ubsan" set DEBUG_ERROR=1
+        if %FUZZ%==1 set DEBUG_ERROR=1
+        if !DEBUG_ERROR!==1 (
             if %BUILD_TYPE%==debug (
-                echo ERROR: Clang does not currently support linking with debug runtime libraries with Address Sanitizer enabled & exit /B 1
+                echo ERROR: Clang does not currently support linking with debug runtime libraries with Address Sanitizer or Undefined Behavior Sanitizer enabled & exit /B 1
             )
         )
     )
@@ -202,7 +206,7 @@ goto :init
 
     set SUFFIX=
     if "%SANITIZER%"=="asan" (
-        set CMAKE_ARGS=%CMAKE_ARGS% -DINFLATELIB_ASAN=ON
+        set CMAKE_ARGS=%CMAKE_ARGS% -DINFLATELIB_ASAN=ON -DVCPKG_OVERLAY_TRIPLETS=..\..\..\vcpkg\triplets\asan
         set SUFFIX=-asan
     ) else if "%SANITIZER%"=="ubsan" (
         set CMAKE_ARGS=%CMAKE_ARGS% -DINFLATELIB_UBSAN=ON
@@ -215,14 +219,31 @@ goto :init
     set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT_PATH%\scripts\buildsystems\vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     :: Figure out the platform
+    set CLANG_ARCH=
     if "%Platform%"=="" (
         echo ERROR: The init.cmd script must be run from a Visual Studio command window & exit /B 1
+    ) else if "%Platform%"=="x64" (
+        set CLANG_ARCH=x86_64
     ) else if "%Platform%"=="x86" (
+        set CLANG_ARCH=i386
         if %COMPILER%==clang set CFLAGS=-m32 & set CXXFLAGS=-m32
     ) else if "%Platform%"=="arm" (
+        :: TODO: Figure out the clang architecture string for ARM
         if "%COMPILER%"=="clang" set CFLAGS=-target arm-win32-msvc & set CXXFLAGS=-target arm-win32-msvc
     ) else if "%Platform%"=="arm64" (
+        :: TODO: Figure out the clang architecture string for ARM64
         if "%COMPILER%"=="clang" set CFLAGS=-target aarch64-win32-msvc & set CXXFLAGS=-target aarch64-win32-msvc
+    )
+
+    if "%SANITIZER%"=="asan" (
+        :: If we're using ASAN, we need to build our dependencies with ASAN enabled as well.
+        set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_OVERLAY_TRIPLETS=..\..\..\vcpkg\triplets\asan
+        if %COMPILER%==clang (
+            set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_TARGET_TRIPLET=%Platform%-windows-llvm
+        )
+    ) else if "%SANITIZER%"=="ubsan" (
+        :: UBSan libs are built with static CRT linkage, so our dependencies need to do the same
+        set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_TARGET_TRIPLET=%Platform%-windows-static
     )
 
     :: Set up the build directory
@@ -236,7 +257,44 @@ goto :init
     echo Using build type..... %BUILD_TYPE%
     echo Using build root..... %CD%
     echo.
+
     cmake %CMAKE_ARGS% ..\..\..
+    if %ERRORLEVEL% NEQ 0 (
+        popd
+        exit /B %ERRORLEVEL%
+    )
+
+    :: Clang will prefer linking with its own ASan libs when present (typically when the host architecture matches the
+    :: target architecture). This is problematic because by default when we try and run the tests, it'll try and pick up
+    :: the ASan DLL build for MSVC, which is not compatible with the one build for Clang. To resolve this issue, copy
+    :: the ASan DLL to the directory where the executable gets written to.
+    set TRY_COPY_ASAN_DLL=0
+    if %COMPILER%==clang (
+        if "%SANITIZER%"=="asan" set TRY_COPY_ASAN_DLL=1
+        if %FUZZ%==1 set TRY_COPY_ASAN_DLL=1
+
+        :: We don't know what DLL we're looking for, so don't even try
+        if "%CLANG_ARCH%"=="" set TRY_COPY_ASAN_DLL=0
+    )
+    if %TRY_COPY_ASAN_DLL%==1 (
+        for /f "delims=" %%c in ('where clang-cl 2^> NUL') do (
+            set CLANG_CL_PATH=%%~dpc
+        )
+        if "!CLANG_CL_PATH!"=="" (
+            echo WARNING: Unable to locate clang-cl. This may result in later errors when running tests
+        ) else (
+            for /f "delims=" %%d in ('where /R "!CLANG_CL_PATH!\..\lib" clang_rt.asan_dynamic-%CLANG_ARCH%.dll 2^> NUL') do (
+                set ASAN_DLL_PATH=%%d
+            )
+            if "!ASAN_DLL_PATH!" NEQ "" (
+                if "%SANITIZER%"=="asan" (
+                    copy "!ASAN_DLL_PATH!" test\cpp\ > NUL
+                ) else (
+                    copy "!ASAN_DLL_PATH!" test\fuzz\inflate\ > NUL
+                )
+            )
+        )
+    )
     popd
 
     goto :eof

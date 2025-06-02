@@ -23,6 +23,10 @@ for %%c in (%COMPILERS%) do (
                 set ARGS=!ARGS! -s undefined
                 if %%c==msvc (
                     set SHOULD_INIT=0
+                ) else if %%c==clang (
+                    if %%b==debug (
+                        set SHOULD_INIT=0
+                    )
                 )
             ) else if %%s==fuzz (
                 set ARGS=!ARGS! -f
