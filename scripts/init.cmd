@@ -2,7 +2,7 @@
 setlocal
 setlocal EnableDelayedExpansion
 
-:: Globals
+REM Globals
 set BUILD_ROOT=%~dp0\..\build\win
 
 goto :init
@@ -30,7 +30,7 @@ goto :init
     goto :eof
 
 :init
-    :: Initialize values as empty so that we can identify if we are using defaults later for error purposes
+    REM Initialize values as empty so that we can identify if we are using defaults later for error purposes
     set COMPILER=
     set GENERATOR=
     set BUILD_TYPE=
@@ -139,12 +139,12 @@ goto :init
     exit /B 1
 
 :execute
-    :: Check for conflicting arguments
+    REM Check for conflicting arguments
     if "%GENERATOR%"=="msbuild" (
         if "%COMPILER%"=="clang" echo ERROR: Cannot use Clang with MSBuild & exit /B 1
     )
 
-    :: Select defaults
+    REM Select defaults
     if "%GENERATOR%"=="" set GENERATOR=ninja
     if %GENERATOR%==msbuild set COMPILER=msvc
 
@@ -153,15 +153,15 @@ goto :init
     if "%BUILD_TYPE%"=="" set BUILD_TYPE=debug
 
     if "%VCPKG_ROOT_PATH%"=="" (
-        :: First check for %VCPKG_ROOT% variable
+        REM First check for %VCPKG_ROOT% variable
         if defined VCPKG_ROOT (
             set VCPKG_ROOT_PATH=%VCPKG_ROOT%
         ) else (
-            :: Next check the PATH for vcpkg.exe
+            REM Next check the PATH for vcpkg.exe
             for %%i in (vcpkg.exe) do set VCPKG_ROOT_PATH=%%~dp$PATH:i
 
             if "!VCPKG_ROOT_PATH!"=="" (
-                :: Finally, check the root of the drive for a clone of the name 'vcpkg'
+                REM Finally, check the root of the drive for a clone of the name 'vcpkg'
                 if exist \vcpkg\vcpkg.exe (
                     for %%i in (%cd%) do set VCPKG_ROOT_PATH=%%~di\vcpkg
                 )
@@ -173,7 +173,7 @@ goto :init
         exit /B 1
     )
 
-    :: These errors cannot be determined until after we select the compiler
+    REM These errors cannot be determined until after we select the compiler
     if %COMPILER%==msvc (
         if "%SANITIZER%"=="ubsan" echo ERROR: MSVC does not support Undefined Behavior Sanitizer & exit /B 1
     )
@@ -190,10 +190,10 @@ goto :init
         )
     )
 
-    :: Formulate CMake arguments
+    REM Formulate CMake arguments
     if %GENERATOR%==ninja set CMAKE_ARGS=%CMAKE_ARGS% -G Ninja
 
-    :: TODO: Consider targeting clang++ instead of clang-cl
+    REM TODO: Consider targeting clang++ instead of clang-cl
     if %COMPILER%==clang set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
     if %COMPILER%==msvc set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
 
@@ -218,7 +218,7 @@ goto :init
 
     set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT_PATH%\scripts\buildsystems\vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-    :: Figure out the platform
+    REM Figure out the platform
     set CLANG_ARCH=
     if "%Platform%"=="" (
         echo ERROR: The init.cmd script must be run from a Visual Studio command window & exit /B 1
@@ -228,25 +228,25 @@ goto :init
         set CLANG_ARCH=i386
         if %COMPILER%==clang set CFLAGS=-m32 & set CXXFLAGS=-m32
     ) else if "%Platform%"=="arm" (
-        :: TODO: Figure out the clang architecture string for ARM
+        REM TODO: Figure out the clang architecture string for ARM
         if "%COMPILER%"=="clang" set CFLAGS=-target arm-win32-msvc & set CXXFLAGS=-target arm-win32-msvc
     ) else if "%Platform%"=="arm64" (
-        :: TODO: Figure out the clang architecture string for ARM64
+        REM TODO: Figure out the clang architecture string for ARM64
         if "%COMPILER%"=="clang" set CFLAGS=-target aarch64-win32-msvc & set CXXFLAGS=-target aarch64-win32-msvc
     )
 
     if "%SANITIZER%"=="asan" (
-        :: If we're using ASAN, we need to build our dependencies with ASAN enabled as well.
+        REM If we're using ASAN, we need to build our dependencies with ASAN enabled as well.
         set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_OVERLAY_TRIPLETS=..\..\..\vcpkg\triplets\asan
         if %COMPILER%==clang (
             set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_TARGET_TRIPLET=%Platform%-windows-llvm
         )
     ) else if "%SANITIZER%"=="ubsan" (
-        :: UBSan libs are built with static CRT linkage, so our dependencies need to do the same
+        REM UBSan libs are built with static CRT linkage, so our dependencies need to do the same
         set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_TARGET_TRIPLET=%Platform%-windows-static
 
-        :: At the present moment, Clang only appears to ship with UBSan libraries that match the host architecture and
-        :: while Visual Studio _does_ ship with UBSan libraries, these appear to be incompatible with Clang.
+        REM At the present moment, Clang only appears to ship with UBSan libraries that match the host architecture and
+        REM while Visual Studio _does_ ship with UBSan libraries, these appear to be incompatible with Clang.
         if "%COMPILER%"=="clang" (
             set INCOMPATIBLE=0
             if "%Platform%"=="x86" (
@@ -265,11 +265,11 @@ goto :init
         )
     )
 
-    :: Set up the build directory
+    REM Set up the build directory
     set BUILD_DIR=%BUILD_ROOT%\%COMPILER%%Platform%%BUILD_TYPE%%SUFFIX%
     mkdir %BUILD_DIR% > NUL 2>&1
 
-    :: Run CMake
+    REM Run CMake
     pushd %BUILD_DIR%
     echo Using compiler....... %COMPILER%
     echo Using architecture... %Platform%
@@ -283,37 +283,54 @@ goto :init
         exit /B %ERRORLEVEL%
     )
 
-    :: Clang will prefer linking with its own ASan libs when present (typically when the host architecture matches the
-    :: target architecture). This is problematic because by default when we try and run the tests, it'll try and pick up
-    :: the ASan DLL build for MSVC, which is not compatible with the one build for Clang. To resolve this issue, copy
-    :: the ASan DLL to the directory where the executable gets written to.
+    REM ASan is interesting since we dynamically link against a runtime DLL. This is made a little trickier by the fact
+    REM that Clang will prefer to link against its own ASan libraries - and therefore a separate ASan DLL than the one
+    REM that ships with Visual Studio - which typically won't be found through the user's PATH. This problem also exists
+    REM with Visual Studio's ASan libraries, since the DLL is only present in the PATH if the binary is run from a Visual
+    REM Studio command window matching the target architecture. To alleviate this headache, this heuristic logic attempts
+    REM to copy the correct ASan DLL to the output directory
     set TRY_COPY_ASAN_DLL=0
-    if %COMPILER%==clang (
-        if "%SANITIZER%"=="asan" set TRY_COPY_ASAN_DLL=1
-        if %FUZZ%==1 set TRY_COPY_ASAN_DLL=1
-
-        :: We don't know what DLL we're looking for, so don't even try
-        if "%CLANG_ARCH%"=="" set TRY_COPY_ASAN_DLL=0
+    set ASAN_TARGET_DIRS=
+    if "%SANITIZER%"=="asan" (
+        set TRY_COPY_ASAN_DLL=1
+        set ASAN_TARGET_DIRS=test\cpp\
+    ) else if %FUZZ%==1 (
+        set TRY_COPY_ASAN_DLL=1
+        set ASAN_TARGET_DIRS=test\fuzz\inflate\ test\fuzz\inflate64\
     )
+
     if %TRY_COPY_ASAN_DLL%==1 (
-        for /f "delims=" %%c in ('where clang-cl 2^> NUL') do (
-            set CLANG_CL_PATH=%%~dpc
-        )
-        if "!CLANG_CL_PATH!"=="" (
-            echo WARNING: Unable to locate clang-cl. This may result in later errors when running tests
-        ) else (
-            for /f "delims=" %%d in ('where /R "!CLANG_CL_PATH!\..\lib" clang_rt.asan_dynamic-%CLANG_ARCH%.dll 2^> NUL') do (
-                set ASAN_DLL_PATH=%%d
+        set ASAN_DLL_PATH=
+        if %COMPILER%==clang (
+            REM Try and guess whether or not Clang will use its own ASan libraries by checking for the existence of the
+            REM DLL for the target architecture
+            set CLANG_CL_PATH=
+            for /f "delims=" %%c in ('where clang-cl 2^> NUL') do (
+                set CLANG_CL_PATH=%%~dpc
             )
-            if "!ASAN_DLL_PATH!" NEQ "" (
-                if "%SANITIZER%"=="asan" (
-                    copy "!ASAN_DLL_PATH!" test\cpp\ > NUL
-                ) else (
-                    copy "!ASAN_DLL_PATH!" test\fuzz\inflate\ > NUL
+            if "!CLANG_CL_PATH!" NEQ "" (
+                for /f "delims=" %%d in ('where /R "!CLANG_CL_PATH!\..\lib" clang_rt.asan_dynamic-%CLANG_ARCH%.dll 2^> NUL') do (
+                    set ASAN_DLL_PATH=%%d
                 )
             )
         )
+
+        if "!ASAN_DLL_PATH!"=="" (
+            REM Either VS or we couldn't find the corresponding Clang DLL; look for Visual Studio's
+            for /f "delims=" %%d in ('where clang_rt.asan_dynamic-%CLANG_ARCH%.dll 2^>NUL') do (
+                set ASAN_DLL_PATH=%%d
+            )
+        )
+
+        if "!ASAN_DLL_PATH!"=="" (
+            echo WARNING: Unable to locate 'clang_rt.asan_dynamic-%CLANG_ARCH%.dll'. This may result in later errors when running tests
+        ) else (
+            for %%t in (%ASAN_TARGET_DIRS%) do (
+                copy "!ASAN_DLL_PATH!" "%%t" > NUL
+            )
+        )
     )
+
     popd
 
     goto :eof
