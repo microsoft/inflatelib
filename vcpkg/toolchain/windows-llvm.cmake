@@ -3,6 +3,13 @@ if(NOT _VCPKG_WINDOWS_TOOLCHAIN)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<STREQUAL:${VCPKG_CRT_LINKAGE},dynamic>:DLL>" CACHE STRING "")
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "")
 
+    set(CMAKE_C_COMPILER "${CLANG_CL_PATH}" CACHE STRING "")
+    set(CMAKE_CXX_COMPILER "${CLANG_CL_PATH}" CACHE STRING "")
+
+    # NOTE: For some reason, CMake initialization does not use 'CMAKE_BUILD_TYPE' when testing the compiler or detecting
+    # the compiler's ABI... Force it to release so we don't get nonsense errors
+    set(CMAKE_TRY_COMPILE_CONFIGURATION "Release")
+
     if(POLICY CMP0056)
         cmake_policy(SET CMP0056 NEW)
     endif()
@@ -98,13 +105,6 @@ if(NOT _VCPKG_WINDOWS_TOOLCHAIN)
     string(APPEND CMAKE_MODULE_LINKER_FLAGS_DEBUG_INIT " /nologo ${VCPKG_LINKER_FLAGS} ${VCPKG_LINKER_FLAGS_DEBUG} ")
     string(APPEND CMAKE_SHARED_LINKER_FLAGS_DEBUG_INIT " /nologo ${VCPKG_LINKER_FLAGS} ${VCPKG_LINKER_FLAGS_DEBUG} ")
     string(APPEND CMAKE_EXE_LINKER_FLAGS_DEBUG_INIT " /nologo ${VCPKG_LINKER_FLAGS} ${VCPKG_LINKER_FLAGS_DEBUG} ")
-
-    set(CMAKE_C_COMPILER "${CLANG_CL_PATH}" CACHE STRING "")
-    set(CMAKE_CXX_COMPILER "${CLANG_CL_PATH}" CACHE STRING "")
-
-    # NOTE: For some reason, CMake initialization does not use 'CMAKE_BUILD_TYPE' when testing the compiler or detecting
-    # the compiler's ABI... Force it to release so we don't get nonsense errors
-    set(CMAKE_TRY_COMPILE_CONFIGURATION "Release")
 
     unset(CHARSET_FLAG)
     unset(MP_BUILD_FLAG)

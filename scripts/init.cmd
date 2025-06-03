@@ -244,6 +244,25 @@ goto :init
     ) else if "%SANITIZER%"=="ubsan" (
         :: UBSan libs are built with static CRT linkage, so our dependencies need to do the same
         set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_TARGET_TRIPLET=%Platform%-windows-static
+
+        :: At the present moment, Clang only appears to ship with UBSan libraries that match the host architecture and
+        :: while Visual Studio _does_ ship with UBSan libraries, these appear to be incompatible with Clang.
+        if "%COMPILER%"=="clang" (
+            set INCOMPATIBLE=0
+            if "%Platform%"=="x86" (
+                if /I "%PROCESSOR_ARCHITECTURE%" NEQ "x86" set INCOMPATIBLE=1
+            ) else if "%Platform%"=="x64" (
+                if /I "%PROCESSOR_ARCHITECTURE%" NEQ "AMD64" set INCOMPATIBLE=1
+            ) else if "%Platform%"=="arm" (
+                if /I "%PROCESSOR_ARCHITECTURE%" NEQ "ARM" set INCOMPATIBLE=1
+            ) else if "%Platform%"=="arm64" (
+                if /I "%PROCESSOR_ARCHITECTURE%" NEQ "ARM64" set INCOMPATIBLE=1
+            )
+
+            if !INCOMPATIBLE!==1 (
+                echo ERROR: Clang does not currently support building UBSan libraries built for %Platform% on an %PROCESSOR_ARCHITECTURE% machine & exit /B 1
+            )
+        )
     )
 
     :: Set up the build directory

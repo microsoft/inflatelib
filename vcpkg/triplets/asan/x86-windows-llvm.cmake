@@ -13,8 +13,8 @@ set(VCPKG_CMAKE_CONFIGURE_OPTIONS "-DCLANG_CL_PATH=${CLANG_CL_PATH}")
 set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/../../toolchain/windows-llvm.cmake")
 set(VCPKG_LOAD_VCVARS_ENV ON)
 
-set(VCPKG_C_FLAGS -fsanitize=address)
-set(VCPKG_CXX_FLAGS -fsanitize=address)
+string(APPEND VCPKG_C_FLAGS " -fsanitize=address -m32")
+string(APPEND VCPKG_CXX_FLAGS " -fsanitize=address -m32")
 
 # TODO: This is somewhat of a hack just to get CMake configuration to pass... Ideally we can pass '-fsanitize=address'
 # _only_ when building Catch2 (since we don't need to link anything), however it's not quite clear if that's possible

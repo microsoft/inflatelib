@@ -27,6 +27,15 @@ for %%c in (%COMPILERS%) do (
                     if %%b==debug (
                         set SHOULD_INIT=0
                     )
+                    if %Platform%==x86 (
+                        if /I %PROCESSOR_ARCHITECTURE% NEQ x86 set SHOULD_INIT=0
+                    ) else if %Platform%==x64 (
+                        if /I %PROCESSOR_ARCHITECTURE% NEQ AMD64 set SHOULD_INIT=0
+                    ) else if %Platform%==arm (
+                        if /I %PROCESSOR_ARCHITECTURE% NEQ ARM set SHOULD_INIT=0
+                    ) else if %Platform%==arm64 (
+                        if /I %PROCESSOR_ARCHITECTURE% NEQ ARM64 set SHOULD_INIT=0
+                    )
                 )
             ) else if %%s==fuzz (
                 set ARGS=!ARGS! -f
@@ -53,7 +62,7 @@ goto :eof
 :error
 set SUFFIX=
 if "%3" NEQ "none" (
-    set SUFFIX= (%3)
+    set "SUFFIX= (%3)"
 )
 echo ERROR: Configuration failed for %1 %2%SUFFIX%
 goto :eof
