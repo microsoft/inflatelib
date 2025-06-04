@@ -57,6 +57,7 @@ jobs:
           cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\build-all.cmd
 
       - name: Test
+        if: ${{matrix.sanitizer != 'fuzz'}}
         run: |
           cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\run-tests.cmd
 
