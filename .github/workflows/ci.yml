@@ -50,7 +50,7 @@ jobs:
           } elseif ("${{matrix.sanitizer}}" -ne "none") {
             $sanitizerArg = "-s ${{matrix.sanitizer}}"
           }
-          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}} $sanitizerArg
+          & cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}} $sanitizerArg
 
       - name: Build
         run: |
