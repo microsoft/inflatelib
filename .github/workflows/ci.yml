@@ -48,7 +48,7 @@ jobs:
           if ("${{matrix.sanitizer}}" -eq "fuzz") {
             $sanitizerArg = "-f"
           } elseif ("${{matrix.sanitizer}}" -ne "none") {
-            $sanitizerArg = "-s ${{matrix.sanitizer}}"
+            $sanitizerArg = @("-s", "${{matrix.sanitizer}}")
           }
           & cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}} $sanitizerArg
 
