@@ -61,6 +61,12 @@ jobs:
         run: |
           cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\run-tests.cmd
 
+      - name: Fuzz
+        if: ${{matrix.sanitizer == 'fuzz'}}
+        run: |
+          # 5 minutes should be a good duration for sanity checking
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\fuzz-all.cmd 300
+
   ubuntu:
     name: 'Linux Build & Test'
     strategy:
