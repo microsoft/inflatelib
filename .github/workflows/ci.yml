@@ -45,9 +45,9 @@ jobs:
       - name: Initialize CMake
         run: |
           $sanitizerArg = ""
-          if (${{matrix.sanitizer}} -eq "fuzz") {
+          if ("${{matrix.sanitizer}}" -eq "fuzz") {
             $sanitizerArg = "-f"
-          } elseif (${{matrix.sanitizer}} -ne "none") {
+          } elseif ("${{matrix.sanitizer}}" -ne "none") {
             $sanitizerArg = "-s ${{matrix.sanitizer}}"
           }
           cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}} $sanitizerArg
