@@ -15,6 +15,22 @@ jobs:
         arch: [ x64, x64_x86 ]
         compiler: [ msvc, clang ]
         config: [ debug, release, relwithdebinfo, minsizerel ]
+        sanitizer: [ none, address, undefined, fuzz ]
+        exclude:
+          - compiler: msvc
+            sanitizer: undefined
+          - compiler: clang
+            config: debug
+            sanitizer: address
+          - compiler: clang
+            config: debug
+            sanitizer: undefined
+          - compiler: clang
+            config: debug
+            sanitizer: fuzz
+          - arch: x64_x86
+            sanitizer: undefined
+
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +44,13 @@ jobs:
 
       - name: Initialize CMake
         run: |
-          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}}
+          $sanitizerArg = ""
+          if (${{matrix.sanitizer}} -eq "fuzz") {
+            $sanitizerArg = "-f"
+          } elseif (${{matrix.sanitizer}} -ne "none") {
+            $sanitizerArg = "-s ${{matrix.sanitizer}}"
+          }
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}} $sanitizerArg
 
       - name: Build
         run: |
