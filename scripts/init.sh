@@ -1,18 +1,18 @@
 #!/bin/bash
 
-rootDir=$(cd "$(dirname "$0")/.." && pwd)
+rootDir="$(cd "$(dirname "$0")/.." && pwd)"
 buildRoot="$rootDir/build"
 
 # Check to see if this is WSL. If it is, we want build output to go into a separate directory so that build output does
 # not 
-if $($rootDir/scripts/check-wsl.sh); then
+if "$rootDir/scripts/check-wsl.sh"; then
     buildRoot="$buildRoot/wsl"
 fi
 
 compiler=
 generator=
 buildType=
-cmakeArgs=
+cmakeArgs=()
 vcpkgRoot=
 
 function show_help {
@@ -104,12 +104,12 @@ if [ "$generator" == "" ]; then
 fi
 if [ "$vcpkgRoot" == "" ]; then
     if [ "$VCPKG_ROOT" != "" ]; then
-        vcpkgRoot=$(realpath "$VCPKG_ROOT")
+        vcpkgRoot="$(realpath "$VCPKG_ROOT")"
     else
         # Try and find vcpkg in the PATH
-        vcpkgPath=$(/bin/which vcpkg)
+        vcpkgPath="$(/bin/which vcpkg)"
         if [ $? == 0 ]; then
-            vcpkgRoot=$(dirname $(realpath $vcpkgPath))
+            vcpkgRoot="$(dirname "$(realpath "$vcpkgPath")")"
         fi
     fi
 fi
@@ -120,52 +120,46 @@ if [ "$vcpkgRoot" == "" ]; then
 fi
 
 # Build the command line
-cmakeArgs=
 
 # GCC is the normally default, however this can be overridden by setting the 'CC' and 'CXX' environment variables, so
 # we always explicitly set the compiler here
 if [ "$compiler" == "gcc" ]; then
-    cmakeArgs="$cmakeArgs -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
+    cmakeArgs+=(-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++)
 elif [ "$compiler" == "clang" ]; then
-    cmakeArgs="$cmakeArgs -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+    cmakeArgs+=(-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++)
 fi
 
 # Makefiles are the default with CMake
 if [ "$generator" == "ninja" ]; then
-    cmakeArgs="$cmakeArgs -G Ninja"
+    cmakeArgs+=(-G Ninja)
 fi
 
 if [ "$buildType" == "debug" ]; then
-    cmakeArgs="$cmakeArgs -DCMAKE_BUILD_TYPE=Debug"
+    cmakeArgs+=(-DCMAKE_BUILD_TYPE=Debug)
 elif [ "$buildType" == "release" ]; then
-    cmakeArgs="$cmakeArgs -DCMAKE_BUILD_TYPE=Release"
+    cmakeArgs+=(-DCMAKE_BUILD_TYPE=Release)
 elif [ "$buildType" == "relwithdebinfo" ]; then
-    cmakeArgs="$cmakeArgs -DCMAKE_BUILD_TYPE=RelWithDebInfo"
+    cmakeArgs+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)
 elif [ "$buildType" == "minsizerel" ]; then
-    cmakeArgs="$cmakeArgs -DCMAKE_BUILD_TYPE=MinSizeRel"
+    cmakeArgs+=(-DCMAKE_BUILD_TYPE=MinSizeRel)
 fi
 
 # TODO: Figure out how to cross-compile reliably. For now, just support the machine architecture
-arch=$($rootDir/scripts/host-arch.sh)
+arch=$("$rootDir/scripts/host-arch.sh")
 if [ $? != 0 ]; then
     echo "ERROR: Unable to determine the host architecture"
     exit 1
 fi
 
-cmakeArgs="$cmakeArgs -DCMAKE_TOOLCHAIN_FILE=$vcpkgRoot/scripts/buildsystems/vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+cmakeArgs+=("-DCMAKE_TOOLCHAIN_FILE=$vcpkgRoot/scripts/buildsystems/vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
 # Create the build directory if it doesn't exist
 buildDir="$buildRoot/$compiler$arch$buildType"
 mkdir -p "$buildDir"
 
 # Run CMake
-pushd "$buildDir" > /dev/null
 echo "Using compiler....... $compiler"
 echo "Using architecture... $arch"
 echo "Using build type..... $buildType"
-echo "Using build root..... $(pwd)"
-cmake $rootDir $cmakeArgs
-result=$?
-popd > /dev/null
-
-exit $result
+echo "Using build root..... $buildDir"
+cmake -S "$rootDir" -B "$buildDir" "${cmakeArgs[@]}"
