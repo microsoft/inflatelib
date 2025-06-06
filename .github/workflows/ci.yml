@@ -73,11 +73,17 @@ jobs:
       matrix:
         compiler: [ gcc, clang ]
         config: [ debug, release, relwithdebinfo, minsizerel ]
+        sanitizer: [ none, address, undefined, fuzz ]
+        exclude:
+          - compiler: gcc
+            sanitizer: fuzz
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Update GCC to 14+ if necessary
+        if: ${{matrix.compiler == 'gcc'}}
         run: |
           gccMajorVer=$(gcc -dumpversion | cut -d. -f1)
           if [ $gccMajorVer -lt 134 ]; then
@@ -88,12 +94,25 @@ jobs:
 
       - name: Initialize CMake
         run: |
-          ./scripts/init.sh -c ${{matrix.compiler}} -b ${{matrix.config}}
+          sanitizerArg=""
+          if [ "${{matrix.sanitizer}}" == "fuzz" ]; then
+            sanitizerArg="-f"
+          elif [ "${{matrix.sanitizer}}" != "none" ]; then
+            sanitizerArg="-s ${{matrix.sanitizer}}"
+          fi
+          ./scripts/init.sh -c ${{matrix.compiler}} -b ${{matrix.config}} $sanitizerArg
 
       - name: Build
         run: |
           ./scripts/build-all.sh
 
       - name: Test
+        if: ${{matrix.sanitizer != 'fuzz'}}
         run: |
           ./scripts/run-tests.sh
+
+      - name: Fuzz
+        if: ${{matrix.sanitizer == 'fuzz'}}
+        run: |
+          # 5 minutes should be a good duration for sanity checking
+          ./scripts/fuzz-all.sh 300

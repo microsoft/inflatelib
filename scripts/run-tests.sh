@@ -31,12 +31,20 @@ esac
 
 for compiler in gcc clang; do
     for buildType in debug release relwithdebinfo minsizerel; do
-        for arch in "${architectures[@]}"; do
-            buildDir="$buildRoot/$compiler$arch$buildType"
-            if [ -d "$buildDir" ]; then
-                echo "Running tests from '$buildDir'"
-                "$buildDir/test/cpp/cpptests"
-            fi
+        # NOTE: Fuzzing explicitly left off since we don't build tests for it
+        for sanitizer in none asan ubsan; do
+            for arch in "${architectures[@]}"; do
+                suffix=""
+                if [ "$sanitizer" != "none" ]; then
+                    suffix="-${sanitizer}"
+                fi
+
+                buildDir="$buildRoot/$compiler$arch$buildType$suffix"
+                if [ -f "$buildDir/test/cpp/cpptests" ]; then
+                    echo "Running tests from '$buildDir'"
+                    "$buildDir/test/cpp/cpptests"
+                fi
+            done
         done
     done
 done

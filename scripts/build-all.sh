@@ -31,12 +31,19 @@ esac
 
 for compiler in gcc clang; do
     for buildType in debug release relwithdebinfo minsizerel; do
-        for arch in "${architectures[@]}"; do
-            buildDir="$buildRoot/$compiler$arch$buildType"
-            if [ -d "$buildDir" ]; then
-                echo "Building from '$buildDir'"
-                cmake --build "$buildDir"
-            fi
+        for sanitizer in none asan ubsan fuzz; do
+            for arch in "${architectures[@]}"; do
+                suffix=""
+                if [ "$sanitizer" != "none" ]; then
+                    suffix="-${sanitizer}"
+                fi
+
+                buildDir="$buildRoot/$compiler$arch$buildType$suffix"
+                if [ -d "$buildDir" ]; then
+                    echo "Building from '$buildDir'"
+                    cmake --build "$buildDir"
+                fi
+            done
         done
     done
 done
