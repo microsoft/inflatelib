@@ -296,7 +296,7 @@ goto :init
         set ASAN_TARGET_DIRS=test\cpp\
     ) else if %FUZZ%==1 (
         set TRY_COPY_ASAN_DLL=1
-        set ASAN_TARGET_DIRS=test\fuzz\inflate\ test\fuzz\inflate64\
+        set ASAN_TARGET_DIRS=fuzz\
     )
 
     if %TRY_COPY_ASAN_DLL%==1 (

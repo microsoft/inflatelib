@@ -30,17 +30,20 @@ set(INPUT
     "extra.dynamic.in.bin"
     "extra.static.in.bin"
     )
+set(OUTPUT)
 
 foreach(file ${INPUT})
+    set(dest "${INFLATELIB_FUZZING_DIRECTORY}/inflate-corpus-in/${file}")
+    list(APPEND OUTPUT "${dest}")
     add_custom_command(
-        OUTPUT ${file}
+        OUTPUT "${dest}"
         DEPENDS "${CMAKE_BINARY_DIR}/test/data/${file}"
         COMMENT "Copying ${file} to corpus"
-        COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_BINARY_DIR}/test/data/${file}" "../corpus-in/${file}"
+        COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_BINARY_DIR}/test/data/${file}" "${dest}"
     )
 endforeach()
 
 add_custom_target(
     inflate-corpus ALL
-    DEPENDS ${INPUT}
+    DEPENDS ${OUTPUT}
 )

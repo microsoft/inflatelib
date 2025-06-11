@@ -40,13 +40,13 @@ for compiler in clang; do # NOTE: Only Clang currently supports fuzzing
         for arch in "${architectures[@]}"; do
             buildDir="$buildRoot/$compiler$arch$buildType-fuzz"
             echo "Fuzzing from '$buildDir'"
-            if [ -f "$buildDir/test/fuzz/inflate/fuzz-inflate" ]; then
-                mkdir -p "$buildDir/test/fuzz/inflate/corpus-out"
-                "$buildDir/test/fuzz/inflate/fuzz-inflate" -max_total_time=$timeout "$buildDir/test/fuzz/inflate/corpus-out" "$buildDir/test/fuzz/inflate/corpus-in"
+            if [ -f "$buildDir/fuzz/fuzz-inflate" ]; then
+                mkdir -p "$buildDir/fuzz/inflate-corpus-out"
+                "$buildDir/fuzz/fuzz-inflate" -max_total_time=$timeout "$buildDir/fuzz/inflate-corpus-out" "$buildDir/fuzz/inflate-corpus-in"
             fi
-            if [ -f "$buildDir/test/fuzz/inflate64/fuzz-inflate64" ]; then
-                mkdir -p "$buildDir/test/fuzz/inflate64/corpus-out"
-                "$buildDir/test/fuzz/inflate64/fuzz-inflate64" -max_total_time=$timeout "$buildDir/test/fuzz/inflate64/corpus-out" "$buildDir/test/fuzz/inflate64/corpus-in"
+            if [ -f "$buildDir/fuzz/fuzz-inflate64" ]; then
+                mkdir -p "$buildDir/fuzz/inflate64-corpus-out"
+                "$buildDir/fuzz/fuzz-inflate64" -max_total_time=$timeout "$buildDir/fuzz/inflate64-corpus-out" "$buildDir/fuzz/inflate64-corpus-in"
             fi
         done
     done

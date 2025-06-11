@@ -39,16 +39,16 @@ set BUILD_DIR=%BUILD_ROOT%\%1
 if exist %BUILD_DIR% (
     pushd %BUILD_DIR%
     echo Fuzzing from !CD!
-    call :fuzz-single test\fuzz\inflate fuzz-inflate.exe
+    call :fuzz-single inflate
     if !ERRORLEVEL! NEQ 0 (
         call :error %1 inflate
         popd
         goto :eof
     )
 
-    call :fuzz-single test\fuzz\inflate64 fuzz-inflate64.exe
+    call :fuzz-single inflate64
     if !ERRORLEVEL! NEQ 0 (
-        call :error %1 inflate
+        call :error %1 inflate64
         popd
         goto :eof
     )
@@ -57,9 +57,9 @@ if exist %BUILD_DIR% (
 goto :eof
 
 :fuzz-single
-if exist %1\%2 (
-    mkdir %1\corpus-out > NUL 2>&1
-    %1\%2 -max_total_time=%TIMEOUT% %1\corpus-out %1\corpus-in
+if exist fuzz\fuzz-%1.exe (
+    mkdir fuzz\%1-corpus-out > NUL 2>&1
+    fuzz\fuzz-%1.exe -max_total_time=%TIMEOUT% fuzz\%1-corpus-out fuzz\%1-corpus-in
 )
 goto :eof
 
