@@ -132,6 +132,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # For some reason, it seems as though the windows-latest and ubuntu-latest images both have vcpkg pre-configured,
+      # but macos-latest does not. Simplest thing is to just check it out & bootstrap
+      - name: Checkout vcpkg
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+
+      # - name: Bootstrap vcpkg
+      #   run: |
+      #     ./vcpkg/bootstrap-vcpkg.sh
+
       - name: Update GCC to 14+ if necessary
         if: ${{matrix.compiler == 'gcc'}}
         run: |
