@@ -1,16 +1,15 @@
 
-trigger:
-  batch: true
+pr: none
+
+trigger: none
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily fuzzing submission
   branches:
     include:
-      - main
-    paths:
-      include:
-        - src
-        - test/fuzz
-        - test/data
-
-pr: none
+    - main
+  always: true
 
 parameters:
   - name: platform
