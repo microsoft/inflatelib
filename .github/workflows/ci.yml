@@ -145,6 +145,7 @@ jobs:
       - name: Bootstrap vcpkg
         run: |
           ./vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=${GITHUB_WORKSPACE}/vcpkg" >> $GITHUB_ENV
 
       - name: Update GCC to 14+ if necessary
         if: ${{matrix.compiler == 'gcc'}}
