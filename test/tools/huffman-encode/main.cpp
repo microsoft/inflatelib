@@ -167,5 +167,5 @@ int main()
         std::print("{}0x{:02X}", prefix, value);
         prefix = ", ";
     }
-    std::println();
+    std::println("");
 }
