@@ -35,7 +35,9 @@ function show_help {
 }
 
 while getopts hc:b:g:s:fp: opt; do
-    arg=${OPTARG,,}
+    if [ -n "${OPTARG}" ]; then
+        arg=${OPTARG,,}
+    fi
     case $opt in
         h)
             show_help
