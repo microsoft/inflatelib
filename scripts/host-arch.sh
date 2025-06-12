@@ -10,7 +10,7 @@ case $(uname -m) in
     arm | armv7l)
         echo "arm"
         ;;
-    aarch64)
+    arm64 | aarch64)
         echo "arm64"
         ;;
     *)
