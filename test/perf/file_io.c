@@ -9,6 +9,8 @@
 #define PATH_SEPARATOR_CHR '\\'
 #define PATH_SEPARATOR_STR "\\"
 #include <Windows.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
 #else
 #define PATH_SEPARATOR_CHR '/'
 #define PATH_SEPARATOR_STR "/"
