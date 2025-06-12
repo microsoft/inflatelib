@@ -32,6 +32,14 @@ char* resolve_test_file_path(const char* filename)
         printf("ERROR: Failed to get executable path\n");
         exit(1);
     }
+#elif defined(__APPLE__)
+    char buffer[PATH_MAX];
+    uint32_t moduleLen = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &moduleLen) != 0)
+    {
+        printf("ERROR: Failed to get executable path\n");
+        exit(1);
+    }
 #else
     uint32_t moduleLen;
     char buffer[PATH_MAX];
