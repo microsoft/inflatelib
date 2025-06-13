@@ -208,11 +208,11 @@ int main(int argc, char** argv)
     cmd_arg test_inflatelib = {"inflatelib", 0};
     cmd_arg test_zlib = {"zlib", 0};
     cmd_arg test_inflatelib64 = {"inflatelib64", 0};
-    cmd_arg print_quiet = {"quiet", 0}; /* No output */
+    cmd_arg print_quiet = {"quiet", 0};         /* No output */
     cmd_arg print_histogram = {"histogram", 0}; /* Print histogram */
-    cmd_arg print_table = {"table", 0}; /* Print summary table */
-    cmd_arg print_totals = {"totals", 0}; /* Print total runtime */
-    cmd_arg print_files = {"files", 0}; /* Print per-file data */
+    cmd_arg print_table = {"table", 0};         /* Print summary table */
+    cmd_arg print_totals = {"totals", 0};       /* Print total runtime */
+    cmd_arg print_files = {"files", 0};         /* Print per-file data */
 
     cmd_arg* args[] = {
         &test_inflatelib,
@@ -436,7 +436,8 @@ static int run_tests(test_desc* data, print_flags printFlags)
         {
             for (size_t i = 0; i < data->file_count; ++i)
             {
-                print_test_histogram(data, test_desc_file_histogram(data, 0, i), data->files[i].filename, data->inflater_count, 80, 15, printFlags);
+                print_test_histogram(
+                    data, test_desc_file_histogram(data, 0, i), data->files[i].filename, data->inflater_count, 80, 15, printFlags);
             }
         }
     }
@@ -490,7 +491,7 @@ void print_test_histogram(test_desc* tests, histogram* data, const char* title, 
         }
 
         /* We want to try and avoid the biggest outliers, so we don't consider a set percentage of the highest and lowest
-        * times when calculating the min & max. These values are heuristically chosen */
+         * times when calculating the min & max. These values are heuristically chosen */
         const size_t outlierLowIndex = 0;
         const size_t outlierHighIndex = (test_iterations * 97) / 100;
         for (size_t i = 0; i < count; ++i)
@@ -637,7 +638,7 @@ void print_test_histogram(test_desc* tests, histogram* data, const char* title, 
             if (base != (uint64_t)(start / labelDist))
             {
                 /* This prints out 5 characters, which is 4 more than we otherwise would and therefore need to advance our
-                * counter by this extra amount. We add an additional one to ensure enough space for a ' ' */
+                 * counter by this extra amount. We add an additional one to ensure enough space for a ' ' */
                 printf("%5.2f ", base * labelDist);
                 x += 5;
             }
