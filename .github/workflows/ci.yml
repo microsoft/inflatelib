@@ -121,12 +121,8 @@ jobs:
     name: 'macOS Build & Test'
     strategy:
       matrix:
-        compiler: [ gcc, clang ]
         config: [ debug, release, relwithdebinfo, minsizerel ]
         sanitizer: [ none, address, undefined, fuzz ]
-        exclude:
-          - compiler: gcc
-            sanitizer: fuzz
 
     runs-on: macos-latest
     steps:
@@ -147,23 +143,6 @@ jobs:
           ./vcpkg/bootstrap-vcpkg.sh
           echo "VCPKG_ROOT=${GITHUB_WORKSPACE}/vcpkg" >> $GITHUB_ENV
 
-      - name: Update GCC to 14+ if necessary
-        if: ${{matrix.compiler == 'gcc'}}
-        run: |
-          gccMajorVer=$(gcc -dumpversion | cut -d. -f1)
-          if [ $gccMajorVer -lt 134 ]; then
-            # Just gathering some data...
-            which gcc
-            gcc --version
-
-            sudo port install gcc_select
-            sudo port select --list gcc
-
-            # sudo apt-get update
-            # sudo apt-get install gcc-14 g++-14
-            # sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
-          fi
-
       - name: Initialize CMake
         run: |
           sanitizerArg=""
@@ -172,7 +151,7 @@ jobs:
           elif [ "${{matrix.sanitizer}}" != "none" ]; then
             sanitizerArg="-s ${{matrix.sanitizer}}"
           fi
-          ./inflatelib/scripts/init.sh -c ${{matrix.compiler}} -b ${{matrix.config}} $sanitizerArg
+          ./inflatelib/scripts/init.sh -c clang -b ${{matrix.config}} $sanitizerArg
 
       - name: Build
         run: |
