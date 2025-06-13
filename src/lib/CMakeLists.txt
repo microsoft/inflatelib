@@ -7,8 +7,18 @@ target_compile_features(inflatelib
     )
 
 target_compile_options(inflatelib
-    PRIVATE
+    PUBLIC
         ${SANITIZER_FLAGS}
+    )
+
+target_link_libraries(inflatelib
+    INTERFACE
+        ${SANITIZER_LIBS}
+    )
+
+target_link_options(inflatelib
+    INTERFACE
+        ${SANITIZER_LINKER_FLAGS}
     )
 
 target_include_directories(inflatelib

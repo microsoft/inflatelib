@@ -3,8 +3,8 @@
 rootDir="$(cd "$(dirname "$0")/.." && pwd)"
 buildRoot="$rootDir/build"
 
-# Check to see if this is WSL. If it is, we want build output to go into a separate directory so that build output does
-# not
+# Check to see if this is WSL. If it is, build output to go into a separate directory so that build output does not collide with
+# Windows build output
 if "$rootDir/scripts/check-wsl.sh"; then
     buildRoot="$buildRoot/wsl"
 fi
