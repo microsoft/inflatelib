@@ -1,0 +1,22 @@
+
+# Corresponds to 'uncompressed.multiple.in'
+>8
+
+# First block is empty
+
+# Second block
+42
+
+# Third block
+repeat (127) {
+    00...FF
+    FF...00
+}
+00...FF
+FF...01
+
+# Final block
+repeat (519)
+{
+    56...AA
+}

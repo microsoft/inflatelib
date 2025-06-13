@@ -1,0 +1,88 @@
+
+# This generates a file with a two compressed blocks, but neither has bfinal set to true
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+0       # bfinal = false
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+1100    # HCLEN = 16 (12 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 011 100 010 000 000 000 000 000 000 000 000 000 001 000 100
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+1111 >1 1011010 >>1
+0
+10
+0
+10
+0
+110 >1 001 >>1
+0
+110 >1 001 >>1
+0
+1110
+10
+1111 >1 1111111 >>1
+0
+10
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   'e'         3           010
+#   'g'         3           011
+#   'i'         3           100
+#   'n'         3           101
+#   's'         3           110
+#   't'         2           00
+#   END         3           111
+
+# Encoded Data:
+>>1
+00
+010
+110
+00
+100
+101
+011
+111
+
+>1
+0       # bfinal = false
+10      # Compressed with dynamic codes
+
+00101   # HLIT = 262 (5 + 257)
+00101   # HDIST = 6 (5 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 010 010 000 000 000 000 000 000 000 000 000 000 000 000 000 000 001
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+11 >1 1111111 >>1
+11 >1 1101011 >>1
+0
+10 >1 001 >>1
+0
+10 >1 010 >>1
+0
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   END         1           0
+#   261         1           1
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   5           1           0
+
+# Encoded Data:
+>>1
+1
+0 >1 0 >>1
+0

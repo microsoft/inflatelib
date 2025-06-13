@@ -1,0 +1,53 @@
+
+# Produces a single block whose distance alphabet's code lengths are chosen such that the tree has leaves with no
+# assigned symbols. These lengths are also chosen such that these invalid codes are less than 7 bits in length (the
+# length of the lookup table portion of the Huffman tree).
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00011   # HLIT = 260 (3 + 257)
+00110   # HDIST = 7 (6 + 1)
+1100    # HCLEN = 16 (12 + 4)
+
+# The lookup table for the literal/length tree is 7 bits. Our invalid code is 6 bits in length
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+000 000 010 000 000 000 000 011 000 000 000 011 000 010 000 010
+
+# We need to actually use the distance codes, so we need some length codes. We also need at least one byte to copy from
+>>1
+10 >1 1111111 >>1 # Copy 0 138 times
+00  # Literal=138, 2 bits
+10 >1 1101011 >>1 # Copy 0 118 times (total of 257 codes)
+00  # Length=3, 2 bits
+00  # Length=4, 2 bits
+00  # Length=5, 2 bits
+
+# The tree looks like this:
+#    start
+#   /      \
+#  /\     /  \
+# 4 /\   /\  /
+#  2  3 5 9 /\
+#          7 /
+#           /
+#          1
+111 # Distance=1, 6 bits
+01  # Distance=2, 3 bits
+01  # Distance=3, 3 bits
+00  # Distance=4, 2 bits
+01  # Distance=5, 3 bits (+1 extra bit)
+110 # Distance=7, 4 bits (+1 extra bit)
+01  # Distance=9, 3 bits (+2 extra bits)
+
+# Data
+00
+11 110100        # Distance=1, Length=5  -- 6 bytes total
+01 100 1         # Distance=6, Length=3  -- 9 bytes total
+10 00            # Distance=4, Length=4  -- 13 bytes total
+11 010           # Distance=2, Length=5  -- 18 bytes total
+01 011           # Distance=3, Legnth=3  -- 21 bytes total
+10 101 >1 01 >>1 # Distance=10, Length=4 -- 25 bytes total
+11 1100 0        # Distance=7, Length=5  -- 30 bytes total
+01 110101        # INVALID DISTANCE

@@ -1,0 +1,181 @@
+
+# Produces a single block that first writes 32767 bytes and then tries to copy data from the window with a distance of
+# 32768 bytes, which exceeds the number of bytes written to the window.
+# NOTE: This test is only applicable to Deflate
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+11101   # HLIT = 286 (29 + 257)
+11101   # HDIST = 30 (29 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 000 001 000 000 000 000 000 000 000 000 000 000 011 000 011 000 010
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+0 >1 0010101 >>1
+110
+0 >1 1111111 >>1
+0 >1 1001010 >>1
+111
+111
+0 >1 0010000 >>1
+10
+10
+0 >1 0010001 >>1
+10
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   ' '         2           10
+#   END         3           110
+#   257         3           111
+#   285         1           0
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   0           1           0
+#   29          1           1
+
+# Encoded Data:
+>>1
+
+# Write the literal 32
+10
+
+# Now do 127 copies of 258 bytes = 32766 bytes copied (total 32767 bytes output)
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+0 0
+
+# Try to copy with distance of 32768, which will fail
+111 1 >1 1111111111111 >>1
+
+# End of block, for good measure
+110

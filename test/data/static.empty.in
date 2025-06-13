@@ -1,0 +1,10 @@
+
+# Single empty block
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# Encoded Data:
+>>1
+0000000

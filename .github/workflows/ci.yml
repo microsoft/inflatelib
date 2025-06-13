@@ -1,0 +1,70 @@
+
+name: Pull Request Build & Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  windows:
+    name: 'Windows Build & Test'
+    strategy:
+      matrix:
+        arch: [ x64, x64_x86 ]
+        compiler: [ msvc, clang ]
+        config: [ debug, release, relwithdebinfo, minsizerel ]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find vcvarsall.bat
+        run: |
+          $VCVarsAll = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere" -latest -find VC\Auxiliary\Build\vcvarsall.bat
+          if (!$VCVarsAll) { exit 1 }
+          echo "Using VCVarsAll: ${VCVarsAll}"
+          Add-Content $env:GITHUB_ENV "VCVarsAll=$VCVarsAll"
+
+      - name: Initialize CMake
+        run: |
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\init.cmd -c ${{matrix.compiler}} -b ${{matrix.config}}
+
+      - name: Build
+        run: |
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\build-all.cmd
+
+      - name: Test
+        run: |
+          cmd /c "$env:VCVarsAll" ${{matrix.arch}} "&" scripts\run-tests.cmd
+
+  ubuntu:
+    name: 'Linux Build & Test'
+    strategy:
+      matrix:
+        compiler: [ gcc, clang ]
+        config: [ debug, release, relwithdebinfo, minsizerel ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update GCC to 14+ if necessary
+        run: |
+          gccMajorVer=$(gcc -dumpversion | cut -d. -f1)
+          if [ $gccMajorVer -lt 134 ]; then
+            sudo apt-get update
+            sudo apt-get install gcc-14 g++-14
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 --slave /usr/bin/g++ g++ /usr/bin/g++-14
+          fi
+
+      - name: Initialize CMake
+        run: |
+          ./scripts/init.sh -c ${{matrix.compiler}} -b ${{matrix.config}}
+
+      - name: Build
+        run: |
+          ./scripts/build-all.sh
+
+      - name: Test
+        run: |
+          ./scripts/run-tests.sh

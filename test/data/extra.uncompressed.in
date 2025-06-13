@@ -1,0 +1,37 @@
+
+# This test has three blocks, however the last one gets ignored since the second block has 'bfinal' set to true
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+0       # bfinal = false
+00      # No compression
+
+# NOTE: This will byte align, which is desired
+>16
+001D    # LEN = 29
+FFE2    # NLEN = ~LEN
+
+>8
+"This is from the first block\n"
+
+>1
+1       # bfinal = true
+00      # No compression
+
+>16
+001E    # LEN = 30
+FFE1    # NLEN = ~LEN
+
+>8
+"This is from the second block\n"
+
+# Final, ignored block
+>1
+1       # bfinal = true
+00      # No compression
+
+>16
+001D    # LEN = 29
+FFE2    # NLEN = ~LEN
+
+>8
+"This is from the third block\n"

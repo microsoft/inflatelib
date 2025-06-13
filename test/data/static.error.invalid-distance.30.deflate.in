@@ -1,0 +1,13 @@
+
+# Produces a block that uses a distance code of 30, which is invalid for Deflate
+# NOTE: This test is only valid for Deflate
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# The following produces a single length/distance with a length of 3 and an invalid distance using code 30. Note that
+# even though there's no previous data in the window at this point in time, we should still get the error for the
+# invalid code since we don't yet know the distance (and therefore that the window doesn't have enough data)
+>>1
+0000001 11110 >1 00000000000000 >>1
+0000000

@@ -1,0 +1,39 @@
+
+# Produces a block that uses a distance code of 31, which is invalid for Deflate
+# NOTE: This test is only valid for Deflate
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+# The following produces a single length/distance with a length of 3 and an invalid distance using code 31. Note that
+# even though there's no previous data in the window at this point in time, we should still get the error for the
+# invalid code since we don't yet know the distance (and therefore that the window doesn't have enough data)
+00001   # HLIT = 258 (1 + 257)
+11111   # HDIST = 32 (31 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 000 001 000 000 000 000 000 000 000 000 000 000 000 000 000 000 001
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+1 >1 1111111 >>1
+1 >1 1101011 >>1
+0
+0
+1 >1 0010100 >>1
+0
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   END         1           0
+#   257         1           1
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   31          1           0
+
+# Encoded Data:
+>>1
+1 0 >1 00000000000000 >>1
+0

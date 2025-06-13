@@ -1,0 +1,33 @@
+
+# Produces a single block whose literal/length alphabet contains the invalid symbol '286' that it then tries to use
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+11110   # HLIT = 287 (30 + 257)
+00000   # HDIST = 1 (0 + 1)
+1010    # HCLEN = 14 (10 + 4)
+
+# Code Length Alphabet Code Lengths:
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+010 000 010 010 000 000 000 000 000 000 000 000 000 010
+
+# Assign codes to 250-256 and 286
+>>1
+11 >1 1111111 >>1 # Repeat 0 138 times
+11 >1 1100101 >>1 # Repeat 0 112 times (250 total so far)
+01                # Literal=250, 3 bits
+10 >1 11 >>1      # Repeat for literals 251-256 (all 2 bits)
+11 >1 0010010 >>1 # Repeat 0 29 times (257-285)
+01                # Invalid symbol 286, 3 bits
+00                # Write 0 to the single distance code length
+
+# Write the literals 250-255, just to have some initial data
+000 001 010 011 100 101
+
+# Write the invalid symbol 286
+111 # INVALID
+
+# Write a terminating 256, just to make it look like valid data
+110

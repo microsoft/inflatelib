@@ -1,0 +1,189 @@
+
+# This test has three blocks, however the last one gets ignored since the second block has 'bfinal' set to true
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+0       # bfinal = false
+10      # Compressed with dynamic codes
+
+# Outputs "This is from the first block\n"
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+1010    # HCLEN = 14 (10 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 100 011 010 000 000 000 000 000 010 000 010 000 100
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+1111 >1 111 >>1
+01
+110 >1 0001010 >>1
+1110
+110 >1 0101000 >>1
+10
+110 >1 0000010 >>1
+10
+10
+00
+10
+01
+00
+01
+1110
+00
+10
+10
+10
+00
+01
+00
+00
+01
+1110
+01
+00
+110 >1 1111111 >>1
+10
+00
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   10          4           0110
+#   ' '         3           000
+#   'T'         5           11000
+#   'b'         5           11001
+#   'c'         5           11010
+#   'e'         5           11011
+#   'f'         4           0111
+#   'h'         4           1000
+#   'i'         3           001
+#   'k'         5           11100
+#   'l'         5           11101
+#   'm'         5           11110
+#   'o'         4           1001
+#   'r'         4           1010
+#   's'         3           010
+#   't'         4           1011
+#   END         5           11111
+
+# Encoded Data:
+>>1
+11000 1000 001 010 000
+001 010 000
+0111 1010 1001 11110 000
+1011 1000 11011 000
+0111 001 1010 010 1011 000
+11001 11101 1001 11010 11100 0110
+11111
+
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+# Outputs "This is from the second block\n"
+01100   # HLIT = 269 (12 + 257)
+01001   # HDIST = 10 (9 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 010 100 000 000 000 000 000 000 000 000 011 000 001 000 000 000 100
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+1111 >1 1011000 >>1
+0
+0
+0
+10 >1 101 >>1
+0
+0
+10 >1 000 >>1
+0
+10 >1 111 >>1
+1111 >1 1110111 >>1
+0
+10 >1 001 >>1
+110
+10 >1 011 >>1
+110
+10 >1 110 >>1
+1110
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   'c'         3           000
+#   'd'         3           001
+#   'e'         3           010
+#   'n'         3           011
+#   'o'         3           100
+#   's'         3           101
+#   END         3           110
+#   261         4           1110
+#   268         4           1111
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   9           1           0
+
+# Encoded Data:
+>>1
+1111 >1 0 >>1 0 >1 100 >>1
+101 010 000 100 011 001
+1110 0 >1 101 >>1
+110
+
+# Final, ignored block
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+# Skips outputting "This is from the third block\n"
+01100   # HLIT = 269 (12 + 257)
+01001   # HDIST = 10 (9 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# Code Length Alphabet Code Lengths:
+000 010 100 011 000 000 000 000 000 000 000 000 000 001 000 000 000 100
+
+# Literal/Length & Distance Alphabet Code Lengths:
+>>1
+1111 >1 1011001 >>1
+0
+10 >1 000 >>1
+0
+0
+10 >1 101 >>1
+0
+110
+0
+110
+1111 >1 1111111 >>1
+0
+10 >1 001 >>1
+0
+10 >1 011 >>1
+0
+10 >1 110 >>1
+1110
+
+# Literal/Length Tree:
+#   Symbol      Bit Count   Code
+#   'd'         3           000
+#   'h'         3           001
+#   'i'         3           010
+#   'r'         3           011
+#   't'         3           100
+#   END         3           101
+#   261         3           110
+#   268         3           111
+#
+# Distance Tree:
+#   Symbol      Bit Count   Code
+#   9           1           0
+
+# Encoded Data:
+>>1
+111 >1 0 >>1 0 >1 101 >>1
+100 001 010 011 000
+110 0 >1 100 >>1
+101

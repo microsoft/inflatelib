@@ -1,0 +1,39 @@
+
+# Produces a single block whose literal/length alphabet specifies 17 symbols, 14 of which specify lengths 1, 2, ..., 14
+# and the other 3 specify lengths of 15, which should fail when trying to create the Huffman tree
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00000   # HDIST = 1 (0 + 1)
+1111    # HCLEN = 19 (15 + 4)
+
+# We need to represent the values 1-15 as well as writing a bunch of 0s
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+000 000 100 000 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100
+
+# We need 17 literal/length symbols; the rest are 0. This leaves us with needing 241 0s in total
+>>1
+1111 >1 1111111 >>1 # Repeat 0 138 times
+1110 # Literal=138, 15 bits
+0111 # Literal=139, 8 bits
+0011 # Literal=140, 4 bits
+1000 # Literal=141, 9 bits
+0001 # Literal=142, 2 bits
+1001 # Literal=143, 10 bits
+0100 # Literal=144, 5 bits
+1010 # Literal=145, 11 bits
+1110 # Literal=146, 15 bits
+0000 # Literal=147, 1 bit
+1011 # Literal=148, 12 bits
+0101 # Literal=149, 6 bits
+1100 # Literal=150, 13 bits
+0010 # Literal=151, 3 bits
+1101 # Literal=152, 14 bits
+0110 # Literal=153, 7 bits
+1110 # Literal=154, 15 bits
+1111 >1 1011100 # Repeat 0 103 times
+
+# At this point, we have all our table info and the inflater should try and initialize the Huffman trees, which should fail

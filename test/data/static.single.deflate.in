@@ -1,0 +1,48 @@
+
+# Single block that outputs "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG" 100 times
+# NOTE: This test is only applicable to Deflate
+>1
+1       # bfinal = true
+01      # Compressed with static codes
+
+# The string we are repeating contains 43 characters. We use the following lengths/distance to write all of the text:
+#
+#   *   (4, 31) to repeat "THE " in the original string
+#   *   (43, 43) to repeat the string once (2 total)
+#   *   (86, 86) to repeat the string twice (4 total)
+#   *   (129, 43) to repeat the string 3 times (7 total)
+#   *   (172, 86) to repeat the string 4 times (11 total)
+#   *   (215, 129) to repeat the string 5 times (16 total)
+#   *   (258, 172) to repeat the string 6 times (22 total)
+#
+# The following was passed to 'block-encode' to generate the data below:
+#
+# "THE QUICK BROWN FOX JUMPS OVER "
+# (4, 31)
+# "LAZY DOG"
+# (43, 43)
+# (86, 86)
+# (129, 43)
+# (172, 86)
+# (215, 129)
+# (258, 172)
+# 256
+
+# Encoded Data:
+>>1
+10000100 01111000 01110101 01010000                     # "THE "
+10000001 10000101 01111001 01110011 01111011 01010000   # "QUICK "
+01110010 10000010 01111111 10000111 01111110 01010000   # "BROWN "
+01110110 01111111 10001000 01010000                     # "DOG "
+01111010 10000101 01111101 10000000 10000011 01010000   # "JUMPS "
+01111111 10000110 01110101 10000010 01010000            # "OVER "
+0000010 01001 >1 110 >>1                                # Repeat "THE "
+01111100 01110001 10001010 10001001 01010000            # "LAZY "
+01110100 01111111 01110111                              # "DOG"
+0010010 >1 000 >>1 01010 >1 1010 >>1                    # Repeat 1 time
+0010110 >1 0011 >>1 01100 >1 10101 >>1                  # Repeat 2 times
+11000000 >1 1110 >>1 01010 >1 1010 >>1                  # Repeat 3 times
+11000010 >1 01001 >>1 01100 >1 10101 >>1                # Repeat 4 times
+11000011 >1 10100 >>1 01110 >1 000000 >>1               # Repeat 5 times
+11000100 >1 11111 >>1 01110 >1 101011 >>1               # Repeat 6 times
+0000000                                                 # END

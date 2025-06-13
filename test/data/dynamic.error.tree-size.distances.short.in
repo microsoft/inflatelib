@@ -1,0 +1,25 @@
+
+# Produces a single block whose distance alphabet specifies three symbols, each with a length of one, which should
+# fail when trying to create the Huffman tree
+# NOTE: This test is valid for both Deflate and Deflate64
+>1
+1       # bfinal = true
+10      # Compressed with dynamic codes
+
+00000   # HLIT = 257 (0 + 257)
+00010   # HDIST = 3 (2 + 1)
+1110    # HCLEN = 18 (14 + 4)
+
+# We just need three '1' codes and a bunch of '0' codes
+#16  17  18   0   8   7   9   6  10   5  11   4  12   3  13   2  14   1  15
+000 000 001 000 000 000 000 000 000 000 000 000 000 000 000 000 000 001
+
+# We first need to write 257 0s to cover the literal/length dictionary
+# NOTE: The code lengths are all 1, so we can stay in non-reversed binary output to make things simpler
+1 1111111 # Repeat 0 138 times
+1 1101100 # Repeat 0 119 times
+0
+0
+0
+
+# At this point, we have all our table info and the inflater should try and initialize the Huffman trees, which should fail
