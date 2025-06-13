@@ -233,7 +233,7 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
     tableEntry = &tree->data[input & tree->table_mask];
     if ((tableEntry->code_length > bits) && (bits <= tree->table_bits))
     {
-        return 0; /* Not enouth data */
+        return 0; /* Not enough data */
     }
 
     if (tableEntry->code_length > tree->table_bits)
