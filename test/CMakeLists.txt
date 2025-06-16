@@ -9,7 +9,7 @@ add_subdirectory(tools)
 set(BUILD_TEST_FILES TRUE)
 
 if (DEFINED ENV{Platform} AND DEFINED ENV{PROCESSOR_ARCHITECTURE})
-    if (("$ENV{Platform}" MATCHES "arm.*") AND NOT ("$ENV{PROCESSOR_ARCHITECTURE}" MATCHES "arm.*"))
+    if (("$ENV{Platform}" MATCHES "arm.*") AND NOT ("$ENV{PROCESSOR_ARCHITECTURE}" MATCHES "ARM.*"))
         set(BUILD_TEST_FILES FALSE)
     endif()
 endif()
