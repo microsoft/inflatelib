@@ -43,6 +43,8 @@ jobs:
             sanitizer: undefined
           - host: windows-11-arm
             sanitizer: fuzz
+          # TODO: windows-11-arm images aren't currently available for private repos. Remove when this goes public & test
+          - host: windows-11-arm
 
     runs-on: ${{matrix.host}}
     steps:
