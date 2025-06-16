@@ -118,7 +118,7 @@ jobs:
           ./scripts/fuzz-all.sh 300
 
   macos:
-    name: 'macOS Build & Test'
+    name: 'MacOS Build & Test'
     strategy:
       matrix:
         config: [ debug, release, relwithdebinfo, minsizerel ]

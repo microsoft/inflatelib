@@ -228,21 +228,25 @@ goto :init
         set CLANG_ARCH=i386
         if %COMPILER%==clang set CFLAGS=-m32 & set CXXFLAGS=-m32
     ) else if "%Platform%"=="arm" (
-        REM TODO: Figure out the clang architecture string for ARM
+        REM TODO: Once Clang/VS ships sanitizer DLLs for arm, figure out the clang architecture string for ARM
         if "%COMPILER%"=="clang" set CFLAGS=-target arm-win32-msvc & set CXXFLAGS=-target arm-win32-msvc
     ) else if "%Platform%"=="arm64" (
-        REM TODO: Figure out the clang architecture string for ARM64
+        REM TODO: Once Clang/VS ships sanitizer DLLs for arm, figure out the clang architecture string for ARM64
         if "%COMPILER%"=="clang" set CFLAGS=-target aarch64-win32-msvc & set CXXFLAGS=-target aarch64-win32-msvc
     )
 
+    set NEEDS_SANITIZERS=0
+
     if "%SANITIZER%"=="asan" (
         REM If we're using ASAN, we need to build our dependencies with ASAN enabled as well.
+        set NEEDS_SANITIZERS=1
         set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_OVERLAY_TRIPLETS=..\..\..\vcpkg\triplets\asan
         if %COMPILER%==clang (
             set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_TARGET_TRIPLET=%Platform%-windows-llvm
         )
     ) else if "%SANITIZER%"=="ubsan" (
         REM UBSan libs are built with static CRT linkage, so our dependencies need to do the same
+        set NEEDS_SANITIZERS=1
         set CMAKE_ARGS=%CMAKE_ARGS% -DVCPKG_TARGET_TRIPLET=%Platform%-windows-static
 
         REM At the present moment, Clang only appears to ship with UBSan libraries that match the host architecture and
@@ -262,6 +266,16 @@ goto :init
             if !INCOMPATIBLE!==1 (
                 echo ERROR: Clang does not currently support building UBSan libraries built for %Platform% on an %PROCESSOR_ARCHITECTURE% machine & exit /B 1
             )
+        )
+    ) else if %FUZZ%==1 (
+        set NEEDS_SANITIZERS=1
+    )
+
+    if %NEEDS_SANITIZERS%==1 (
+        if /I "%Platform%"=="arm" (
+            echo ERROR: Clang/Visual Studio currently does not ship sanitizer libraries for arm & exit /B 1
+        ) else if /I "%Platform%"=="arm64" (
+            echo ERROR: Clang/Visual Studio currently does not ship sanitizer libraries for arm64 & exit /B 1
         )
     )
 

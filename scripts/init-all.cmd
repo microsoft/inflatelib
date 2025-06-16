@@ -11,6 +11,7 @@ REM TODO: It would probably be more useful to actually check lib availability, h
 REM be heuristic at best, and it's not necessarily clear if it would be better than this
 set HOST_TARGET_SAME=0
 set TARGET_NATIVE=1
+set TARGET_ARM=0
 if %Platform%==x86 (
     if /I %PROCESSOR_ARCHITECTURE%==x86 (
         set HOST_TARGET_SAME=1
@@ -25,12 +26,14 @@ if %Platform%==x86 (
         set TARGET_NATIVE=0
     )
 ) else if %Platform%==arm (
+    set TARGET_ARM=1
     if /I %PROCESSOR_ARCHITECTURE%==ARM (
         set HOST_TARGET_SAME=1
     ) else if /I %PROCESSOR_ARCHITECTURE% NEQ ARM64 (
         set TARGET_NATIVE=0
     )
 ) else if %Platform%==arm64 (
+    set TARGET_ARM=1
     if /I %PROCESSOR_ARCHITECTURE%==ARM64 (
         set HOST_TARGET_SAME=1
     ) else (
@@ -49,6 +52,9 @@ for %%c in (%COMPILERS%) do (
             if %%s==address (
                 set ARGS=!ARGS! -s address
                 set NEEDS_ASAN=1
+                if %TARGET_ARM%==1 (
+                    set SHOULD_INIT=0
+                )
             ) else if %%s==undefined (
                 set ARGS=!ARGS! -s undefined
                 if %%c==msvc (
@@ -61,9 +67,15 @@ for %%c in (%COMPILERS%) do (
                     REM Clang only ships native UBSan libraries
                     if %HOST_TARGET_SAME%==0 set SHOULD_INIT=0
                 )
+                if %TARGET_ARM%==1 (
+                    set SHOULD_INIT=0
+                )
             ) else if %%s==fuzz (
                 set ARGS=!ARGS! -f
                 set NEEDS_ASAN=1
+                if %TARGET_ARM%==1 (
+                    set SHOULD_INIT=0
+                )
             )
 
             if !NEEDS_ASAN!==1 (
