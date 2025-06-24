@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
-project(inflatelib)
+project(inflatelib
+    VERSION 0.1
+    DESCRIPTION "A Deflate and Deflate64 decompression library"
+    HOMEPAGE_URL "https://github.com/microsoft/inflatelib"
+    LANGUAGES C CXX
+    )
 
 option(INFLATELIB_ASAN "Build with Address Sanitizer" OFF)
 option(INFLATELIB_UBSAN "Build with Undefined Behavior Sanitizer" OFF)

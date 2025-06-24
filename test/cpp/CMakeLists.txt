@@ -4,7 +4,7 @@ add_executable(cpptests)
 find_package(Catch2 CONFIG REQUIRED)
 target_link_libraries(cpptests
     PRIVATE
-        inflatelib
+        inflatelib::inflatelib
         Catch2::Catch2WithMain
         ${SANITIZER_LIBS}
     )

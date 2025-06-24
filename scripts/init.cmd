@@ -10,14 +10,16 @@ goto :init
 :usage
     echo USAGE:
     echo     init.cmd [--help] [-c^|--compiler ^<clang^|msvc^>] [-g^|--generator ^<ninja^|msbuild^>]
-    echo         [-b^|--build-type ^<debug^|release^|relwithdebinfo^|minsizerel^>] [-s^|--sanitize ^<address^|undefined^>]
-    echo         [-f^|--fuzz] [-p^|--vcpkg path/to/vcpkg/root]
+    echo         [-b^|--build-type ^<debug^|release^|relwithdebinfo^|minsizerel^>] [-i^|--install-prefix install/path]
+    echo         [-s^|--sanitize ^<address^|undefined^>] [-f^|--fuzz] [-p^|--vcpkg path/to/vcpkg/root]
     echo.
     echo ARGUMENTS
     echo     -c^|--compiler       Controls the compiler used, either 'clang' (the default) or 'msvc'
     echo     -g^|--generator      Controls the CMake generator used, either 'ninja' (the default) or 'msbuild'
     echo     -b^|--build-type     Controls the value of 'CMAKE_BUILD_TYPE', either 'debug' (the default), 'release',
     echo                         'relwithdebinfo', or 'minsizerel'
+    echo     -i^|--install-prefix Specifies the path used for 'CMAKE_INSTALL_PREFIX'. If this argument is not specified,
+    echo                         'CMAKE_INSTALL_PREFIX' will not be passed to CMake during initialization.
     echo     -s^|--sanitize       Specifies the sanitizer to use, either 'address' or 'ub'. If this argument is not
     echo                         specified, no sanitizer will be used. This switch is incompatible with '--fuzz'
     echo     -f^|--fuzz           Builds the fuzzing target. This switch is incompatible with '--sanitize'
@@ -34,6 +36,7 @@ goto :init
     set COMPILER=
     set GENERATOR=
     set BUILD_TYPE=
+    set INSTALL_PREFIX=
     set CMAKE_ARGS=
     set VCPKG_ROOT_PATH=
     set SANITIZER=
@@ -85,6 +88,20 @@ goto :init
         if /I "%~2"=="relwithdebinfo" set BUILD_TYPE=relwithdebinfo
         if /I "%~2"=="minsizerel" set BUILD_TYPE=minsizerel
         if "!BUILD_TYPE!"=="" echo ERROR: Unrecognized/missing build type %~2 & call :usage & exit /B 1
+
+        shift
+        shift
+        goto :parse
+    )
+
+    set INSTALL_PREFIX_SET=0
+    if /I "%~1"=="-i" set INSTALL_PREFIX_SET=1
+    if /I "%~1"=="--install-prefix" set INSTALL_PREFIX_SET=1
+    if %INSTALL_PREFIX_SET%==1 (
+        if "%INSTALL_PREFIX%" NEQ "" echo ERROR: Install prefix already specified & call :usage & exit /B 1
+        if /I "%~2"=="" echo ERROR: Install path missing & call :usage & exit /B 1
+
+        set INSTALL_PREFIX=%~2
 
         shift
         shift
@@ -217,6 +234,10 @@ goto :init
     )
 
     set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT_PATH%\scripts\buildsystems\vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    if "%INSTALL_PREFIX%" NEQ "" (
+        set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX="%INSTALL_PREFIX%"
+    )
 
     REM Figure out the platform
     set CLANG_ARCH=
