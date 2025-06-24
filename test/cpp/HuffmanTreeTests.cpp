@@ -565,6 +565,8 @@ TEST_CASE("HuffmanTreeFailureTests", "[huffman_tree]")
         huffman_tree tree = {};
         REQUIRE(huffman_tree_init(&tree, &stream, codeLengthsSize) == INFLATELIB_OK);
         callback(stream, tree);
+        huffman_tree_destroy(&tree, &stream);
+        inflatelib_destroy(&stream);
     };
 
     SECTION("Invalid Lengths")

@@ -4,7 +4,7 @@ rootDir="$(cd "$(dirname "$0")/.." && pwd)"
 buildRoot="$rootDir/build"
 
 # Check to see if this is WSL. If it is, we want build output to go into a separate directory so that build output does
-# not 
+# not collide with Windows build output
 if "$rootDir/scripts/check-wsl.sh"; then
     buildRoot="$buildRoot/wsl"
 fi
@@ -14,22 +14,27 @@ generator=
 buildType=
 cmakeArgs=()
 vcpkgRoot=
+sanitizer=
+fuzz=
 
 function show_help {
     echo "USAGE:"
-    echo "    init.sh [-c <compiler>] [-b <build_type>] [-g <generator>] [-p <path-to-vcpkg-root>]"
+    echo "    init.sh [-c <compiler>] [-b <build_type>] [-g <generator>] [-s <sanitizer>] [-f] [-p <path-to-vcpkg-root>]"
     echo
     echo "ARGUMENTS:"
     echo "    -c      Spcifies the compiler to use, either 'gcc' (the default) or 'clang'"
     echo "    -b      Specifies the value of 'CMAKE_BUILD_TYPE', either 'debug' (the default),"
     echo "            'release', 'relwithdebinfo', or 'minsizerel'"
     echo "    -g      Specifies the generator to use, either 'ninja' (the default) or 'make'"
+    echo "    -s      Specifies the sanitizer to use, either 'address' or 'undefined'. If this value is not"
+    echo "            specified, then no sanitizer will be used. This argument is not compatible with '-f'"
+    echo "    -f      When set, builds the fuzzing targets. This argument is not compatible with '-s'"
     echo "    -p      Specifies the path to the root of your local vcpkg clone. If this value is not"
     echo "            specified, then several attempts will be made to try and deduce it. The first attempt"
     echo "            will be to check for the presence of the VCPKG_ROOT environment variable"
 }
 
-while getopts hc:b:g:p: opt; do
+while getopts hc:b:g:s:fp: opt; do
     arg=${OPTARG,,}
     case $opt in
         h)
@@ -81,6 +86,35 @@ while getopts hc:b:g:p: opt; do
                 echo "Error: Invalid generator specified. Must be either 'ninja' or 'make'."
                 exit 1
             fi
+            ;;
+        s)
+            if [ "$sanitizer" != "" ]; then
+                echo "Error: Sanitizer already specified. Cannot specify more than one sanitizer."
+                exit 1
+            fi
+            if [ "$fuzz" != "" ]; then
+                echo "Error: Cannot specify both '-s' and '-f'."
+                exit 1
+            fi
+            if [ $arg == "address" ]; then
+                sanitizer="asan"
+            elif [ $arg == "undefined" ]; then
+                sanitizer="ubsan"
+            else
+                echo "Error: Invalid sanitizer specified. Must be either 'address' or 'undefined'."
+                exit 1
+            fi
+            ;;
+        f)
+            if [ "$fuzz" != "" ]; then
+                echo "Error: Fuzzing already specified."
+                exit 1
+            fi
+            if [ "$sanitizer" != "" ]; then
+                echo "Error: Cannot specify both '-s' and '-f'."
+                exit 1
+            fi
+            fuzz=1
             ;;
         p)
             if [ "$vcpkgRoot" != "" ]; then
@@ -144,6 +178,18 @@ elif [ "$buildType" == "minsizerel" ]; then
     cmakeArgs+=(-DCMAKE_BUILD_TYPE=MinSizeRel)
 fi
 
+suffix=
+if [ "$sanitizer" == "asan" ]; then
+    cmakeArgs+=(-DINFLATELIB_ASAN=ON)
+    suffix="-asan"
+elif [ "$sanitizer" == "ubsan" ]; then
+    cmakeArgs+=(-DINFLATELIB_UBSAN=ON)
+    suffix="-ubsan"
+elif [ $fuzz ]; then
+    cmakeArgs+=(-DINFLATELIB_FUZZ=ON)
+    suffix="-fuzz"
+fi
+
 # TODO: Figure out how to cross-compile reliably. For now, just support the machine architecture
 arch=$("$rootDir/scripts/host-arch.sh")
 if [ $? != 0 ]; then
@@ -154,7 +200,7 @@ fi
 cmakeArgs+=("-DCMAKE_TOOLCHAIN_FILE=$vcpkgRoot/scripts/buildsystems/vcpkg.cmake" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
 # Create the build directory if it doesn't exist
-buildDir="$buildRoot/$compiler$arch$buildType"
+buildDir="$buildRoot/$compiler$arch$buildType$suffix"
 mkdir -p "$buildDir"
 
 # Run CMake

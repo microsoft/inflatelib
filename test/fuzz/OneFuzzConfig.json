@@ -1,0 +1,61 @@
+{
+  "configVersion": 3,
+  "entries": [
+    {
+      "jobNotificationEmail": "condev@microsoft.com",
+      "skip": false,
+      "rebootAfterSetup": false,
+      "fuzzer": {
+        "$type": "libfuzzer",
+        "fuzzingHarnessExecutableName": "fuzz-inflate.exe"
+      },
+      "oneFuzzJobs": [
+        {
+          "projectName": "InflateLib",
+          "targetName": "fuzz-inflate"
+        }
+      ],
+      "adoTemplate": {
+        "org": "microsoft",
+        "project": "OS",
+        "AssignedTo": "condev@microsoft.com",
+        "AreaPath": "OS\\Windows Client and Services\\WinPD\\DFX-Developer Fundamentals and Experiences\\DEFT\\SHINE\\Modern Compression",
+        "IterationPath": "OS\\Future"
+      },
+      "jobDependencies": [
+        "fuzz-inflate.exe",
+        "fuzz-inflate.pdb",
+        "clang_rt.asan_dynamic-x86_64.dll"
+      ],
+      "SdlWorkItemId": 0
+    },
+    {
+      "jobNotificationEmail": "condev@microsoft.com",
+      "skip": false,
+      "rebootAfterSetup": false,
+      "fuzzer": {
+        "$type": "libfuzzer",
+        "fuzzingHarnessExecutableName": "fuzz-inflate64.exe"
+      },
+      "oneFuzzJobs": [
+        {
+          "projectName": "InflateLib",
+          "targetName": "fuzz-inflate64"
+        }
+      ],
+      "adoTemplate": {
+        "org": "microsoft",
+        "project": "OS",
+        "AssignedTo": "condev@microsoft.com",
+        "AreaPath": "OS\\Windows Client and Services\\WinPD\\DFX-Developer Fundamentals and Experiences\\DEFT\\SHINE\\Modern Compression",
+        "IterationPath": "OS\\Future"
+      },
+      "jobDependencies": [
+        "fuzz-inflate64.exe",
+        "fuzz-inflate64.pdb",
+        "clang_rt.asan_dynamic-x86_64.dll"
+      ],
+      "SdlWorkItemId": 0
+    }
+  ]
+}

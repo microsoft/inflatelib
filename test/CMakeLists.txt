@@ -1,6 +1,4 @@
 
-add_subdirectory(cpp)
-add_subdirectory(perf)
 add_subdirectory(tools)
 
 # If the target and host architectures are not compatible (e.g. compiling for ARM on an x64 machine), we cannot run the
@@ -18,4 +16,16 @@ endif()
 
 if (BUILD_TEST_FILES)
     add_subdirectory(data)
+endif()
+
+if (NOT INFLATELIB_FUZZ)
+    add_subdirectory(cpp)
+
+    # The perf tests are pretty useless when sanitizers are enabled. Note that the tests will consume the same input as the
+    # perf tests, so it's not like we're missing potential coverage here.
+    if (NOT (INFLATELIB_ASAN OR INFLATELIB_UBSAN))
+        add_subdirectory(perf)
+    endif()
+else()
+    add_subdirectory(fuzz)
 endif()

@@ -3,8 +3,8 @@
 rootDir="$(cd "$(dirname "$0")/.." && pwd)"
 buildRoot="$rootDir/build"
 
-# Check to see if this is WSL. If it is, we want build output to go into a separate directory so that build output does
-# not 
+# Check to see if this is WSL. If it is, build output to go into a separate directory so that build output does not collide with
+# Windows build output
 if "$rootDir/scripts/check-wsl.sh"; then
     buildRoot="$buildRoot/wsl"
 fi
@@ -31,12 +31,19 @@ esac
 
 for compiler in gcc clang; do
     for buildType in debug release relwithdebinfo minsizerel; do
-        for arch in "${architectures[@]}"; do
-            buildDir="$buildRoot/$compiler$arch$buildType"
-            if [ -d "$buildDir" ]; then
-                echo "Building from '$buildDir'"
-                cmake --build "$buildDir"
-            fi
+        for sanitizer in none asan ubsan fuzz; do
+            for arch in "${architectures[@]}"; do
+                suffix=""
+                if [ "$sanitizer" != "none" ]; then
+                    suffix="-${sanitizer}"
+                fi
+
+                buildDir="$buildRoot/$compiler$arch$buildType$suffix"
+                if [ -d "$buildDir" ]; then
+                    echo "Building from '$buildDir'"
+                    cmake --build "$buildDir"
+                fi
+            done
         done
     done
 done

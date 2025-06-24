@@ -6,6 +6,21 @@ target_compile_features(inflatelib
         c_std_11
     )
 
+target_compile_options(inflatelib
+    PUBLIC
+        ${SANITIZER_FLAGS}
+    )
+
+target_link_libraries(inflatelib
+    INTERFACE
+        ${SANITIZER_LIBS}
+    )
+
+target_link_options(inflatelib
+    INTERFACE
+        ${SANITIZER_LINKER_FLAGS}
+    )
+
 target_include_directories(inflatelib
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../include
