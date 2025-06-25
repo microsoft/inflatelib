@@ -32,7 +32,7 @@ stages:
         displayName: Locate vcvarsall.bat
 
       - script: |
-          call $(VCVarsAll) $(platform)
+          call "$(VCVarsAll)" $(platform)
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
 
           scripts\init.cmd -c msvc -b relwithdebinfo -f
