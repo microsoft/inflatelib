@@ -34,6 +34,7 @@ stages:
       - script: |
           echo calling VCVarsAll
           echo from: $(VCVarsAll)
+          echo with platform: $(platform)
           call "$(VCVarsAll)" $(platform)
           echo VCVarsAll exited with %ERRORLEVEL%
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
