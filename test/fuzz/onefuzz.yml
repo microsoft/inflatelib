@@ -46,6 +46,6 @@ stages:
         inputs:
           onefuzzOSes: Windows
         env:
-          onefuzzDropDirectory: $(Build.Repository.LocalPath)\build\win\msvc$(platform)relwithdebinfo\fuzz
+          onefuzzDropDirectory: $(Build.SourcesDirectory)\build\win\msvc${{ parameters.platform }}relwithdebinfo\fuzz\
           SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
