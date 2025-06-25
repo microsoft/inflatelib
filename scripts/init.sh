@@ -12,20 +12,24 @@ fi
 compiler=
 generator=
 buildType=
-cmakeArgs=()
+installPrefix=
 vcpkgRoot=
 sanitizer=
 fuzz=
+cmakeArgs=()
 
 function show_help {
     echo "USAGE:"
-    echo "    init.sh [-c <compiler>] [-b <build_type>] [-g <generator>] [-s <sanitizer>] [-f] [-p <path-to-vcpkg-root>]"
+    echo "    init.sh [-c <compiler>] [-b <build-type>] [-g <generator>] [-i <install-prefix>] [-s <sanitizer>] [-f]"
+    echo "        [-p <path-to-vcpkg-root>]"
     echo
     echo "ARGUMENTS:"
     echo "    -c      Spcifies the compiler to use, either 'gcc' (the default) or 'clang'"
     echo "    -b      Specifies the value of 'CMAKE_BUILD_TYPE', either 'debug' (the default),"
     echo "            'release', 'relwithdebinfo', or 'minsizerel'"
     echo "    -g      Specifies the generator to use, either 'ninja' (the default) or 'make'"
+    echo "    -i      Specifies the path used for 'CMAKE_INSTALL_PREFIX'. If this argument is not specified,"
+    echo "            'CMAKE_INSTALL_PREFIX' will not be passed to CMake during initialization."
     echo "    -s      Specifies the sanitizer to use, either 'address' or 'undefined'. If this value is not"
     echo "            specified, then no sanitizer will be used. This argument is not compatible with '-f'"
     echo "    -f      When set, builds the fuzzing targets. This argument is not compatible with '-s'"
@@ -34,7 +38,7 @@ function show_help {
     echo "            will be to check for the presence of the VCPKG_ROOT environment variable"
 }
 
-while getopts hc:b:g:s:fp: opt; do
+while getopts hc:b:g:i:s:fp: opt; do
     if [ -n "${OPTARG}" ]; then
         arg=${OPTARG,,}
     fi
@@ -89,6 +93,13 @@ while getopts hc:b:g:s:fp: opt; do
                 exit 1
             fi
             ;;
+        i)
+            if [ "$installPrefix" != "" ]; then
+                echo "Error: Install prefix already specified. Cannot specify more than one install prefix."
+                exit 1
+            fi
+            installPrefix="$OPTARG"
+            ;;
         s)
             if [ "$sanitizer" != "" ]; then
                 echo "Error: Sanitizer already specified. Cannot specify more than one sanitizer."
@@ -123,7 +134,7 @@ while getopts hc:b:g:s:fp: opt; do
                 echo "Error: VCPKG_ROOT already specified. Cannot specify more than one vcpkg root."
                 exit 1
             fi
-            vcpkgRoot=$OPTARG
+            vcpkgRoot="$OPTARG"
             ;;
     esac
 done
@@ -178,6 +189,10 @@ elif [ "$buildType" == "relwithdebinfo" ]; then
     cmakeArgs+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)
 elif [ "$buildType" == "minsizerel" ]; then
     cmakeArgs+=(-DCMAKE_BUILD_TYPE=MinSizeRel)
+fi
+
+if [ "$installPrefix" != "" ]; then
+    cmakeArgs+=("-DCMAKE_INSTALL_PREFIX=$installPrefix")
 fi
 
 suffix=
