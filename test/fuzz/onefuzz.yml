@@ -38,6 +38,7 @@ stages:
           scripts\init.cmd -c msvc -b relwithdebinfo -f
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
 
+          echo Running the build script for platform %Platform%
           scripts\build-all.cmd
         displayName: Build The Fuzzing Binaries
 
