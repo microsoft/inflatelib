@@ -1,10 +1,5 @@
 
-# All targets from here down compile with the sanitizer flags/options
-add_compile_options(${SANITIZER_FLAGS})
-link_libraries(${SANITIZER_LIBS})
-add_link_options(${SANITIZER_LINKER_FLAGS})
-
-# Flatten the output into a single directory
+# Flatten the output into a single directory because that's what OneFuzz seems to expect
 set(INFLATELIB_FUZZING_DIRECTORY "${CMAKE_BINARY_DIR}/fuzz")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${INFLATELIB_FUZZING_DIRECTORY}")
 
