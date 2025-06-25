@@ -17,11 +17,11 @@ parameters:
     default: x64
 
 stages:
-  - stage: Build_${{ parameters.platform }}
-    displayName: Build ${{ parameters.platform }} Fuzzing
+  - stage: OneFuzz_${{ parameters.platform }}
+    displayName: Build & Submit Fuzzing for ${{ parameters.platform }}
     jobs:
-    - job: Build
-      displayName: Build Fuzzing Binaries
+    - job: Build_And_Submit
+      displayName: Build & Submit Fuzzing Binaries
       pool: SHINE-INT-S
       steps:
       - pwsh: |
