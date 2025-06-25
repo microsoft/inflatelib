@@ -32,6 +32,7 @@ stages:
         displayName: Locate vcvarsall.bat
 
       - script: |
+          echo VCVarsAll is: $(VCVarsAll)
           call "$(VCVarsAll)" $(platform)
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
 
