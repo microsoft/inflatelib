@@ -20,7 +20,8 @@ stages:
   - stage: Build_${{ parameters.platform }}
     displayName: Build ${{ parameters.platform }} Fuzzing
     jobs:
-    - job: Build Fuzzing Binaries
+    - job: Build
+      displayName: Build Fuzzing Binaries
       pool: SHINT-INT-S
       steps:
       - pwsh: |
