@@ -86,7 +86,7 @@ if ((CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_C_COMPILER_ID MATCHES "GNU")
                 endif()
             endif()
         else()
-            list(APPEND SANITIZER_LIBS -fsanitize=address)
+            list(APPEND SANITIZER_LINKER_FLAGS -fsanitize=address)
         endif()
 
         if (INFLATELIB_FUZZ)
