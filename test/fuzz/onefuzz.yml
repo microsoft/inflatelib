@@ -22,7 +22,7 @@ stages:
     jobs:
     - job: Build
       displayName: Build Fuzzing Binaries
-      pool: SHINT-INT-S
+      pool: SHINE-INT-S
       steps:
       - pwsh: |
           $VCVarsAll = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere" -latest -find VC\Auxiliary\Build\vcvarsall.bat
