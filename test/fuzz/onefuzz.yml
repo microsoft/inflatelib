@@ -32,14 +32,19 @@ stages:
         displayName: Locate vcvarsall.bat
 
       - script: |
-          echo VCVarsAll is: $(VCVarsAll)
+          echo calling VCVarsAll
           call "$(VCVarsAll)" $(platform)
+          echo VCVarsAll exited with %ERRORLEVEL%
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
 
+          echo Calling init.cmd
           scripts\init.cmd -c msvc -b relwithdebinfo -f
+          echo init.cmd exited with %ERRORLEVEL%
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
 
+          echo Calling build-all.cmd
           scripts\build-all.cmd
+          echo build-all.cmd exited with %ERRORLEVEL%
         displayName: Build The Fuzzing Binaries
 
       - task: onefuzz-task@0
