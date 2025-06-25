@@ -46,7 +46,6 @@
       "adoTemplate": {
         "org": "microsoft",
         "project": "OS",
-        "AssignedTo": "condev@microsoft.com",
         "AreaPath": "OS\\Windows Client and Services\\WinPD\\DFX-Developer Fundamentals and Experiences\\DEFT\\SHINE\\Modern Compression",
         "IterationPath": "OS\\Future"
       },
