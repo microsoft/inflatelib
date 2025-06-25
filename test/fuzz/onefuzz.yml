@@ -36,6 +36,7 @@ stages:
           if %ERRORLEVEL% NEQ 0 echo VCVarsAll failed & exit /B %ERRORLEVEL%
 
           scripts\init.cmd -c msvc -b relwithdebinfo -f
+          echo Init done for platform %Platform%
           if %ERRORLEVEL% NEQ 0 echo Init failed & exit /B %ERRORLEVEL%
 
           echo Running the build script for platform %Platform%
