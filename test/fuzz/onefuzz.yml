@@ -33,10 +33,10 @@ stages:
 
       - script: |
           call "$(VCVarsAll)" ${{ parameters.platform }}
-          if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
+          if %ERRORLEVEL% NEQ 0 echo VCVarsAll failed & exit /B %ERRORLEVEL%
 
           scripts\init.cmd -c msvc -b relwithdebinfo -f
-          if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
+          if %ERRORLEVEL% NEQ 0 echo Init failed & exit /B %ERRORLEVEL%
 
           echo Running the build script for platform %Platform%
           scripts\build-all.cmd
