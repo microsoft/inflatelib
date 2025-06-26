@@ -442,7 +442,7 @@ int main(int argc, char** argv)
                 {
                     bytesInLastOutput = 0;
                     prefix = "";
-                    std::println();
+                    std::println("");
                 }
             }
 

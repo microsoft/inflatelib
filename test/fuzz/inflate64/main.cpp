@@ -11,7 +11,7 @@
 #define FUZZ_CALLCONV
 #endif
 
-extern "C" FUZZ_EXPORT int FUZZ_CALLCONV LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" FUZZ_EXPORT int FUZZ_CALLCONV LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     inflatelib_stream stream = {};
     if (inflatelib_init(&stream) < INFLATELIB_OK)

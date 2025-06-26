@@ -35,7 +35,9 @@ function show_help {
 }
 
 while getopts hc:b:g:s:fp: opt; do
-    arg=${OPTARG,,}
+    if [ -n "${OPTARG}" ]; then
+        arg=${OPTARG,,}
+    fi
     case $opt in
         h)
             show_help
@@ -193,7 +195,7 @@ fi
 # TODO: Figure out how to cross-compile reliably. For now, just support the machine architecture
 arch=$("$rootDir/scripts/host-arch.sh")
 if [ $? != 0 ]; then
-    echo "ERROR: Unable to determine the host architecture"
+    echo "ERROR: Unable to determine the host architecture ($(uname -m))"
     exit 1
 fi
 

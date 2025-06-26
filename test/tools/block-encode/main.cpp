@@ -1023,7 +1023,7 @@ int main(int argc, char** argv)
         std::println("{:0>4b}    # HCLEN = {} ({} + 4)", hclen - 4, hclen, hclen - 4);
 
         // Print out the alphabet code lengths
-        std::println();
+        std::println("");
         std::println("# Code Length Alphabet Code Lengths:");
         static constexpr const std::uint8_t codeLengthCodeOrder[] = {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
         // NOTE: These are all written as literals. We may need to write more values than 'maxCodeLength', but this should
@@ -1067,11 +1067,11 @@ int main(int argc, char** argv)
                 break;
             }
 
-            std::println();
+            std::println("");
         }
 
         // Print out information about the trees as comments for reference
-        std::println();
+        std::println("");
         std::println("# Literal/Length Tree:");
         std::println("#   Symbol      Bit Count   Code");
         for (std::uint16_t i = 0; i <= maxLiteralLength; ++i)
@@ -1112,7 +1112,7 @@ int main(int argc, char** argv)
     }
 
     // And finally, encode the data:
-    std::println();
+    std::println("");
     std::println("# Encoded Data:");
     std::println(">>1");
     for (const auto& next : outputData)
@@ -1154,6 +1154,6 @@ int main(int argc, char** argv)
         }
         }
 
-        std::println();
+        std::println("");
     }
 }

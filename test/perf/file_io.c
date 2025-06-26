@@ -9,6 +9,11 @@
 #define PATH_SEPARATOR_CHR '\\'
 #define PATH_SEPARATOR_STR "\\"
 #include <Windows.h>
+#elif defined(__APPLE__)
+#define PATH_SEPARATOR_CHR '/'
+#define PATH_SEPARATOR_STR "/"
+#include <limits.h>
+#include <mach-o/dyld.h>
 #else
 #define PATH_SEPARATOR_CHR '/'
 #define PATH_SEPARATOR_STR "/"
@@ -28,6 +33,14 @@ char* resolve_test_file_path(const char* filename)
 
     moduleLen = GetModuleFileNameA(NULL, buffer, MAX_PATH);
     if (!moduleLen || (moduleLen == MAX_PATH))
+    {
+        printf("ERROR: Failed to get executable path\n");
+        exit(1);
+    }
+#elif defined(__APPLE__)
+    char buffer[PATH_MAX];
+    uint32_t moduleLen = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &moduleLen) != 0)
     {
         printf("ERROR: Failed to get executable path\n");
         exit(1);

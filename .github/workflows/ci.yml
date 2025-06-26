@@ -12,11 +12,18 @@ jobs:
     name: 'Windows Build & Test'
     strategy:
       matrix:
-        arch: [ x64, x64_x86 ]
+        host: [ windows-latest, windows-11-arm ]
+        arch: [ x64, x64_x86, arm64 ]
         compiler: [ msvc, clang ]
         config: [ debug, release, relwithdebinfo, minsizerel ]
         sanitizer: [ none, address, undefined, fuzz ]
         exclude:
+          - host: windows-latest
+            arch: arm64
+          - host: windows-11-arm
+            arch: x64
+          - host: windows-11-arm
+            arch: x64_x86
           - compiler: msvc
             sanitizer: undefined
           - compiler: clang
@@ -30,8 +37,16 @@ jobs:
             sanitizer: fuzz
           - arch: x64_x86
             sanitizer: undefined
+          - host: windows-11-arm
+            sanitizer: address
+          - host: windows-11-arm
+            sanitizer: undefined
+          - host: windows-11-arm
+            sanitizer: fuzz
+          # TODO: windows-11-arm images aren't currently available for private repos. Remove when this goes public & test
+          - host: windows-11-arm
 
-    runs-on: windows-latest
+    runs-on: ${{matrix.host}}
     steps:
       - uses: actions/checkout@v4
 
@@ -116,3 +131,54 @@ jobs:
         run: |
           # 5 minutes should be a good duration for sanity checking
           ./scripts/fuzz-all.sh 300
+
+  macos:
+    name: 'MacOS Build & Test'
+    strategy:
+      matrix:
+        config: [ debug, release, relwithdebinfo, minsizerel ]
+        sanitizer: [ none, address, undefined, fuzz ]
+
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: inflatelib
+
+      # For some reason, it seems as though the windows-latest and ubuntu-latest images both have vcpkg pre-configured,
+      # but macos-latest does not. Simplest thing is to just check it out & bootstrap
+      - name: Checkout vcpkg
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          path: vcpkg
+
+      - name: Bootstrap vcpkg
+        run: |
+          ./vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=${GITHUB_WORKSPACE}/vcpkg" >> $GITHUB_ENV
+
+      - name: Initialize CMake
+        run: |
+          sanitizerArg=""
+          if [ "${{matrix.sanitizer}}" == "fuzz" ]; then
+            sanitizerArg="-f"
+          elif [ "${{matrix.sanitizer}}" != "none" ]; then
+            sanitizerArg="-s ${{matrix.sanitizer}}"
+          fi
+          ./inflatelib/scripts/init.sh -c clang -b ${{matrix.config}} $sanitizerArg
+
+      - name: Build
+        run: |
+          ./inflatelib/scripts/build-all.sh
+
+      - name: Test
+        if: ${{matrix.sanitizer != 'fuzz'}}
+        run: |
+          ./inflatelib/scripts/run-tests.sh
+
+      - name: Fuzz
+        if: ${{matrix.sanitizer == 'fuzz'}}
+        run: |
+          # 5 minutes should be a good duration for sanity checking
+          ./inflatelib/scripts/fuzz-all.sh 300

@@ -33,6 +33,19 @@ static std::filesystem::path executable_directory()
 
     return std::filesystem::canonical(buffer).parent_path();
 }
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+static std::filesystem::path executable_directory()
+{
+    char buffer[PATH_MAX];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) != 0)
+    {
+        throw std::runtime_error("Failed to get executable path");
+    }
+
+    return std::filesystem::canonical(buffer).parent_path();
+}
 #else // Otherwise, assume Linux
 static std::filesystem::path executable_directory()
 {
