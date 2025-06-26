@@ -17,11 +17,11 @@ parameters:
     default: x64
 
 stages:
-  - stage: Build_${{ parameters.platform }}
-    displayName: Build ${{ parameters.platform }} Fuzzing
+  - stage: OneFuzz_${{ parameters.platform }}
+    displayName: Build & Submit Fuzzing for ${{ parameters.platform }}
     jobs:
-    - job: Build
-      displayName: Build Fuzzing Binaries
+    - job: Build_And_Submit
+      displayName: Build & Submit Fuzzing Binaries
       pool: SHINE-INT-S
       steps:
       - pwsh: |
@@ -32,13 +32,13 @@ stages:
         displayName: Locate vcvarsall.bat
 
       - script: |
-          call "$(VCVarsAll)" $(platform)
+          call "$(VCVarsAll)" ${{ parameters.platform }}
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
 
-          scripts\init.cmd -c msvc -b relwithdebinfo -f
+          call scripts\init.cmd -c msvc -b relwithdebinfo -f
           if %ERRORLEVEL% NEQ 0 exit /B %ERRORLEVEL%
 
-          scripts\build-all.cmd
+          call scripts\build-all.cmd
         displayName: Build The Fuzzing Binaries
 
       - task: onefuzz-task@0
@@ -46,6 +46,6 @@ stages:
         inputs:
           onefuzzOSes: Windows
         env:
-          onefuzzDropDirectory: $(Build.SourcesDirectory)\build\win\msvc$(platform)relwithdebinfo\fuzz\
+          onefuzzDropDirectory: $(Build.SourcesDirectory)\build\win\msvc${{ parameters.platform }}relwithdebinfo-fuzz\fuzz
           SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
