@@ -38,6 +38,7 @@ target_sources(inflatelib
         window.c
     )
 
+# Installation
 install(
     TARGETS inflatelib
     EXPORT inflatelib_export
