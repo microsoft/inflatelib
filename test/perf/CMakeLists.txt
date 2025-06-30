@@ -4,7 +4,7 @@ add_executable(perftests)
 find_package(ZLIB REQUIRED)
 target_link_libraries(perftests
     PRIVATE
-        inflatelib
+        inflatelib::inflatelib
         ZLIB::ZLIB
     )
 
