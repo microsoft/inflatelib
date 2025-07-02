@@ -38,7 +38,7 @@ function show_help {
     echo "            will be to check for the presence of the VCPKG_ROOT environment variable"
 }
 
-while getopts hc:b:g:i:s:fp: opt; do
+while getopts :hc:b:g:i:s:fp: opt; do
     if [ -n "${OPTARG}" ]; then
         arg=${OPTARG,,}
     fi
@@ -49,7 +49,7 @@ while getopts hc:b:g:i:s:fp: opt; do
             ;;
         c)
             if [ "$compiler" != "" ]; then
-                echo "Error: Compiler already specified. Cannot specify more than one compiler."
+                echo>&2 "Error: Compiler already specified. Cannot specify more than one compiler."
                 exit 1
             fi
             if [ $arg == "gcc" ]; then
@@ -57,13 +57,13 @@ while getopts hc:b:g:i:s:fp: opt; do
             elif [ $arg == "clang" ]; then
                 compiler="clang"
             else
-                echo "Error: Invalid compiler specified. Must be either 'gcc' or 'clang'."
+                echo>&2 "Error: Invalid compiler specified. Must be either 'gcc' or 'clang'."
                 exit 1
             fi
             ;;
         b)
             if [ "$buildType" != "" ]; then
-                echo "Error: Build type already specified. Cannot specify more than one build type."
+                echo>&2 "Error: Build type already specified. Cannot specify more than one build type."
                 exit 1
             fi
             if [ $arg == "debug" ]; then
@@ -75,13 +75,13 @@ while getopts hc:b:g:i:s:fp: opt; do
             elif [ $arg == "minsizerel" ]; then
                 buildType="minsizerel"
             else
-                echo "Error: Invalid build type specified. Must be either 'debug', 'release', 'relwithdebinfo', or 'minsizerel'."
+                echo>&2 "Error: Invalid build type specified. Must be either 'debug', 'release', 'relwithdebinfo', or 'minsizerel'."
                 exit 1
             fi
             ;;
         g)
             if [ "$generator" != "" ]; then
-                echo "Error: Generator already specified. Cannot specify more than one generator."
+                echo>&2 "Error: Generator already specified. Cannot specify more than one generator."
                 exit 1
             fi
             if [ $arg == "ninja" ]; then
@@ -89,24 +89,24 @@ while getopts hc:b:g:i:s:fp: opt; do
             elif [ $arg == "make" ]; then
                 generator="make"
             else
-                echo "Error: Invalid generator specified. Must be either 'ninja' or 'make'."
+                echo>&2 "Error: Invalid generator specified. Must be either 'ninja' or 'make'."
                 exit 1
             fi
             ;;
         i)
             if [ "$installPrefix" != "" ]; then
-                echo "Error: Install prefix already specified. Cannot specify more than one install prefix."
+                echo>&2 "Error: Install prefix already specified. Cannot specify more than one install prefix."
                 exit 1
             fi
             installPrefix="$OPTARG"
             ;;
         s)
             if [ "$sanitizer" != "" ]; then
-                echo "Error: Sanitizer already specified. Cannot specify more than one sanitizer."
+                echo>&2 "Error: Sanitizer already specified. Cannot specify more than one sanitizer."
                 exit 1
             fi
             if [ "$fuzz" != "" ]; then
-                echo "Error: Cannot specify both '-s' and '-f'."
+                echo>&2 "Error: Cannot specify both '-s' and '-f'."
                 exit 1
             fi
             if [ $arg == "address" ]; then
@@ -114,27 +114,32 @@ while getopts hc:b:g:i:s:fp: opt; do
             elif [ $arg == "undefined" ]; then
                 sanitizer="ubsan"
             else
-                echo "Error: Invalid sanitizer specified. Must be either 'address' or 'undefined'."
+                echo>&2 "Error: Invalid sanitizer specified. Must be either 'address' or 'undefined'."
                 exit 1
             fi
             ;;
         f)
             if [ "$fuzz" != "" ]; then
-                echo "Error: Fuzzing already specified."
+                echo>&2 "Error: Fuzzing already specified."
                 exit 1
             fi
             if [ "$sanitizer" != "" ]; then
-                echo "Error: Cannot specify both '-s' and '-f'."
+                echo>&2 "Error: Cannot specify both '-s' and '-f'."
                 exit 1
             fi
             fuzz=1
             ;;
         p)
             if [ "$vcpkgRoot" != "" ]; then
-                echo "Error: VCPKG_ROOT already specified. Cannot specify more than one vcpkg root."
+                echo>&2 "Error: VCPKG_ROOT already specified. Cannot specify more than one vcpkg root."
                 exit 1
             fi
             vcpkgRoot="$OPTARG"
+            ;;
+        *)
+            echo>&2 "ERROR: Invalid argument '-$opt'"
+            show_help
+            exit 1
             ;;
     esac
 done
@@ -161,7 +166,7 @@ if [ "$vcpkgRoot" == "" ]; then
     fi
 fi
 if [ "$vcpkgRoot" == "" ]; then
-    echo "ERROR: Unable to deduce the path to vcpkg"
+    echo>&2 "ERROR: Unable to deduce the path to vcpkg"
     show_help
     exit 1
 fi
@@ -210,7 +215,7 @@ fi
 # TODO: Figure out how to cross-compile reliably. For now, just support the machine architecture
 arch=$("$rootDir/scripts/host-arch.sh")
 if [ $? != 0 ]; then
-    echo "ERROR: Unable to determine the host architecture ($(uname -m))"
+    echo>&2 "ERROR: Unable to determine the host architecture ($(uname -m))"
     exit 1
 fi
 
