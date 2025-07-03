@@ -1,0 +1,375 @@
+{
+    "version": 9,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true
+            }
+        },
+        {
+            "name": "debug-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "relwithdebinfo-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
+            "name": "minsizerel-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "MinSizeRel"
+            }
+        },
+        {
+            "name": "windows-msvc-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
+            }
+        },
+        {
+            "name": "windows-clang-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang-cl",
+                "CMAKE_CXX_COMPILER": "clang-cl"
+            }
+        },
+        {
+            "name": "unix-gcc-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "unix-clang-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "asan-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "INFLATELIB_ASAN": "ON"
+            }
+        },
+        {
+            "name": "ubsan-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "INFLATELIB_UBSAN": "ON"
+            }
+        },
+        {
+            "name": "fuzz-base",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "INFLATELIB_FUZZ": "ON"
+            }
+        },
+
+        {
+            "name": "windows-msvc-debug",
+            "inherits": [ "debug-base", "windows-msvc-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}debug"
+        },
+        {
+            "name": "windows-msvc-debug-asan",
+            "inherits": [ "debug-base", "windows-msvc-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}debug-asan"
+        },
+        {
+            "name": "windows-msvc-debug-fuzz",
+            "inherits": [ "debug-base", "windows-msvc-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}debug-fuzz"
+        },
+        {
+            "name": "windows-msvc-release",
+            "inherits": [ "release-base", "windows-msvc-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}release"
+        },
+        {
+            "name": "windows-msvc-release-asan",
+            "inherits": [ "release-base", "windows-msvc-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}release-asan"
+        },
+        {
+            "name": "windows-msvc-release-fuzz",
+            "inherits": [ "release-base", "windows-msvc-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}release-fuzz"
+        },
+        {
+            "name": "windows-msvc-relwithdebinfo",
+            "inherits": [ "relwithdebinfo-base", "windows-msvc-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}relwithdebinfo"
+        },
+        {
+            "name": "windows-msvc-relwithdebinfo-asan",
+            "inherits": [ "relwithdebinfo-base", "windows-msvc-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}relwithdebinfo-asan"
+        },
+        {
+            "name": "windows-msvc-relwithdebinfo-fuzz",
+            "inherits": [ "relwithdebinfo-base", "windows-msvc-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}relwithdebinfo-fuzz"
+        },
+        {
+            "name": "windows-msvc-minsizerel",
+            "inherits": [ "minsizerel-base", "windows-msvc-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}minsizerel"
+        },
+        {
+            "name": "windows-msvc-minsizerel-asan",
+            "inherits": [ "minsizerel-base", "windows-msvc-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}minsizerel-asan"
+        },
+        {
+            "name": "windows-msvc-minsizerel-fuzz",
+            "inherits": [ "minsizerel-base", "windows-msvc-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/win/msvc$penv{Platform}minsizerel-fuzz"
+        },
+
+        {
+            "name": "windows-clang-debug",
+            "inherits": [ "debug-base", "windows-clang-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}debug"
+        },
+        {
+            "name": "windows-clang-release",
+            "inherits": [ "release-base", "windows-clang-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}release"
+        },
+        {
+            "name": "windows-clang-release-asan",
+            "inherits": [ "release-base", "windows-clang-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}release-asan"
+        },
+        {
+            "name": "windows-clang-release-ubsan",
+            "inherits": [ "release-base", "windows-clang-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}release-ubsan"
+        },
+        {
+            "name": "windows-clang-release-fuzz",
+            "inherits": [ "release-base", "windows-clang-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}release-fuzz"
+        },
+        {
+            "name": "windows-clang-relwithdebinfo",
+            "inherits": [ "relwithdebinfo-base", "windows-clang-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}relwithdebinfo"
+        },
+        {
+            "name": "windows-clang-relwithdebinfo-asan",
+            "inherits": [ "relwithdebinfo-base", "windows-clang-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}relwithdebinfo-asan"
+        },
+        {
+            "name": "windows-clang-relwithdebinfo-ubsan",
+            "inherits": [ "relwithdebinfo-base", "windows-clang-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}relwithdebinfo-ubsan"
+        },
+        {
+            "name": "windows-clang-relwithdebinfo-fuzz",
+            "inherits": [ "relwithdebinfo-base", "windows-clang-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}relwithdebinfo-fuzz"
+        },
+        {
+            "name": "windows-clang-minsizerel",
+            "inherits": [ "minsizerel-base", "windows-clang-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}minsizerel"
+        },
+        {
+            "name": "windows-clang-minsizerel-asan",
+            "inherits": [ "minsizerel-base", "windows-clang-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}minsizerel-asan"
+        },
+        {
+            "name": "windows-clang-minsizerel-ubsan",
+            "inherits": [ "minsizerel-base", "windows-clang-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}minsizerel-ubsan"
+        },
+        {
+            "name": "windows-clang-minsizerel-fuzz",
+            "inherits": [ "minsizerel-base", "windows-clang-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/win/clang$penv{Platform}minsizerel-fuzz"
+        },
+
+        {
+            "name": "wsl-gcc-debug",
+            "inherits": [ "debug-base", "unix-gcc-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}debug"
+        },
+        {
+            "name": "wsl-gcc-debug-asan",
+            "inherits": [ "debug-base", "unix-gcc-base", "asan" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}debug-asan"
+        },
+        {
+            "name": "wsl-gcc-debug-ubsan",
+            "inherits": [ "debug-base", "unix-gcc-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}debug-ubsan"
+        },
+        {
+            "name": "wsl-gcc-release",
+            "inherits": [ "release-base", "unix-gcc-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}release"
+        },
+        {
+            "name": "wsl-gcc-release-asan",
+            "inherits": [ "release-base", "unix-gcc-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}release-asan"
+        },
+        {
+            "name": "wsl-gcc-release-ubsan",
+            "inherits": [ "release-base", "unix-gcc-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}release-ubsan"
+        },
+        {
+            "name": "wsl-gcc-relwithdebinfo",
+            "inherits": [ "relwithdebinfo-base", "unix-gcc-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}relwithdebinfo"
+        },
+        {
+            "name": "wsl-gcc-relwithdebinfo-asan",
+            "inherits": [ "relwithdebinfo-base", "unix-gcc-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}relwithdebinfo-asan"
+        },
+        {
+            "name": "wsl-gcc-relwithdebinfo-ubsan",
+            "inherits": [ "relwithdebinfo-base", "unix-gcc-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}relwithdebinfo-ubsan"
+        },
+        {
+            "name": "wsl-gcc-minsizerel",
+            "inherits": [ "minsizerel-base", "unix-gcc-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}minsizerel"
+        },
+        {
+            "name": "wsl-gcc-minsizerel-asan",
+            "inherits": [ "minsizerel-base", "unix-gcc-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}minsizerel-asan"
+        },
+        {
+            "name": "wsl-gcc-minsizerel-ubsan",
+            "inherits": [ "minsizerel-base", "unix-gcc-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/gcc$penv{Platform}minsizerel-ubsan"
+        },
+
+        {
+            "name": "wsl-clang-debug",
+            "inherits": [ "debug-base", "unix-clang-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}debug"
+        },
+        {
+            "name": "wsl-clang-debug-asan",
+            "inherits": [ "debug-base", "unix-clang-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}debug-asan"
+        },
+        {
+            "name": "wsl-clang-debug-ubsan",
+            "inherits": [ "debug-base", "unix-clang-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}debug-ubsan"
+        },
+        {
+            "name": "wsl-clang-debug-fuzz",
+            "inherits": [ "debug-base", "unix-clang-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}debug-fuzz"
+        },
+        {
+            "name": "wsl-clang-release",
+            "inherits": [ "release-base", "unix-clang-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}release"
+        },
+        {
+            "name": "wsl-clang-release-asan",
+            "inherits": [ "release-base", "unix-clang-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}release-asan"
+        },
+        {
+            "name": "wsl-clang-release-ubsan",
+            "inherits": [ "release-base", "unix-clang-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}release-ubsan"
+        },
+        {
+            "name": "wsl-clang-release-fuzz",
+            "inherits": [ "release-base", "unix-clang-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}release-fuzz"
+        },
+        {
+            "name": "wsl-clang-relwithdebinfo",
+            "inherits": [ "relwithdebinfo-base", "unix-clang-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}relwithdebinfo"
+        },
+        {
+            "name": "wsl-clang-relwithdebinfo-asan",
+            "inherits": [ "relwithdebinfo-base", "unix-clang-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}relwithdebinfo-asan"
+        },
+        {
+            "name": "wsl-clang-relwithdebinfo-ubsan",
+            "inherits": [ "relwithdebinfo-base", "unix-clang-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}relwithdebinfo-ubsan"
+        },
+        {
+            "name": "wsl-clang-relwithdebinfo-fuzz",
+            "inherits": [ "relwithdebinfo-base", "unix-clang-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}relwithdebinfo-fuzz"
+        },
+        {
+            "name": "wsl-clang-minsizerel",
+            "inherits": [ "minsizerel-base", "unix-clang-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}minsizerel"
+        },
+        {
+            "name": "wsl-clang-minsizerel-asan",
+            "inherits": [ "minsizerel-base", "unix-clang-base", "asan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}minsizerel-asan"
+        },
+        {
+            "name": "wsl-clang-minsizerel-ubsan",
+            "inherits": [ "minsizerel-base", "unix-clang-base", "ubsan-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}minsizerel-ubsan"
+        },
+        {
+            "name": "wsl-clang-minsizerel-fuzz",
+            "inherits": [ "minsizerel-base", "unix-clang-base", "fuzz-base" ],
+            "binaryDir": "${sourceDir}/build/wsl/clang$penv{Platform}minsizerel-fuzz"
+        }
+    ]
+}
