@@ -17,6 +17,7 @@ jobs:
       - name: Check Formatting
         shell: cmd
         run: |
+          git branch -a
           git clang-format origin/main --style file --diff
           if %ERRORLEVEL% NEQ 0 (
             echo ERROR: This branch contains changes that have not been formatted with 'clang-format'
