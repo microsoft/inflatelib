@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check Formatting
+        shell: cmd
         run: |
           git clang-format origin/main --style file --diff
           if %ERRORLEVEL% NEQ 0 (
