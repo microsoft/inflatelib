@@ -135,3 +135,38 @@ Prior to issuing a PR, it is required that you format just your changes.
 > It is for this reason that we suggest you use [`git clang-format` to format your changes](https://clang.llvm.org/docs/ClangFormat.html#git-integration).
 > The second consequence is that your local version of `clang-format` might format your changes differently than the version on the CI machine.
 > If this is the case, comment on the PR that you ran `clang-format` and this requirement can be overridden.
+
+## Tools
+
+To aid the authoring of tests, several tools have been written and are included under the [test/tools](./test/tools) directory.
+
+### The `bin-write` Tool
+
+This is a tool that "compiles" a textual description of bits and bytes into a binary file.
+The grammar is designed around the binary format of Deflate/Deflate64 and is described in [grammar.md](./test/tools/bin-write/grammar.md).
+In particular, it supports writing binary as a "stream of bits" (left to right) in "chunks" that are not necessarily a multiple of a byte in length.
+This is the only binary that runs as a part of the build, in particular it is used to "compile" the test inputs and outputs located in the [test/data](./test/data) directory.
+
+### The `block-encode` Tool
+
+This is a tool that converts an input description into either a static or dynamic compressed Deflate or Deflate64 block.
+The output is in the format expected by the `bin-write` tool.
+While this tool _does_ compute the Huffman tree for the given input, it does _not_ compress the data at all.
+I.e. it will not produce length/distance pairs; these need to be specified manually.
+This is because we want control over how the data is encoded so that we can write more interesting tests.
+
+### The `byte-view` Tool
+
+This is a very simple tool that reads a file as input and outputs its bytes in the format expected by the `bin-write` tool.
+This is particularly useful when creating "real world" tests where a 3rd party application is used to compress a file that is then consumed by our tests.
+
+### The `huffman-encode` Tool
+
+This tool was used for writing the [tests](./test/cpp/HuffmanTreeTests.cpp) for the [`huffman_tree`](./src/lib/huffman_tree.c) type.
+Given a Huffman tree described as a sequence of code lengths and some data described as a sequence of byes, encodes the data using the corresponding Huffman tree.
+The output is an array of bytes that can be copied into the tests.
+
+### The `zip-extract` Tool
+
+Given the path to a zip file, this tool extracts each file from the zip file, writing its compressed bytes in the format expected by the `bin-write` tool.
+This tool is the counterpart to the `byte-view` tool for creating "real world" tests.
