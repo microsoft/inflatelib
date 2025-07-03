@@ -19,9 +19,9 @@ jobs:
       - name: Check Formatting
         shell: cmd
         run: |
-          git branch -a
           git clang-format origin/main --style file --diff
           if %ERRORLEVEL% NEQ 0 (
+            echo.
             echo ERROR: This branch contains changes that have not been formatted with 'clang-format'
             echo NOTE: To resolve this issue, you can run 'git clang-format upstream/main --style file' to format your changes and
             echo       then commit the result. Note that if this is NOT a fork, you will want to substitute 'origin/main' for
