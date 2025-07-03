@@ -11,8 +11,7 @@
 
 #include "bitstream.h"
 
-void bitstream_init(bitstream* stream
-)
+void bitstream_init(bitstream* stream)
 {
     /* Currently, there's no difference between "init" and "reset" */
     bitstream_reset(stream);
