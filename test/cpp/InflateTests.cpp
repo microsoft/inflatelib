@@ -103,7 +103,9 @@ static file_contents read_file(const std::filesystem::path& path)
         throw std::system_error(errno, std::generic_category(), "Failed to seek to start of file");
     }
 
-    file_contents result = {std::make_unique<std::byte[]>(fileSize), static_cast<std::size_t>(fileSize)};
+    // NOTE: We always allocate one extra byte. Some tests take advantage of this extra byte to verify that we don't
+    // report that byte as "consumed"
+    file_contents result = {std::make_unique<std::byte[]>(fileSize + 1), static_cast<std::size_t>(fileSize)};
     for (std::size_t i = 0; i < result.size;)
     {
         auto read = ::fread(result.buffer.get() + i, 1, result.size - i, file.get());
@@ -114,6 +116,8 @@ static file_contents read_file(const std::filesystem::path& path)
 
         i += read;
     }
+
+    result.buffer[fileSize] = std::byte{0}; // No real purpose in setting this, other than to avoid uninitialized memory
 
     return result;
 }
@@ -133,7 +137,10 @@ static void inflate_test_worker(
     inflatelib::stream stream;
 
     // Set up the spans that we use for input/output
-    std::span<const std::byte> inputSpan = {input.buffer.get(), std::min(readStride, input.size)};
+    // NOTE: We always allocate an extra byte for the file contents. We use this extra byte for the input buffer to verify that we
+    // don't consume too much data, e.g. when input streams are tightly packed and the caller doesn't necessarily know where one
+    // stream ends and the next begins.
+    std::span<const std::byte> inputSpan = {input.buffer.get(), std::min(readStride, input.size + 1)};
     std::span<std::byte> outputSpan = {outputBuffer.get(), std::min(writeStride, outputBufferSize)};
 
     int result;
@@ -165,7 +172,7 @@ static void inflate_test_worker(
         // a typical usage pattern, however it's still a useful way to test
         if (inputSpan.empty())
         {
-            inputSpan = {input.buffer.get() + readOffset, std::min(readStride, input.size - readOffset)};
+            inputSpan = {input.buffer.get() + readOffset, std::min(readStride, input.size + 1 - readOffset)};
         }
         if (outputSpan.empty())
         {
