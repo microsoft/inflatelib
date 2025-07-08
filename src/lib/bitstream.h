@@ -19,7 +19,7 @@ extern "C"
         /* Partially read data */
         /* NOTE: This can hold more than a byte in situations where not enough data is available for a specific
          * operation, in which case its used as storage until the caller supplies more data */
-        uint16_t partial_data;
+        uint32_t partial_data;
         size_t partial_data_size;
     } bitstream;
 

@@ -8,7 +8,7 @@
 int partial_data_consistency_check(bitstream* stream)
 {
     uint32_t mask = ((uint32_t)1 << stream->partial_data_size) - 1;
-    return ((uint32_t)stream->partial_data & ~mask) == 0;
+    return (stream->partial_data & ~mask) == 0;
 }
 
 void bitstream_init(bitstream* stream)
@@ -112,12 +112,12 @@ size_t bitstream_read_bits(bitstream* stream, size_t bitsToRead, uint16_t* resul
         break;
     }
 
-    data = (data << stream->partial_data_size) | (uint32_t)stream->partial_data;
+    data = (data << stream->partial_data_size) | stream->partial_data;
 
     mask = ((uint32_t)1 << bitsToRead) - 1;
     *result = (uint16_t)(data & mask);
 
-    stream->partial_data = (uint16_t)(data >> bitsToRead);
+    stream->partial_data = data >> bitsToRead;
     stream->partial_data_size = (stream->partial_data_size + (8 * bytesNeeded)) - bitsToRead;
     assert(stream->partial_data_size < 8); /* This wasn't a failed read; should be less than a byte */
     assert(partial_data_consistency_check(stream)); /* Leading bits should be zero */
@@ -143,14 +143,14 @@ uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead)
     stream->data += bytesNeeded;
     stream->length -= bytesNeeded;
 
-    data = (data << stream->partial_data_size) | (uint32_t)stream->partial_data;
+    data = (data << stream->partial_data_size) | stream->partial_data;
 
     stream->partial_data_size = (stream->partial_data_size + (8 * bytesNeeded)) - bitsToRead;
-    stream->partial_data = (uint16_t)((data >> bitsToRead) & ((1u << stream->partial_data_size) - 1));
+    stream->partial_data = (data >> bitsToRead) & ((1u << stream->partial_data_size) - 1);
     assert(stream->partial_data_size < 8); /* This wasn't a failed read; should be less than a byte */
     assert(partial_data_consistency_check(stream)); /* Leading bits should be zero */
 
-    mask = ((uint32_t)1 << bitsToRead) - 1;
+    mask = (1u << bitsToRead) - 1;
     return (uint16_t)(data & mask);
 }
 
@@ -173,7 +173,7 @@ size_t bitstream_peek(bitstream* stream, uint16_t* result)
         }
     }
 
-    data = (data << stream->partial_data_size) | (uint32_t)stream->partial_data;
+    data = (data << stream->partial_data_size) | stream->partial_data;
 
     *result = (uint16_t)data;
     return bitCount;
@@ -185,7 +185,7 @@ uint16_t bitstream_peek_unchecked(bitstream* stream)
 
     assert(stream->length >= 2); /* Caller should have checked */
     data = (uint32_t)stream->data[0] | ((uint32_t)stream->data[1] << 8);
-    data = (data << stream->partial_data_size) | (uint32_t)stream->partial_data;
+    data = (data << stream->partial_data_size) | stream->partial_data;
 
     return (uint16_t)data;
 }
@@ -195,7 +195,7 @@ void bitstream_cache_input(bitstream* stream)
     assert(stream->length <= 1); /* Otherwise we have enough data for any operation that can be requested of us */
     if (stream->length > 0)
     {
-        stream->partial_data |= (uint16_t)stream->data[0] << stream->partial_data_size;
+        stream->partial_data |= (uint32_t)stream->data[0] << stream->partial_data_size;
         stream->partial_data_size += 8;
         assert(stream->partial_data_size < 16); /* Similar assert as above; otherwise we have enough data for any operation */
         assert(partial_data_consistency_check(stream)); /* Leading bits should be zero */
