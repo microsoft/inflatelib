@@ -203,7 +203,7 @@ static int do_inflate(inflatelib_stream* stream)
 {
     int result;
     inflatelib_state* state = stream->internal;
-    size_t initialOutSize = stream->avail_out;
+    size_t endingStreamLen, initialOutSize = stream->avail_out;
 
     assert(state->ifstate != ifstate_init);
 
@@ -216,10 +216,9 @@ static int do_inflate(inflatelib_stream* stream)
     /* When making it this far, we've potentially read/written data that we want to report, even on failure */
     stream->total_out += initialOutSize - stream->avail_out;
 
-    stream->total_in += stream->avail_in - state->bitstream.length;
-    stream->next_in = state->bitstream.data;
-    stream->avail_in = state->bitstream.length;
-    state->bitstream.length = 0; /* NOTE: This is enough to ensure we don't read from 'data' */
+    stream->next_in = bitstream_clear_data(&state->bitstream, &endingStreamLen);
+    stream->total_in += stream->avail_in - endingStreamLen;
+    stream->avail_in = endingStreamLen;
 
     return result;
 }
@@ -307,6 +306,7 @@ static int inflater_process_data(inflatelib_stream* stream)
         case ifstate_reading_bfinal:
             if (!bitstream_read_bits(&state->bitstream, 1, &data))
             {
+                bitstream_cache_input(&state->bitstream);
                 return INFLATELIB_OK; /* Not enough data */
             }
 
@@ -317,6 +317,7 @@ static int inflater_process_data(inflatelib_stream* stream)
         case ifstate_reading_btype:
             if (!bitstream_read_bits(&state->bitstream, 2, &data))
             {
+                bitstream_cache_input(&state->bitstream);
                 return INFLATELIB_OK; /* Not enough data */
             }
             else if (data > 2)
@@ -379,6 +380,7 @@ static int inflater_process_data(inflatelib_stream* stream)
                  * finish initializing the Huffman trees */
                 if (state->ifstate < ifstate_reading_literal_length_code)
                 {
+                    bitstream_cache_input(&state->bitstream);
                     return INFLATELIB_OK; /* Not enough data */
                 }
             }
@@ -411,6 +413,7 @@ static int inflater_read_uncompressed(inflatelib_stream* stream)
     case ifstate_reading_uncompressed_block_len:
         if (!bitstream_read_bits(&state->bitstream, 16, &data))
         {
+            bitstream_cache_input(&state->bitstream);
             return INFLATELIB_OK; /* Not enough data */
         }
 
@@ -421,6 +424,7 @@ static int inflater_read_uncompressed(inflatelib_stream* stream)
     case ifstate_reading_uncompressed_block_len_complement:
         if (!bitstream_read_bits(&state->bitstream, 16, &data))
         {
+            bitstream_cache_input(&state->bitstream);
             return INFLATELIB_OK; /* Not enough data */
         }
 
@@ -509,6 +513,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
     case ifstate_reading_num_lit_codes:
         if (!bitstream_read_bits(&state->bitstream, 5, &data))
         {
+            bitstream_cache_input(&state->bitstream);
             return INFLATELIB_OK; /* Not enough data */
         }
         state->data.dynamic_codes.literal_length_code_count = data + 257;
@@ -517,6 +522,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
     case ifstate_reading_num_dist_codes:
         if (!bitstream_read_bits(&state->bitstream, 5, &data))
         {
+            bitstream_cache_input(&state->bitstream);
             state->ifstate = ifstate_reading_num_dist_codes;
             return INFLATELIB_OK; /* Not enough data */
         }
@@ -526,6 +532,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
     case ifstate_reading_num_code_len_codes:
         if (!bitstream_read_bits(&state->bitstream, 4, &data))
         {
+            bitstream_cache_input(&state->bitstream);
             state->ifstate = ifstate_reading_num_code_len_codes;
             return INFLATELIB_OK; /* Not enough data */
         }
@@ -540,6 +547,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
         {
             if (!bitstream_read_bits(&state->bitstream, 3, &data))
             {
+                bitstream_cache_input(&state->bitstream);
                 state->ifstate = ifstate_reading_code_len_codes;
                 return INFLATELIB_OK; /* Not enough data */
             }
@@ -577,6 +585,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
                 result = huffman_tree_lookup(&state->code_length_tree, stream, &data);
                 if (!result)
                 {
+                    /* NOTE: bitstream_cache_input already called */
                     return INFLATELIB_OK; /* Not enough data */
                 }
                 else if (result < 0)
@@ -599,6 +608,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
                 if (!bitstream_read_bits(&state->bitstream, 2, &data))
                 {
                     /* Not enough data; ensure we don't read a new length code next time */
+                    bitstream_cache_input(&state->bitstream);
                     state->ifstate = ifstate_reading_tree_codes_after;
                     return INFLATELIB_OK;
                 }
@@ -653,6 +663,7 @@ static int inflater_read_dynamic_header(inflatelib_stream* stream)
                 if (!bitstream_read_bits(&state->bitstream, bitCount, &data))
                 {
                     /* Not enough data; ensure we don't read a new length code next time */
+                    bitstream_cache_input(&state->bitstream);
                     state->ifstate = ifstate_reading_tree_codes_after;
                     return INFLATELIB_OK;
                 }
@@ -814,6 +825,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
             opResult = huffman_tree_lookup(&state->literal_length_tree, stream, &state->data.compressed.symbol);
             if (opResult == 0)
             {
+                /* NOTE: bitstream_cache_input already called */
                 keepGoing = 0; /* Not enough data in the input */
                 break;
             }
@@ -885,6 +897,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
             {
                 if (!bitstream_read_bits(&state->bitstream, state->data.compressed.extra_bits, &symbol))
                 {
+                    bitstream_cache_input(&state->bitstream);
                     keepGoing = 0; /* Not enough data in the input */
                     state->ifstate = ifstate_reading_length_extra_bits;
                     break;
@@ -899,6 +912,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
             opResult = huffman_tree_lookup(&state->distance_tree, stream, &symbol);
             if (opResult == 0)
             {
+                /* NOTE: bitstream_cache_input already called */
                 keepGoing = 0; /* Not enough data in the input */
                 state->ifstate = ifstate_reading_distance_code;
                 break;
@@ -934,6 +948,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
             {
                 if (!bitstream_read_bits(&state->bitstream, state->data.compressed.extra_bits, &symbol))
                 {
+                    bitstream_cache_input(&state->bitstream);
                     keepGoing = 0; /* Not enough data in the input */
                     state->ifstate = ifstate_reading_distance_extra_bits;
                     break;

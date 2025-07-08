@@ -58,10 +58,14 @@ TEST_CASE("BitstreamReadBits", "[bitstream]")
         std::uint16_t value;
         REQUIRE(bitstream_read_bits(&stream, 4, &value));
         REQUIRE(value == 0x0B); // Read lowest bits first
+        REQUIRE(stream.length == 1); // We initialize with 2 bytes and partially read one
+        REQUIRE(stream.partial_data_size == 4); // We just read 4 bits
+        REQUIRE(stream.partial_data == 0x0A);
 
         REQUIRE(!bitstream_read_bits(&stream, 16, &value));
-        REQUIRE(stream.length == 0); // Should have consumed all data
-        REQUIRE(stream.bits_in_buffer == 12);
+        REQUIRE(stream.length == 1); // We did not consume any data, so nothing changed
+        REQUIRE(stream.partial_data_size == 4);
+        REQUIRE(stream.partial_data == 0x0A);
         REQUIRE(!bitstream_read_bits(&stream, 15, &value)); // Should still fail
         REQUIRE(!bitstream_read_bits(&stream, 14, &value));
         REQUIRE(!bitstream_read_bits(&stream, 13, &value));
@@ -71,51 +75,96 @@ TEST_CASE("BitstreamReadBits", "[bitstream]")
 
         // All data consumed with the last read
         REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 0);
+        REQUIRE(stream.partial_data_size == 0);
+        REQUIRE(stream.partial_data == 0); // We rely on bitmasking, so this should be zero
 
         // Reset the buffer, but add one byte at a time until we have enough data
         bitstream_set_data(&stream, data, 1);
+        REQUIRE(!bitstream_read_bits(&stream, 16, &value)); // Only one byte available; should fail
+        REQUIRE(stream.length == 1);
+        REQUIRE(stream.partial_data_size == 0);
+        REQUIRE(stream.partial_data == 0);
+
         REQUIRE(bitstream_read_bits(&stream, 4, &value)); // Partial read, just to test more paths
         REQUIRE(value == 0x0B);
+        REQUIRE(stream.length == 0); // We partially read the only byte
+        REQUIRE(stream.partial_data_size == 4);
+        REQUIRE(stream.partial_data == 0x0A);
 
         REQUIRE(!bitstream_read_bits(&stream, 16, &value));
-        REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 4);
+        REQUIRE(stream.length == 0); // We did not consume any data, so nothing changed
+        REQUIRE(stream.partial_data_size == 4);
+        REQUIRE(stream.partial_data == 0x0A);
 
-        bitstream_set_data(&stream, data + 1, 1);
+        bitstream_set_data(&stream, data + 1, 1); // We partially read the first byte, so advance 'data' by one
         REQUIRE(!bitstream_read_bits(&stream, 16, &value));
-        REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 12);
+        REQUIRE(stream.length == 1); // Still a failure, so no change
+        REQUIRE(stream.partial_data_size == 4);
+        REQUIRE(stream.partial_data == 0x0A);
+
+        // Since we didn't consume all data, cache it
+        bitstream_cache_input(&stream);
 
         bitstream_set_data(&stream, data + 2, 1);
         REQUIRE(bitstream_read_bits(&stream, 16, &value)); // Finally success
         REQUIRE(value == 0x3CDA);
         REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 4);
+        REQUIRE(stream.partial_data_size == 4);
+        REQUIRE(stream.partial_data == 0x05);
     }
 
-    // Reading two 16-bit values back-to-back after a partial read should succeed (i.e. buffer is large enough)
-    SECTION("Buffer size")
+    SECTION("Single bit reads")
     {
-        // 7-bit read followed by two 16-bit reads. Should give the values [ 0x7F, 0xAA55, 0xC639]
-        const std::uint8_t data[] = {0xFF, 0x2A, 0xD5, 0x1C, 0x63};
+        const std::uint8_t data[] = {0xAA, 0xAA, 0xAA}; // Alternate 0, 1, ...
+        const std::size_t totalBits = 8 * std::size(data);
 
         bitstream stream;
         bitstream_init(&stream);
         bitstream_set_data(&stream, data, std::size(data));
 
-        std::uint16_t value;
-        REQUIRE(bitstream_read_bits(&stream, 7, &value));
-        REQUIRE(value == 0x7F);
+        for (std::size_t i = 0; i < totalBits; ++i)
+        {
+            std::uint16_t value;
+            REQUIRE(bitstream_read_bits(&stream, 1, &value));
+            REQUIRE(value == (i % 2)); // Should alternate between 0 and 1
 
-        REQUIRE(bitstream_read_bits(&stream, 16, &value));
-        REQUIRE(value == 0xAA55);
+            REQUIRE(stream.length == (totalBits - i - 1) / 8);
+            REQUIRE(stream.partial_data_size == (totalBits - i - 1) % 8);
+        }
+    }
 
-        REQUIRE(bitstream_read_bits(&stream, 16, &value));
-        REQUIRE(value == 0xC639);
+    // Validation that 'partial_data' is updated correctly for various reads
+    SECTION("Partial data")
+    {
+        const std::uint8_t data[] = {0x10, 0x32, 0x54};
+        const std::uint32_t expected = 0x543210;
 
-        REQUIRE(stream.length == 0);
-        REQUIRE(stream.bits_in_buffer == 1);
+        for (std::size_t offset = 0; offset < 8; ++offset)
+        {
+            for (std::size_t length = 1; length <= 16; ++length)
+            {
+                bitstream stream;
+                bitstream_init(&stream);
+                bitstream_set_data(&stream, data, std::size(data));
+
+                std::uint16_t value;
+                if (offset != 0)
+                {
+                    REQUIRE(bitstream_read_bits(&stream, offset, &value));
+                }
+
+                REQUIRE(bitstream_read_bits(&stream, length, &value));
+                std::uint32_t mask = (1u << length) - 1;
+                std::uint32_t expectedValue = (expected >> offset) & mask;
+                REQUIRE(value == expectedValue);
+
+                std::size_t bitsConsumed = offset + length;
+                std::size_t bytesConsumed = (bitsConsumed + 7) / 8; // Here, we call partial reads "consumed"
+                REQUIRE(stream.length == (std::size(data) - bytesConsumed));
+                REQUIRE(stream.partial_data_size == ((8 - (bitsConsumed % 8)) % 8));
+                REQUIRE(stream.partial_data == (data[bytesConsumed - 1] >> (8 - stream.partial_data_size)));
+            }
+        }
     }
 }
 
@@ -179,23 +228,43 @@ TEST_CASE("BitstreamPeekConsume", "[bitstream]")
     REQUIRE(bitstream_peek(&stream, &value) == 12);
     REQUIRE(value == 0x842);
 
-    // Peeking should read all remaining data into the bitstream's internal buffer, meaning it's safe to set the data
-    // pointer to something else
+    // We've only consumed 4 bits from the input
+    REQUIRE(stream.length == 1);
+    REQUIRE(stream.partial_data_size == 4);
+    REQUIRE(stream.partial_data == 0x02);
+
+    // Safely discard the byte we have not yet consumed
+    std::size_t oldLen;
+    REQUIRE(bitstream_clear_data(&stream, &oldLen) == buffer.data() + 1);
+    REQUIRE(oldLen == 1);
+
     buffer = {0xAC};
     bitstream_set_data(&stream, buffer.data(), 1);
-    REQUIRE(bitstream_peek(&stream, &value) == 16);
-    REQUIRE(value == 0xC842);
-    REQUIRE(bitstream_peek(&stream, &value) == 16);
-    REQUIRE(value == 0xC842);
+    REQUIRE(bitstream_peek(&stream, &value) == 12);
+    REQUIRE(value == 0x0AC2);
+    REQUIRE(bitstream_peek(&stream, &value) == 12);
+    REQUIRE(value == 0x0AC2);
 
-    bitstream_consume_bits(&stream, 10);
-    REQUIRE(bitstream_peek(&stream, &value) == 10);
-    REQUIRE(value == 0x2B2);
-    REQUIRE(bitstream_peek(&stream, &value) == 10);
-    REQUIRE(value == 0x2B2);
+    REQUIRE(stream.length == 1); // Peek only; should not change the pointer or partial data
+    REQUIRE(stream.partial_data_size == 4);
+    REQUIRE(stream.partial_data == 0x02);
+
+    bitstream_consume_bits(&stream, 10); // Now only 2 bits left
+    REQUIRE(stream.length == 0);
+    REQUIRE(stream.partial_data_size == 2);
+    REQUIRE(stream.partial_data == 0x02);
+
+    REQUIRE(bitstream_peek(&stream, &value) == 2);
+    REQUIRE(value == 0x02);
+    REQUIRE(bitstream_peek(&stream, &value) == 2);
+    REQUIRE(value == 0x02);
 
     // Consume the rest
-    bitstream_consume_bits(&stream, 10);
+    bitstream_consume_bits(&stream, 2);
+    REQUIRE(stream.length == 0);
+    REQUIRE(stream.partial_data_size == 0);
+    REQUIRE(stream.partial_data == 0x00);
+
     REQUIRE(bitstream_peek(&stream, &value) == 0);
     REQUIRE(value == 0);
 }

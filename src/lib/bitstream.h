@@ -12,18 +12,21 @@ extern "C"
 
     typedef struct bitstream
     {
-        // Read buffer
+        /* Read buffer */
         const uint8_t* data;
         size_t length;
 
-        // Partially read data
-        uint32_t buffer;
-        size_t bits_in_buffer;
+        /* Partially read data */
+        /* NOTE: This can hold more than a byte in situations where not enough data is available for a specific
+         * operation, in which case its used as storage until the caller supplies more data */
+        uint16_t partial_data;
+        size_t partial_data_size;
     } bitstream;
 
     void bitstream_init(bitstream* stream);
     void bitstream_reset(bitstream* stream);
     void bitstream_set_data(bitstream* stream, const uint8_t* data, size_t length);
+    const uint8_t* bitstream_clear_data(bitstream* stream, size_t* length);
 
     void bitstream_byte_align(bitstream* stream);
 
@@ -45,15 +48,50 @@ extern "C"
     size_t bitstream_peek(bitstream* stream, uint16_t* result);
 
     /*
-     * Consumes the specified number of bits, 1-16, from the input buffer and disposes of them. The caller is
-     * responsible for ensuring that the buffer has at least the specified number of bits (e.g. by first calling
-     * bitstream_peek).
+     * Called when we've determined that the remaining input buffer is not large enough for the next operation. This
+     * function ensures that we always signal to the caller that we need more data via an empty buffer.
+     */
+    void bitstream_cache_input(bitstream* stream);
+
+    /*
+     * Consumes the specified number of bits from the input buffer and disposes of them. The caller is responsible for
+     * ensuring that the buffer has at least the specified number of bits (e.g. by first calling bitstream_peek).
      */
     static inline void bitstream_consume_bits(bitstream* stream, size_t bits)
     {
-        assert(bits <= stream->bits_in_buffer);
-        stream->buffer >>= bits;
-        stream->bits_in_buffer -= bits;
+        if (bits <= stream->partial_data_size)
+        {
+            stream->partial_data_size -= bits;
+            stream->partial_data >>= bits;
+        }
+        else
+        {
+            size_t bytesToConsume, partialBits;
+
+            bits -= stream->partial_data_size;
+            bytesToConsume = bits / 8; /* Full bytes to consume; does not include any partial byte */
+            partialBits = bits % 8; /* Bits to consume from the last byte */
+
+            if (partialBits)
+            {
+                /* We need a partial read */
+                assert(stream->length >= (bytesToConsume + 1));
+                stream->partial_data = stream->data[bytesToConsume] >> partialBits;
+                stream->partial_data_size = 8 - partialBits;
+
+                stream->data += bytesToConsume + 1;
+                stream->length -= (bytesToConsume + 1);
+            }
+            else
+            {
+                assert(stream->length >= bytesToConsume);
+                stream->partial_data = 0;
+                stream->partial_data_size = 0;
+
+                stream->data += bytesToConsume;
+                stream->length -= bytesToConsume;
+            }
+        }
     }
 
     /* Same as the above functions, but does not check to verify that the bitstream has enough input data */
