@@ -71,9 +71,10 @@ typedef struct inflatelib_state
 
     /* Inflater state */
     inflate_state ifstate;
-    uint8_t mode : 1;  // See 'INFLATELIB_MODE*' for possible values
-    uint8_t btype : 2; // block_type, but 'block_type' is signed and any value gretaer than 1 is negative...
-    int bfinal : 1;
+    uint8_t mode : 1;  /* See 'INFLATELIB_MODE*' for possible values */
+    uint8_t btype : 2; /* block_type, but 'block_type' is signed and any value gretaer than 1 is negative... */
+    uint8_t bfinal : 1;
+    uint8_t need_more_data : 1; /* Set when we are terminating due to not enough input data & we need to mark all as consumed */
 
     /* Compressed block state */
     huffman_tree code_length_tree;

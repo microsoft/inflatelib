@@ -12,11 +12,11 @@ extern "C"
 
     typedef struct bitstream
     {
-        // Read buffer
+        /* Read buffer */
         const uint8_t* data;
         size_t length;
 
-        // Partially read data
+        /* Partially read data */
         uint32_t buffer;
         size_t bits_in_buffer;
     } bitstream;
@@ -24,6 +24,7 @@ extern "C"
     void bitstream_init(bitstream* stream);
     void bitstream_reset(bitstream* stream);
     void bitstream_set_data(bitstream* stream, const uint8_t* data, size_t length);
+    void bitstream_clear_data(bitstream* stream, int reclaimData, const uint8_t** finalData, size_t* finalLength);
 
     void bitstream_byte_align(bitstream* stream);
 
