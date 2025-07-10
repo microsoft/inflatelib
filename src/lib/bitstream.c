@@ -119,39 +119,10 @@ size_t bitstream_read_bits(bitstream* stream, size_t bitsToRead, uint16_t* resul
 
     stream->partial_data = data >> bitsToRead;
     stream->partial_data_size = (stream->partial_data_size + (8 * bytesNeeded)) - bitsToRead;
-    assert(stream->partial_data_size < 8); /* This wasn't a failed read; should be less than a byte */
+    assert(stream->partial_data_size < 8);          /* This wasn't a failed read; should be less than a byte */
     assert(partial_data_consistency_check(stream)); /* Leading bits should be zero */
 
     return 1;
-}
-
-uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead)
-{
-    /* TODO: Probably remove this */
-    uint32_t data = 0, mask;
-    size_t bytesNeeded;
-
-    assert((bitsToRead > 0) && (bitsToRead <= (sizeof(uint16_t) * 8)));
-    assert(stream->length >= 2); /* Caller should have checked */
-
-    /* NOTE: See above */
-    assert((bitsToRead >= stream->partial_data_size) || (stream->partial_data_size < 8));
-    bytesNeeded = (bitsToRead + 7 - stream->partial_data_size) / 8;
-    assert(bytesNeeded <= 2);
-
-    data = (uint32_t)stream->data[0] | ((uint32_t)stream->data[1] << 8);
-    stream->data += bytesNeeded;
-    stream->length -= bytesNeeded;
-
-    data = (data << stream->partial_data_size) | stream->partial_data;
-
-    stream->partial_data_size = (stream->partial_data_size + (8 * bytesNeeded)) - bitsToRead;
-    stream->partial_data = (data >> bitsToRead) & ((1u << stream->partial_data_size) - 1);
-    assert(stream->partial_data_size < 8); /* This wasn't a failed read; should be less than a byte */
-    assert(partial_data_consistency_check(stream)); /* Leading bits should be zero */
-
-    mask = (1u << bitsToRead) - 1;
-    return (uint16_t)(data & mask);
 }
 
 size_t bitstream_peek(bitstream* stream, uint16_t* result)
@@ -179,17 +150,6 @@ size_t bitstream_peek(bitstream* stream, uint16_t* result)
     return bitCount;
 }
 
-uint16_t bitstream_peek_unchecked(bitstream* stream)
-{
-    uint32_t data;
-
-    assert(stream->length >= 2); /* Caller should have checked */
-    data = (uint32_t)stream->data[0] | ((uint32_t)stream->data[1] << 8);
-    data = (data << stream->partial_data_size) | stream->partial_data;
-
-    return (uint16_t)data;
-}
-
 void bitstream_cache_input(bitstream* stream)
 {
     assert(stream->length <= 1); /* Otherwise we have enough data for any operation that can be requested of us */
@@ -203,4 +163,74 @@ void bitstream_cache_input(bitstream* stream)
         ++stream->data;
         --stream->length;
     }
+}
+
+uint64_t bitstream_fast_begin(bitstream* stream)
+{
+    uint64_t result;
+
+    assert(stream->length >= 8); /* Caller should have checked */
+
+    result = (uint64_t)stream->data[0] | ((uint64_t)stream->data[1] << 8) | ((uint64_t)stream->data[2] << 16) |
+             ((uint64_t)stream->data[3] << 24) | ((uint64_t)stream->data[4] << 32) | ((uint64_t)stream->data[5] << 40) |
+             ((uint64_t)stream->data[6] << 48) | ((uint64_t)stream->data[7] << 56);
+    result = (result << stream->partial_data_size) | stream->partial_data;
+
+    return result;
+}
+
+int bitstream_fast_update(bitstream* stream, uint64_t* data, size_t* bitsRemaining)
+{
+    /* TODO: See which approach is more efficient*/
+#if 1
+    bitstream_consume_bits(stream, 64 - *bitsRemaining);
+
+    /* NOTE: Even if we're not reading more data, we want to reset 'bitsRemaining' to 64. This is somewhat of a hack,
+     * but it prevents us from re-consuming data when we call 'bitstream_fast_end' */
+    *bitsRemaining = 64;
+
+    if (stream->length < 8)
+    {
+        return 0; /* Not enough data */
+    }
+
+    *data = bitstream_fast_begin(stream);
+    return 1;
+#else
+    uint64_t newData = 0;
+    size_t readShift = *bitsRemaining;
+    const uint8_t* readBegin = stream->data + 8 - (stream->partial_data_size / 8);
+
+    if (stream->partial_data_size % 8)
+    {
+        newData = ((uint64_t)readBegin[-1] >> (8 - (stream->partial_data_size % 8))) << readShift;
+        readShift += stream->partial_data_size % 8;
+    }
+
+    bitstream_consume_bits(stream, 64 - *bitsRemaining);
+
+    /* NOTE: Even if we're not reading more data, we want to reset 'bitsRemaining' to 64. This is somewhat of a hack,
+     * but it prevents us from re-consuming data when we call 'bitstream_fast_end' */
+    *bitsRemaining = 64;
+
+    if (stream->length < 8)
+    {
+        return 0; /* Not enough data */
+    }
+
+    for (const uint8_t* readEnd = stream->data + 8; readBegin < readEnd; ++readBegin)
+    {
+        newData |= ((uint64_t)(*readBegin)) << readShift;
+        readShift += 8;
+    }
+
+    *data |= newData;
+    assert(*data == bitstream_fast_begin(stream));
+    return 1;
+#endif
+}
+
+void bitstream_fast_end(bitstream* stream, size_t bitsRemaining)
+{
+    bitstream_consume_bits(stream, 64 - bitsRemaining);
 }

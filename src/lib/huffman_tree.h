@@ -81,7 +81,7 @@ extern "C"
      * on success. The difference between these two functions is that the 'unchecked' function assumes there's enough
      * bits in the input to read any given symbol. */
     int huffman_tree_lookup(huffman_tree* tree, struct inflatelib_stream* stream, uint16_t* symbol);
-    int huffman_tree_lookup_unchecked(huffman_tree* tree, struct inflatelib_stream* stream, uint16_t* symbol);
+    int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream, uint16_t* symbol, uint64_t* inputData, size_t* inputDataSize);
 
 #ifdef __cplusplus
 }

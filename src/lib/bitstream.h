@@ -70,7 +70,7 @@ extern "C"
 
             bits -= stream->partial_data_size;
             bytesToConsume = bits / 8; /* Full bytes to consume; does not include any partial byte */
-            partialBits = bits % 8; /* Bits to consume from the last byte */
+            partialBits = bits % 8;    /* Bits to consume from the last byte */
 
             if (partialBits)
             {
@@ -94,9 +94,11 @@ extern "C"
         }
     }
 
-    /* Same as the above functions, but does not check to verify that the bitstream has enough input data */
-    uint16_t bitstream_read_bits_unchecked(bitstream* stream, size_t bitsToRead);
-    uint16_t bitstream_peek_unchecked(bitstream* stream);
+    /* In the fast path, we start by reading 64-bits from the input and consume what's needed from there. Once enough
+     * data is consumed from that input, we read more data until we have 64 bits again */
+    uint64_t bitstream_fast_begin(bitstream* stream);
+    int bitstream_fast_update(bitstream* stream, uint64_t* data, size_t* bitsRemaining);
+    void bitstream_fast_end(bitstream* stream, size_t bitsRemaining);
 
 #ifdef __cplusplus
 }

@@ -380,7 +380,7 @@ static int inflater_process_data(inflatelib_stream* stream)
                  * finish initializing the Huffman trees */
                 if (state->ifstate < ifstate_reading_literal_length_code)
                 {
-                    bitstream_cache_input(&state->bitstream);
+                    /* NOTE: 'bitstream_cache_input' already called by 'inflater_read_dynamic_header' */
                     return INFLATELIB_OK; /* Not enough data */
                 }
             }
@@ -770,12 +770,12 @@ static const inflater_tables deflate64_tables = {
 /* The "active" table is indexed using the current "mode" */
 static const inflater_tables* const inflate_tables[] = {&deflate_tables, &deflate64_tables};
 
-/* The maximum number of bytes that a single compressed block operation can consume. These values are used to optimize
+/* The maximum number of bits that a single compressed block operation can consume. These values are used to optimize
  * the likely path where we have enough data for a single operation so we don't have to continuously check to see if we
  * have enough data. These values are calculated as follows:
- * Deflate: 15 bit length + 5 extra bits + 15 bit distance + 13 extra bits = 48 bits = 6 bytes
- * Deflate64: 15 bit length + 16 extra bits + 15 bit distance + 14 extra bits = 60 bits = 8 bytes (rounded up) */
-static const size_t max_compressed_op_size[] = {6, 8};
+ * Deflate: 15 bit length + 5 extra bits + 15 bit distance + 13 extra bits = 48 bits
+ * Deflate64: 15 bit length + 16 extra bits + 15 bit distance + 14 extra bits = 60 bits */
+static const size_t max_compressed_op_size[] = {48, 60};
 
 /* static int inflater_read_compressed_fast(inflatelib_stream* stream); */
 static int inflater_read_compressed_fast(inflatelib_stream* stream);
@@ -789,7 +789,6 @@ static int inflater_read_compressed(inflatelib_stream* stream)
     uint16_t symbol;
     int opResult, keepGoing = 1;
     const inflater_tables* tables = inflate_tables[state->mode];
-    const size_t maxOpSize = max_compressed_op_size[state->mode];
 
     /* On entry, try and write any data we previously wrote to the window, but did not consume */
     bytesCopied = window_copy_output(&state->window, out, outSize);
@@ -802,7 +801,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
         {
         case ifstate_reading_literal_length_code:
             /* The fast path requires that we start in 'ifstate_reading_literal_length_code' */
-            if ((state->bitstream.length >= maxOpSize) && outSize)
+            if ((state->bitstream.length >= 8) && outSize)
             {
                 stream->next_out = out;
                 stream->avail_out = outSize;
@@ -1048,14 +1047,18 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
     size_t extraBits;
     uint16_t symbol;
     uint32_t blockLength, blockDistance;
+    uint64_t inputData;
+    size_t inputDataSize = 64;
     int opResult;
     const inflater_tables* tables = inflate_tables[state->mode];
     const size_t maxOpSize = max_compressed_op_size[state->mode];
 
     assert(state->ifstate == ifstate_reading_literal_length_code);
-    while ((state->bitstream.length >= maxOpSize) && outSize)
+    inputData = bitstream_fast_begin(&state->bitstream);
+
+    while (outSize)
     {
-        opResult = huffman_tree_lookup_unchecked(&state->literal_length_tree, stream, &symbol);
+        opResult = huffman_tree_lookup_unchecked(&state->literal_length_tree, stream, &symbol, &inputData, &inputDataSize);
         if (opResult < 0)
         {
             /* Error in the data; NOTE: We've already set the error message */
@@ -1071,6 +1074,10 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
             --outSize;
 
             /* Go back to reading a new symbol */
+            if ((inputDataSize < maxOpSize) && !bitstream_fast_update(&state->bitstream, &inputData, &inputDataSize))
+            {
+                break; /* Not enough input data to remain on the fast path */
+            }
             continue;
         }
         else if (symbol == 256) /* End of block */
@@ -1106,11 +1113,14 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
 
         if (extraBits > 0)
         {
-            blockLength += bitstream_read_bits_unchecked(&state->bitstream, extraBits);
+            assert(inputDataSize >= extraBits);
+            blockLength += (uint32_t)(inputData & ((1ull << extraBits) - 1));
+            inputData >>= extraBits;
+            inputDataSize -= extraBits;
         }
 
         /* Now we need to read a distance */
-        opResult = huffman_tree_lookup_unchecked(&state->distance_tree, stream, &symbol);
+        opResult = huffman_tree_lookup_unchecked(&state->distance_tree, stream, &symbol, &inputData, &inputDataSize);
         if (opResult < 0)
         {
             /* Error in the data; NOTE: We've already set the error message */
@@ -1137,7 +1147,10 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
 
         if (extraBits > 0)
         {
-            blockDistance += bitstream_read_bits_unchecked(&state->bitstream, extraBits);
+            assert(inputDataSize >= extraBits);
+            blockDistance += (uint32_t)(inputData & ((1ull << extraBits) - 1));
+            inputData >>= extraBits;
+            inputDataSize -= extraBits;
         }
 
         /* NOTE: In Deflate64, the longest possible length is greater than the window size by two bytes, meaning we may
@@ -1176,7 +1189,14 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
             /* Let the slow path take care of this */
             break;
         }
+
+        if ((inputDataSize < maxOpSize) && !bitstream_fast_update(&state->bitstream, &inputData, &inputDataSize))
+        {
+            break; /* Not enough input data to remain on the fast path */
+        }
     }
+
+    bitstream_fast_end(&state->bitstream, inputDataSize);
 
     /* Update the output buffers to reflect what we wrote */
     stream->next_out = out;

@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 
 set ROOT=%~dp0\..
 
-set EXTS=.h .c .cpp
+set EXTS=.h .hpp .c .cpp
 set DIRS=src test
 
 for %%d in (%DIRS%) do call :format_files %ROOT%\%%d

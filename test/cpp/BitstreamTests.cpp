@@ -57,8 +57,8 @@ TEST_CASE("BitstreamReadBits", "[bitstream]")
         // Read a few bits so that some of our future reads fail
         std::uint16_t value;
         REQUIRE(bitstream_read_bits(&stream, 4, &value));
-        REQUIRE(value == 0x0B); // Read lowest bits first
-        REQUIRE(stream.length == 1); // We initialize with 2 bytes and partially read one
+        REQUIRE(value == 0x0B);                 // Read lowest bits first
+        REQUIRE(stream.length == 1);            // We initialize with 2 bytes and partially read one
         REQUIRE(stream.partial_data_size == 4); // We just read 4 bits
         REQUIRE(stream.partial_data == 0x0A);
 

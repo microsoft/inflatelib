@@ -284,21 +284,19 @@ int huffman_tree_lookup(huffman_tree* tree, inflatelib_stream* stream, uint16_t*
     return 1;
 }
 
-int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream, uint16_t* symbol)
+int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream, uint16_t* symbol, uint64_t* inputData, size_t* inputDataSize)
 {
-    bitstream* bitstream = &stream->internal->bitstream;
-    huffman_table_entry* tableEntry;
-    size_t input;
+    const huffman_table_entry* tableEntry;
 
-    input = bitstream_peek_unchecked(bitstream);
-    tableEntry = &tree->data[input & tree->table_mask];
+    assert(*inputDataSize >= 15); /* Max code length is 15 */
 
+    tableEntry = &tree->data[*inputData & tree->table_mask];
     if (tableEntry->code_length > tree->table_bits)
     {
         /* This is a "pointer" inside the tree */
-        huffman_table_entry* tableBase = tree->data + ((size_t)0x01 << tree->table_bits);
+        const huffman_table_entry* const tableBase = tree->data + ((size_t)0x01 << tree->table_bits);
         size_t bitsRead = tree->table_bits;
-        size_t remainingInput = input >> tree->table_bits;
+        size_t remainingInput = *inputData >> tree->table_bits;
 
         do
         {
@@ -317,7 +315,8 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
     if (tableEntry->code_length == 0)
     {
         /* Zero means unassigned; this is an error */
-        if (format_error_message(stream, "Input bit sequence 0x%2X is not a valid Huffman code for the encoded table", input) < 0)
+        if (format_error_message(
+                stream, "Input bit sequence 0x%2X is not a valid Huffman code for the encoded table", (uint16_t)*inputData) < 0)
         {
             stream->error_msg = "Input bit sequence is not a valid Huffman code for the encoded table";
         }
@@ -327,7 +326,8 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
 
     /* Success if we've gotten this far */
     *symbol = tableEntry->symbol;
-    bitstream_consume_bits(bitstream, tableEntry->code_length);
+    *inputData >>= tableEntry->code_length;
+    *inputDataSize -= tableEntry->code_length;
     return 1;
 }
 
