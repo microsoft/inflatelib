@@ -203,7 +203,7 @@ static int do_inflate(inflatelib_stream* stream)
 {
     int result;
     inflatelib_state* state = stream->internal;
-    const uint8_t* finalInData, *initialInData = (const uint8_t*)stream->next_in;
+    const uint8_t *finalInData, *initialInData = (const uint8_t*)stream->next_in;
     size_t finalInSize, initialInSize = stream->avail_in, initialOutSize = stream->avail_out;
 
     assert(state->ifstate != ifstate_init);
@@ -359,7 +359,7 @@ static int inflater_process_data(inflatelib_stream* stream)
 
         case ifstate_eof:
             assert(state->need_more_data == 0); /* Unused data needs to go back to the caller */
-            return INFLATELIB_EOF; /* Already read all data */
+            return INFLATELIB_EOF;              /* Already read all data */
 
         default:
             /* Otherwise, 'btype' is known & we're in the process of decoding; handled below */
@@ -387,7 +387,7 @@ static int inflater_process_data(inflatelib_stream* stream)
                 else if (state->ifstate < ifstate_reading_literal_length_code)
                 {
                     assert(state->need_more_data == 1); /* inflater_read_dynamic_header should have set this */
-                    return INFLATELIB_OK; /* Not enough input data */
+                    return INFLATELIB_OK;               /* Not enough input data */
                 }
             }
             /* Fallthrough */
