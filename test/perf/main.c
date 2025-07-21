@@ -1,4 +1,11 @@
-
+/*
+ *    Copyright (c) Microsoft. All rights reserved.
+ *    This code is licensed under the MIT License.
+ *    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ *    ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+ *    TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ *    PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ */
 #include "pch.h"
 
 #include <inttypes.h>
@@ -670,6 +677,11 @@ void print_test_histogram(test_desc* tests, histogram* data, const char* title, 
     /* Output the table */
     if (printFlags & pf_display_table)
     {
+        if (!(printFlags & pf_display_histogram))
+        {
+            printf("\n%s\n\n", title);
+        }
+
         printf("  Algorithm  | Minimum (ms) | Maximum (ms) | Average (ms) |  Median (ms)\n");
         printf("-------------+--------------+--------------+--------------+--------------\n");
 

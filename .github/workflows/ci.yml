@@ -8,6 +8,33 @@ on:
       - main
 
 jobs:
+  format:
+    name: 'Format Check'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Formatting
+        shell: cmd
+        run: |
+          git clang-format origin/main --style file --diff
+          if %ERRORLEVEL% NEQ 0 (
+            echo.
+            echo ERROR: This branch contains changes that have not been formatted with 'clang-format'
+            echo NOTE: To resolve this issue, you can run 'git clang-format upstream/main --style file' to format your changes and
+            echo       then commit the result. Note that if this is NOT a fork, you will want to substitute 'origin/main' for
+            echo       'upstream/main' in the above command.
+            echo.
+            echo        For more information, please see https://github.com/microsoft/inflatelib/blob/main/CONTRIBUTING.md#formatting
+            echo.
+            echo NOTE:  As an additional note, given that different versions of 'clang-format' may have different behaviors, this
+            echo        may be a false positive. If you believe that to be the case ^(e.g. none of the above resulted in modifications
+            echo        to the code you have changed^), please note this in your PR.
+            exit /B 1
+          )
+
   windows:
     name: 'Windows Build & Test'
     strategy:
