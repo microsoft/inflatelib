@@ -35,6 +35,24 @@ void bitstream_set_data(bitstream* stream, const uint8_t* data, size_t length)
     /* Don't touch buffer; it may have valid data */
 }
 
+void bitstream_clear_data(bitstream* stream, int reclaimData, const uint8_t** finalData, size_t* finalLength)
+{
+    size_t reclaimSize = 0;
+
+    if (reclaimData)
+    {
+        reclaimSize = stream->bits_in_buffer / 8;
+        stream->bits_in_buffer = stream->bits_in_buffer % 8;
+        stream->buffer &= ((1u << stream->bits_in_buffer) - 1);
+    }
+
+    *finalData = stream->data - reclaimSize;
+    *finalLength = stream->length + reclaimSize;
+
+    stream->data = NULL;
+    stream->length = 0;
+}
+
 void bitstream_byte_align(bitstream* stream)
 {
     /* It's possible to have more than one byte in the buffer, so we can't just set 'bits_in_buffer' to zero */
