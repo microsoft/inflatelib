@@ -4,6 +4,11 @@
 InflateLib is a Deflate/Deflate64 decompression library written in C based off [dotnet's System.IO.Compression implementation](https://github.com/dotnet/runtime/tree/main/src/libraries/System.IO.Compression/src/System/IO/Compression/DeflateManaged).
 The API is modeled after that of [zlib](https://zlib.net/).
 
+> [!IMPORTANT]
+> InflateLib is currently considered "prerelease" (version 0.X.Y).
+> Its API and ABI should not be considered stable while we solicit feedback on its API.
+> This is expected to last a couple months at most.
+> In the meantime, please use the [issues tab](https://github.com/microsoft/inflatelib/issues) to submit feedback, issues, feature requests, etc.
 
 # Links
 
