@@ -27,7 +27,7 @@
         "fuzz-inflate.pdb",
         "clang_rt.asan_dynamic-x86_64.dll"
       ],
-      "SdlWorkItemId": 0
+      "SdlWorkItemId": 58760469
     },
     {
       "jobNotificationEmail": "condev@microsoft.com",
@@ -55,7 +55,7 @@
         "fuzz-inflate64.pdb",
         "clang_rt.asan_dynamic-x86_64.dll"
       ],
-      "SdlWorkItemId": 0
+      "SdlWorkItemId": 58760469
     }
   ]
 }
