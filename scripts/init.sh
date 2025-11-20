@@ -12,6 +12,7 @@ fi
 compiler=
 generator=
 buildType=
+buildShared=false
 installPrefix=
 vcpkgRoot=
 sanitizer=
@@ -20,7 +21,7 @@ cmakeArgs=()
 
 function show_help {
     echo "USAGE:"
-    echo "    init.sh [-c <compiler>] [-b <build-type>] [-g <generator>] [-i <install-prefix>] [-s <sanitizer>] [-f]"
+    echo "    init.sh [-c <compiler>] [-b <build-type>] [-g <generator>] [-o] [-i <install-prefix>] [-s <sanitizer>] [-f]"
     echo "        [-p <path-to-vcpkg-root>]"
     echo
     echo "ARGUMENTS:"
@@ -28,6 +29,7 @@ function show_help {
     echo "    -b      Specifies the value of 'CMAKE_BUILD_TYPE', either 'debug' (the default),"
     echo "            'release', 'relwithdebinfo', or 'minsizerel'"
     echo "    -g      Specifies the generator to use, either 'ninja' (the default) or 'make'"
+    echo "    -o      Builds the library as a shared library. Otherwise builds the library as a static library."
     echo "    -i      Specifies the path used for 'CMAKE_INSTALL_PREFIX'. If this argument is not specified,"
     echo "            'CMAKE_INSTALL_PREFIX' will not be passed to CMake during initialization."
     echo "    -s      Specifies the sanitizer to use, either 'address' or 'undefined'. If this value is not"
@@ -38,7 +40,7 @@ function show_help {
     echo "            will be to check for the presence of the VCPKG_ROOT environment variable"
 }
 
-while getopts :hc:b:g:i:s:fp: opt; do
+while getopts :hc:b:g:oi:s:fp: opt; do
     if [ -n "${OPTARG}" ]; then
         arg=${OPTARG,,}
     fi
@@ -93,6 +95,9 @@ while getopts :hc:b:g:i:s:fp: opt; do
                 exit 1
             fi
             ;;
+        o)
+            buildShared=true
+            ;;
         i)
             if [ "$installPrefix" != "" ]; then
                 echo>&2 "Error: Install prefix already specified. Cannot specify more than one install prefix."
@@ -137,7 +142,7 @@ while getopts :hc:b:g:i:s:fp: opt; do
             vcpkgRoot="$OPTARG"
             ;;
         *)
-            echo>&2 "ERROR: Invalid argument '-$opt'"
+            echo>&2 "ERROR: Invalid argument '-$OPTARG'"
             show_help
             exit 1
             ;;
@@ -194,6 +199,10 @@ elif [ "$buildType" == "relwithdebinfo" ]; then
     cmakeArgs+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)
 elif [ "$buildType" == "minsizerel" ]; then
     cmakeArgs+=(-DCMAKE_BUILD_TYPE=MinSizeRel)
+fi
+
+if [ "$buildShared" = true ]; then
+    cmakeArgs+=(-DINFLATELIB_BUILD_SHARED=ON)
 fi
 
 if [ "$installPrefix" != "" ]; then

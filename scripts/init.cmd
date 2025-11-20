@@ -10,7 +10,7 @@ goto :init
 :usage
     echo USAGE:
     echo     init.cmd [--help] [-c^|--compiler ^<clang^|msvc^>] [-g^|--generator ^<ninja^|msbuild^>]
-    echo         [-b^|--build-type ^<debug^|release^|relwithdebinfo^|minsizerel^>] [-i^|--install-prefix install/path]
+    echo         [-b^|--build-type ^<debug^|release^|relwithdebinfo^|minsizerel^>] [-d|--dll] [-i^|--install-prefix install/path]
     echo         [-s^|--sanitize ^<address^|undefined^>] [-f^|--fuzz] [-p^|--vcpkg path/to/vcpkg/root]
     echo.
     echo ARGUMENTS
@@ -18,6 +18,8 @@ goto :init
     echo     -g^|--generator      Controls the CMake generator used, either 'ninja' (the default) or 'msbuild'
     echo     -b^|--build-type     Controls the value of 'CMAKE_BUILD_TYPE', either 'debug' (the default), 'release',
     echo                         'relwithdebinfo', or 'minsizerel'
+    echo     -d^|--dll            When present, builds the library as a shared library (DLL), otherwise the library is
+    echo                         built as a static library.
     echo     -i^|--install-prefix Specifies the path used for 'CMAKE_INSTALL_PREFIX'. If this argument is not specified,
     echo                         'CMAKE_INSTALL_PREFIX' will not be passed to CMake during initialization.
     echo     -s^|--sanitize       Specifies the sanitizer to use, either 'address' or 'ub'. If this argument is not
@@ -36,6 +38,7 @@ goto :init
     set COMPILER=
     set GENERATOR=
     set BUILD_TYPE=
+    set BUILD_SHARED=0
     set INSTALL_PREFIX=
     set CMAKE_ARGS=
     set VCPKG_ROOT_PATH=
@@ -90,6 +93,15 @@ goto :init
         if "!BUILD_TYPE!"=="" echo ERROR: Unrecognized/missing build type %~2 & call :usage & exit /B 1
 
         shift
+        shift
+        goto :parse
+    )
+
+    set BUILD_SHARED_SET=0
+    if /I "%~1"=="-d" set BUILD_SHARED_SET=1
+    if /I "%~1"=="--dll" set BUILD_SHARED_SET=1
+    if %BUILD_SHARED_SET%==1 (
+        set BUILD_SHARED=1
         shift
         goto :parse
     )
@@ -172,7 +184,7 @@ goto :init
     if "%VCPKG_ROOT_PATH%"=="" (
         REM First check for %VCPKG_ROOT% variable
         if defined VCPKG_ROOT (
-            set VCPKG_ROOT_PATH=%VCPKG_ROOT%
+            set "VCPKG_ROOT_PATH=%VCPKG_ROOT%"
         ) else (
             REM Next check the PATH for vcpkg.exe
             for %%i in (vcpkg.exe) do set VCPKG_ROOT_PATH=%%~dp$PATH:i
@@ -219,6 +231,10 @@ goto :init
         if %BUILD_TYPE%==release set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release
         if %BUILD_TYPE%==relwithdebinfo set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=RelWithDebInfo
         if %BUILD_TYPE%==minsizerel set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=MinSizeRel
+    )
+
+    if %BUILD_SHARED%==1 (
+        set CMAKE_ARGS=%CMAKE_ARGS% -DINFLATELIB_BUILD_SHARED=ON
     )
 
     set SUFFIX=

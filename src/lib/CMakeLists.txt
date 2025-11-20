@@ -2,7 +2,19 @@
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-add_library(inflatelib)
+if (${INFLATELIB_BUILD_SHARED})
+    add_library(inflatelib SHARED)
+
+    target_compile_definitions(inflatelib
+        PRIVATE
+            INFLATELIB_BUILD_SHARED
+        INTERFACE
+            INFLATELIB_CONSUME_SHARED
+        )
+else()
+    add_library(inflatelib STATIC)
+endif()
+
 add_library(inflatelib::inflatelib ALIAS inflatelib)
 
 target_compile_features(inflatelib
@@ -14,6 +26,8 @@ target_compile_options(inflatelib
     PUBLIC
         ${SANITIZER_FLAGS}
     )
+
+set_property(TARGET inflatelib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_link_libraries(inflatelib
     INTERFACE

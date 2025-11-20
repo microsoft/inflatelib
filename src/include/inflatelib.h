@@ -11,6 +11,34 @@
 
 #include <stdint.h>
 
+/*
+ * INFLATELIB_BUILD_SHARED      The library is being built as a shared library
+ * INFLATELIB_CONSUME_SHARED    The library is being consumed as a shared library
+ * Otherwise...                 The library is either being built as a static library or it is being consumed in an
+ *                              unspecified manner; either as a shared or static library.
+ */
+#ifdef INFLATELIB_BUILD_SHARED
+#ifdef _WIN32
+#define INFLATELIB_EXPORT __declspec(dllexport)
+#else
+#define INFLATELIB_EXPORT
+#endif
+#elif defined(INFLATELIB_CONSUME_SHARED)
+#ifdef _WIN32
+#define INFLATELIB_EXPORT __declspec(dllimport)
+#else
+#define INFLATELIB_EXPORT
+#endif
+#else
+#define INFLATELIB_EXPORT /* Unknown or static - either way nothing to tag here */
+#endif
+
+#ifdef _WIN32
+#define INFLATELIB_CALLCONV __cdecl
+#else
+#define INFLATELIB_CALLCONV
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -100,7 +128,7 @@ extern "C"
      * Initializes the stream. The 'user_data', 'alloc', and 'free' members MUST be set prior to the init call and MUST
      * NOT be changed after the init call completes. This function returns one of the status values specified above.
      */
-    int inflatelib_init(inflatelib_stream* stream);
+    INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_init(inflatelib_stream* stream);
 
     /*
      * Resets the stream's state back to its initialized state. This allows the stream to be reused for multiple inflate
@@ -108,24 +136,24 @@ extern "C"
      * call returns EOF, however it can also be used to reset the stream after an error or even during the middle of
      * inflating a stream. This function also allows the caller to switch between Deflate and Deflate64.
      */
-    int inflatelib_reset(inflatelib_stream* stream);
+    INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_reset(inflatelib_stream* stream);
 
     /*
      * Cleans up any data allocated/initialized by the library. This function must be called if 'inflatelib_init'
      * returns success. After this function is called, the 'inflatelib_stream' cannot be used for any function call
      * unless 'inflatelib_init' is called again. This function can only return success.
      */
-    int inflatelib_destroy(inflatelib_stream* stream);
+    INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_destroy(inflatelib_stream* stream);
 
     /*
      *
      */
-    int inflatelib_inflate(inflatelib_stream* stream);
+    INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_inflate(inflatelib_stream* stream);
 
     /*
      *
      */
-    int inflatelib_inflate64(inflatelib_stream* stream);
+    INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_inflate64(inflatelib_stream* stream);
 
 #ifdef __cplusplus
 } // extern "C"

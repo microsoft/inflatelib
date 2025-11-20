@@ -6,6 +6,10 @@ project(inflatelib
     LANGUAGES C CXX
     )
 
+# "Production" options
+option(INFLATELIB_BUILD_SHARED "Build inflatelib as a shared library" OFF)
+
+# "Test" options
 option(INFLATELIB_TEST "Build tests for local development and CI validation" ON)
 option(INFLATELIB_ASAN "Build with Address Sanitizer" OFF)
 option(INFLATELIB_UBSAN "Build with Undefined Behavior Sanitizer" OFF)
