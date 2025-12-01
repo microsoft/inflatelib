@@ -11,29 +11,33 @@
 
 #include <stdint.h>
 
+#ifdef __has_attribute
+#if __has_attribute(visibility)
+#define INFLATELIB_HAS_VISIBILITY_ATTR 1
+#endif
+#endif
+
 /*
  * INFLATELIB_BUILD_SHARED      The library is being built as a shared library
  * INFLATELIB_CONSUME_SHARED    The library is being consumed as a shared library
  * Otherwise...                 The library is either being built as a static library or it is being consumed in an
  *                              unspecified manner; either as a shared or static library.
  */
+#if defined(_WIN32) && defined(_MSC_VER)
 #ifdef INFLATELIB_BUILD_SHARED
-#ifdef _WIN32
 #define INFLATELIB_EXPORT __declspec(dllexport)
-#else
-#define INFLATELIB_EXPORT
-#endif
 #elif defined(INFLATELIB_CONSUME_SHARED)
-#ifdef _WIN32
 #define INFLATELIB_EXPORT __declspec(dllimport)
 #else
-#define INFLATELIB_EXPORT
+#define INFLATELIB_EXPORT /* Unknown or static - don't decorate function declarations */
 #endif
+#elif INFLATELIB_HAS_VISIBILITY_ATTR
+#define INFLATELIB_EXPORT __attribute__((visibility("default")))
 #else
-#define INFLATELIB_EXPORT /* Unknown or static - either way nothing to tag here */
+#define INFLATELIB_EXPORT /* Not Windows and no visibility attribute... dont' decorate function declarations */
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
 #define INFLATELIB_CALLCONV __cdecl
 #else
 #define INFLATELIB_CALLCONV

@@ -27,7 +27,11 @@ target_compile_options(inflatelib
         ${SANITIZER_FLAGS}
     )
 
-set_property(TARGET inflatelib PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(inflatelib PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    )
 
 target_link_libraries(inflatelib
     INTERFACE
