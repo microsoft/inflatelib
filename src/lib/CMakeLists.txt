@@ -31,6 +31,7 @@ set_target_properties(inflatelib PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     C_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
+    DEBUG_POSTFIX "d"
     )
 
 target_link_libraries(inflatelib
