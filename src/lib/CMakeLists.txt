@@ -32,6 +32,8 @@ set_target_properties(inflatelib PROPERTIES
     C_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
     DEBUG_POSTFIX "d"
+    SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
+    VERSION ${CMAKE_PROJECT_VERSION}
     )
 
 target_link_libraries(inflatelib
@@ -55,6 +57,7 @@ target_sources(inflatelib
         huffman_tree.c
         inflate.c
         window.c
+        $<$<AND:$<BOOL:${WIN32}>,$<BOOL:${INFLATELIB_BUILD_SHARED}>>:inflatelib.rc>
     )
 
 # Installation

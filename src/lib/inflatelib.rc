@@ -1,0 +1,40 @@
+#include <windows.h>
+#include <inflatelib.h>
+
+//---------------------------------------------------------------
+// Version Information
+//---------------------------------------------------------------
+VS_VERSION_INFO VERSIONINFO
+    FILEVERSION     INFLATELIB_VERSION_MAJOR,INFLATELIB_VERSION_MINOR,INFLATELIB_VERSION_PATCH,0
+    PRODUCTVERSION  INFLATELIB_VERSION_MAJOR,INFLATELIB_VERSION_MINOR,INFLATELIB_VERSION_PATCH,0
+    FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+    FILEFLAGS       1
+#else
+    FILEFLAGS       0
+#endif
+    FILEOS          VOS__WINDOWS32
+    FILETYPE        VFT_DLL
+    FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904e4"  // US English + ANSI Latin 1
+        BEGIN
+            VALUE "CompanyName",      "Microsoft Corporation\0"
+            VALUE "FileDescription",  "InflateLib decompression library\0"
+            VALUE "FileVersion",      INFLATELIB_VERSION_STRING "\0"
+            VALUE "InternalName",     "inflatelib.dll\0"
+            VALUE "LegalCopyright",   "Copyright (c) Microsoft Corporation. All rights reserved.\0"
+            VALUE "OriginalFilename", "inflatelib.dll\0"
+            VALUE "ProductName",      "InflateLib\0"
+            VALUE "ProductVersion",   INFLATELIB_VERSION_STRING "\0"
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        // Language ID, Code Page (0409 = US English, 1252 = ANSI Latin 1; Western European)
+        VALUE "Translation", 0x0409, 1252
+    END
+END
