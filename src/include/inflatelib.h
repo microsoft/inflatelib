@@ -34,7 +34,7 @@
 #elif INFLATELIB_HAS_VISIBILITY_ATTR
 #define INFLATELIB_EXPORT __attribute__((visibility("default")))
 #else
-#define INFLATELIB_EXPORT /* Not Windows and no visibility attribute... dont' decorate function declarations */
+#define INFLATELIB_EXPORT /* Not Windows and no visibility attribute... don't decorate function declarations */
 #endif
 
 #if defined(_WIN32) && defined(_MSC_VER)
