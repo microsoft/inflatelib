@@ -2,7 +2,19 @@
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-add_library(inflatelib)
+if (${INFLATELIB_BUILD_SHARED})
+    add_library(inflatelib SHARED)
+
+    target_compile_definitions(inflatelib
+        PRIVATE
+            INFLATELIB_BUILD_SHARED
+        INTERFACE
+            INFLATELIB_CONSUME_SHARED
+        )
+else()
+    add_library(inflatelib STATIC)
+endif()
+
 add_library(inflatelib::inflatelib ALIAS inflatelib)
 
 target_compile_features(inflatelib
@@ -13,6 +25,15 @@ target_compile_features(inflatelib
 target_compile_options(inflatelib
     PUBLIC
         ${SANITIZER_FLAGS}
+    )
+
+set_target_properties(inflatelib PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    DEBUG_POSTFIX "d"
+    SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
+    VERSION ${CMAKE_PROJECT_VERSION}
     )
 
 target_link_libraries(inflatelib
@@ -36,6 +57,7 @@ target_sources(inflatelib
         huffman_tree.c
         inflate.c
         window.c
+        $<$<AND:$<BOOL:${WIN32}>,$<BOOL:${INFLATELIB_BUILD_SHARED}>>:inflatelib.rc>
     )
 
 # Installation

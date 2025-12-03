@@ -19,7 +19,11 @@ if (BUILD_TEST_FILES)
 endif()
 
 if (NOT INFLATELIB_FUZZ)
-    add_subdirectory(cpp)
+    # Building as a shared library does not export internal symbols, which we test in the unit tests. It's still useful
+    # to test building as a shared library, so just exclude the unit tests in this configuration
+    if (NOT INFLATELIB_BUILD_SHARED)
+        add_subdirectory(cpp)
+    endif()
 
     # The perf tests are pretty useless when sanitizers are enabled. Note that the tests will consume the same input as the
     # perf tests, so it's not like we're missing potential coverage here.
