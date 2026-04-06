@@ -27,7 +27,8 @@
                 "fuzz-inflate.pdb",
                 "clang_rt.asan_dynamic-x86_64.dll"
             ],
-            "SdlWorkItemId": 58760469
+            "SdlWorkItemId": 58760469,
+            "SourcesAllowListPath": "fuzzing-sources.txt"
         },
         {
             "jobNotificationEmail": "condev@microsoft.com",
@@ -55,7 +56,8 @@
                 "fuzz-inflate64.pdb",
                 "clang_rt.asan_dynamic-x86_64.dll"
             ],
-            "SdlWorkItemId": 58760469
+            "SdlWorkItemId": 58760469,
+            "SourcesAllowListPath": "fuzzing-sources.txt"
         }
     ]
 }
