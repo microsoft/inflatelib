@@ -7,7 +7,8 @@
             "rebootAfterSetup": false,
             "fuzzer": {
                 "$type": "libfuzzer",
-                "fuzzingHarnessExecutableName": "fuzz-inflate.exe"
+                "fuzzingHarnessExecutableName": "fuzz-inflate.exe",
+                "SourcesAllowListPath": "fuzzing-sources.txt"
             },
             "oneFuzzJobs": [
                 {
@@ -27,8 +28,7 @@
                 "fuzz-inflate.pdb",
                 "clang_rt.asan_dynamic-x86_64.dll"
             ],
-            "SdlWorkItemId": 58760469,
-            "SourcesAllowListPath": "fuzzing-sources.txt"
+            "SdlWorkItemId": 58760469
         },
         {
             "jobNotificationEmail": "condev@microsoft.com",
@@ -36,7 +36,8 @@
             "rebootAfterSetup": false,
             "fuzzer": {
                 "$type": "libfuzzer",
-                "fuzzingHarnessExecutableName": "fuzz-inflate64.exe"
+                "fuzzingHarnessExecutableName": "fuzz-inflate64.exe",
+                "SourcesAllowListPath": "fuzzing-sources.txt"
             },
             "oneFuzzJobs": [
                 {
@@ -56,8 +57,7 @@
                 "fuzz-inflate64.pdb",
                 "clang_rt.asan_dynamic-x86_64.dll"
             ],
-            "SdlWorkItemId": 58760469,
-            "SourcesAllowListPath": "fuzzing-sources.txt"
+            "SdlWorkItemId": 58760469
         }
     ]
 }
