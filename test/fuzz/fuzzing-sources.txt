@@ -1,0 +1,10 @@
+# When using a source-allow-list (which this is), you have to specify * for everything to be included
+*
+
+# Now, exclude via wildcarded paths all of the following locations.
+# This is because code-coverage data on our fuzzers shouldn't be covering
+# how well we exercise the CRT, STL, etc.
+! *vctools*
+! *externalapis*
+! *internal_shared.h
+! *type_traits
