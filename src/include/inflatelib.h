@@ -58,6 +58,24 @@ extern "C"
 
     struct inflatelib_state; /* Opaque to client applications */
 
+    /*
+     * This struct stores all data and state for decompressing Defalte/Deflate64 encoded data. With the exception of
+     * success/error codes, all input and output data is passed through this struct. Specifically, input and output
+     * buffers are set by the caller via 'next_in'/'avail_in' and 'next_out'/'avail_out' respectively. The "inflate" and
+     * "inflate64" functions communicate the amount of data consumed/written by updating these buffers and lengths. For
+     * example, you can determine the amount of data consumed/written by a call to 'inflatelib_inflate' or
+     * 'inflatelib_inflate64' by either subtracting 'next_in'/'next_out' after the call by their original pointers
+     * (interpreted as uintptr_t values) or by subtracting 'avail_in'/'avail_out' after the call from the sizes passed
+     * in. Alternatively, you can subtract 'total_in'/'total_out' after the call by their values before the call (or
+     * equivalently by setting them to zero before the call and reading their values after the call).
+     *
+     * Internally, these objects behave as a state machine. After being initialized, they transition to either "Deflate"
+     * or "Deflate64" decoding states via calls to 'inflatelib_inflate' and 'inflatelib_inflate64' respectively. When
+     * in these states, the only valid operations are to destroy the object, put the object back into the initialized
+     * state via 'inflatelib_reset', or to decompress more data using the function that corresponds to the current
+     * state: either 'inflatelib_inflate' for the "Deflate" state or 'inflatelib_inflate64' for the "Deflate64" state.
+     * If you attempt to call 'inflatelib_inflate64' when in the "Deflate" state or vice-versa, the call will fail.
+     */
     typedef struct inflatelib_stream
     {
         /*
@@ -150,12 +168,16 @@ extern "C"
     INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_destroy(inflatelib_stream* stream);
 
     /*
-     *
+     * "Inflates" the Deflate encoded data from next_in/avail_in, writing the decoded data to next_out/avail_out. The
+     * 'stream' MUST be in either the "initialized" state or the "Deflate" state. This function returns one of the
+     * status values defined above, notably it returns 'INFLATELIB_EOF' when the last block of data has been fully
+     * processed.
      */
     INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_inflate(inflatelib_stream* stream);
 
     /*
-     *
+     * "Inflates" the Deflate64 encoded data from next_in/avail_in, writing the decoded data to next_out/avail_out. The
+     * 'stream' MUST be in either the "initialized" state or the "Deflate64" state.
      */
     INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_inflate64(inflatelib_stream* stream);
 

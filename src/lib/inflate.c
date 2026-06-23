@@ -786,9 +786,19 @@ static const inflater_tables* const inflate_tables[] = {&deflate_tables, &deflat
 /* The maximum number of bytes that a single compressed block operation can consume. These values are used to optimize
  * the likely path where we have enough data for a single operation so we don't have to continuously check to see if we
  * have enough data. These values are calculated as follows:
- * Deflate: 15 bit length + 5 extra bits + 15 bit distance + 13 extra bits = 48 bits = 6 bytes
- * Deflate64: 15 bit length + 16 extra bits + 15 bit distance + 14 extra bits = 60 bits = 8 bytes (rounded up) */
-static const size_t max_compressed_op_size[] = {6, 8};
+ * Deflate:
+ *      15 bit length:      0 bits in stream  -> read 2 bytes = 16 bits in stream -> 1 bit leftover
+ *      5 extra bits:       1 bit in stream   -> read 2 bytes = 17 bits in stream -> 12 bits leftover
+ *      15 bit distance:    12 bits in stream -> read 2 bytes = 28 bits in stream -> 13 bits leftover
+ *      13 extra bits:      13 bits in stream -> read 2 bytes = 29 bits in stream -> 16 bits leftover
+ *          Total Bytes Needed:                       8 bytes
+ * Deflate64:
+ *      15 bit length:      0 bits in stream  -> read 2 bytes = 16 bits in stream -> 1 bit leftover
+ *      16 extra bits:      1 bit in stream   -> read 2 bytes = 17 bits in stream -> 1 bit leftover
+ *      15 bit distance:    1 bit in stream   -> read 2 bytes = 17 bits in stream -> 2 bits leftover
+ *      14 extra bits:      2 bits in stream  -> read 2 bytes = 18 bits in stream -> 4 bits leftover
+ *          Total Bytes Needed:                       8 bytes */
+static const size_t max_compressed_op_size = 8;
 
 /* static int inflater_read_compressed_fast(inflatelib_stream* stream); */
 static int inflater_read_compressed_fast(inflatelib_stream* stream);
@@ -802,7 +812,6 @@ static int inflater_read_compressed(inflatelib_stream* stream)
     uint16_t symbol;
     int opResult, keepGoing = 1;
     const inflater_tables* tables = inflate_tables[state->mode];
-    const size_t maxOpSize = max_compressed_op_size[state->mode];
 
     /* On entry, try and write any data we previously wrote to the window, but did not consume */
     bytesCopied = window_copy_output(&state->window, out, outSize);
@@ -815,7 +824,7 @@ static int inflater_read_compressed(inflatelib_stream* stream)
         {
         case ifstate_reading_literal_length_code:
             /* The fast path requires that we start in 'ifstate_reading_literal_length_code' */
-            if ((state->bitstream.length >= maxOpSize) && outSize)
+            if ((state->bitstream.length >= max_compressed_op_size) && outSize)
             {
                 stream->next_out = out;
                 stream->avail_out = outSize;
@@ -1063,10 +1072,9 @@ static int inflater_read_compressed_fast(inflatelib_stream* stream)
     uint32_t blockLength, blockDistance;
     int opResult;
     const inflater_tables* tables = inflate_tables[state->mode];
-    const size_t maxOpSize = max_compressed_op_size[state->mode];
 
     assert(state->ifstate == ifstate_reading_literal_length_code);
-    while ((state->bitstream.length >= maxOpSize) && outSize)
+    while ((state->bitstream.length >= max_compressed_op_size) && outSize)
     {
         opResult = huffman_tree_lookup_unchecked(&state->literal_length_tree, stream, &symbol);
         if (opResult < 0)
