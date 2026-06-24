@@ -793,7 +793,16 @@ TEST_CASE("InflateCodeLensStress", "[inflate]")
             REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
         };
 
-    // NOTE: 'dynamic.code-len-stress.deflate.in' has 1833 bytes before the encoded data
-    doCodeLensStressTest.operator()<&inflatelib::stream::inflate>(
-        "dynamic.code-len-stress.deflate.in.bin", "dynamic.code-len-stress.deflate.out.bin", 1834, 6);
+    // NOTE: We loop using the range 7-9 for 'bytesToConsume' because 7 guarantees that we always take the slow path,
+    // 8 uses both the slow and fast path, and 9 guarantees the fast path
+    for (std::size_t bytesToConsume = 7; bytesToConsume <= 9; ++bytesToConsume)
+    {
+        // NOTE: 'dynamic.code-len-stress.deflate.in' has 1833 bytes plus a few bits before the encoded data we care about
+        doCodeLensStressTest.operator()<&inflatelib::stream::inflate>(
+            "dynamic.code-len-stress.deflate.in.bin", "dynamic.code-len-stress.deflate.out.bin", 1834, bytesToConsume);
+
+        // NOTE: 'dynamic.code-len-stress.deflate64.in' has 2184 bytes before the encoded data we care about
+        doCodeLensStressTest.operator()<&inflatelib::stream::inflate64>(
+            "dynamic.code-len-stress.deflate64.in.bin", "dynamic.code-len-stress.deflate64.out.bin", 2184, bytesToConsume);
+    }
 }

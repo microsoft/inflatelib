@@ -24,6 +24,8 @@ set(INPUT
     "dynamic.overlap.deflate64.out"
     "dynamic.code-len-stress.deflate.in"
     "dynamic.code-len-stress.deflate.out"
+    "dynamic.code-len-stress.deflate64.in"
+    "dynamic.code-len-stress.deflate64.out"
     "dynamic.length-distance-stress.deflate.in"
     "dynamic.length-distance-stress.deflate.out"
     "dynamic.length-distance-stress.deflate64.in"

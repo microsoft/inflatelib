@@ -7,8 +7,8 @@
 
 # NOTE: 0 bytes + 3 bits total written
 
-11100   # HLIT = 285 (28 + 257)
-11101   # HDIST = 30 (29 + 1)
+11101   # HLIT = 286 (29 + 257)
+11111   # HDIST = 32 (31 + 1)
 1111    # HCLEN = 19 (15 + 4)
 
 # NOTE: 2 bytes + 1 bit total written
@@ -28,25 +28,25 @@
 0000000000000000000000000000000000000000000000000000000000000000 # 128-191
 0000000000000000000000000000000000000000000000000000000000000000 # 192-255
 0 # 256 (end of block)
-1 >1 0010000 >>1 # Write zero for 257-283
-0 # 284
+1 >1 0010001 >>1 # Write zero for 257-284
+0 # 285
 
 # NOTE: 42 bytes + 4 bits total written
 
 # Distance Alphabet Code Lengths:
-000000000000000000000000000000 # 0-29 - all have code length of 15
+00000000000000000000000000000000 # 0-31 - all have code length of 15
 
-# NOTE: 46 bytes + 2 bits total written
+# NOTE: 46 bytes + 4 bits total written
 
 # Literal/Length Tree:
 #   Symbol      Bit Count   Code
 #   0-255       15          000000000000000-000000011111111
 #   END         15          000000100000000
-#   284         15          000000100000001
+#   285         15          000000100000001
 #
 # Distance Tree:
 #   Symbol      Bit Count   Code
-#   0-29        15          000000000000000-000000000011101
+#   0-31        15          000000000000000-000000000011111
 
 # Encoded Data:
 >>1
@@ -85,25 +85,26 @@
 000000011110000 000000011110001 000000011110010 000000011110011 000000011110100 000000011110101 000000011110110 000000011110111
 000000011111000 000000011111001 000000011111010 000000011111011 000000011111100 000000011111101 000000011111110 000000011111111
 
-# NOTE: 526 bytes + 2 bits total written
+# NOTE: 526 bytes + 4 bits total written
 
 # Now copy it a bunch of times to fill up the 64k buffer (repeat 255 times)
 repeat (255) {
-    000000100000001 >1 11101 >>1 000000000001111 >1 111111 >>1 # Length = 256, Distance = 256
+    000000100000001 >1 0000000011111101 >>1 000000000001111 >1 111111 >>1 # Length = 256, Distance = 256
 }
 
-# NOTE: 1833 bytes + 1 bits total written
+# NOTE: 2184 bytes total written
 
 # At this point, we want to stress the max code lengths, but we want to do so with every possible "remainder" in the
 # stream from prior operations (0-15).
-# NOTE: A single length/distance pair has a max of 15 + 5 + 15 + 13 = 48 bits, which gives an even 6 bytes, so we can't
-#       just repeat the longest possible "command" several times and exercise the above scenario, so we also need to
-#       inject a shorter command that will only write 47 bits
+# NOTE: A single length/distance pair has a max of 15 + 16 + 15 + 14 = 60 bits, which gives 7 bytes plus 4 extra bits,
+#       so we can't just repeat the longest possible "command" several times and exercise the above scenario. To work
+#       around this, we write another "command" that uses 59 bits (7 bytes + 3 extra bits) so that by the time we do the
+#       next 60 bit read, we've consumed a total of 14 bytes plus 7 extra bits, a prime number.
 
 # Each "iteration" of this loop causes 0-255 to get repeated twice
 repeat (16) {
-    000000100000001 >1 11101 >>1 000000000011101 >1 1111111111111 >>1 # Length = 256, Distance = 32768 (48 bits total = 6 bytes)
-    000000100000001 >1 11101 >>1 000000000011011 >1 111111111111  >>1 # Length = 256, Distance = 16384 (47 bits total = 5 bytes + 7 bits)
+    000000100000001 >1 0000000011111101 >>1 000000000011111 >1 11111111111111 >>1 # Length = 256, Distance = 65536 (60 bits total = 7 bytes + 4 bits)
+    000000100000001 >1 0000000011111101 >>1 000000000011101 >1 1111111111111  >>1 # Length = 256, Distance = 32768 (59 bits total = 7 bytes + 3 bits)
 }
 
 # At this point, we've repeated the values 0-255: 1 + 255 + 16 * 2 = 288 times
