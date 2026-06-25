@@ -701,48 +701,6 @@ TEST_CASE("InflateReset", "[inflate][inflate64]")
     stream.reset();
 }
 
-// NOTE: These tests don't use the inflate*_test functions because we want to control exactly how much data the library
-// is allowed to read at a time
-template <inflate_t inflateFunc>
-static void code_lens_stress_test(const char* inputFileName, const char* outputFileName, std::size_t initialReadSize, std::size_t bytesToConsume)
-{
-    auto input = read_file(data_directory / inputFileName);
-    auto output = read_file(data_directory / outputFileName);
-    auto outputBuffer = std::make_unique<std::byte[]>(output.size);
-
-    std::span<const std::byte> inputSpan = {input.buffer.get(), input.size};
-    std::span<std::byte> outputSpan = {outputBuffer.get(), output.size};
-
-    inflatelib::stream stream;
-
-    // Do the initial read, which should set up the tables
-    REQUIRE(initialReadSize <= inputSpan.size());
-    auto initialReadSpan = inputSpan.first(initialReadSize);
-    inputSpan = inputSpan.subspan(initialReadSize);
-    REQUIRE(stream.inflate(initialReadSpan, outputSpan)); // Should not be EOF yet
-    REQUIRE(initialReadSpan.empty());                     // All data should be consumed, even if there are leftover bits
-
-    for (bool keepGoing = true; keepGoing;)
-    {
-        // Avoid infinite loops caused by running out of data/space too early
-        REQUIRE(!inputSpan.empty());
-        REQUIRE(!outputSpan.empty());
-
-        // Because 'bitsream' wants to fill its buffer to at least 16 bits, we could have more than a byte already in
-        // the stream, which we need to account for to match 'bytesToConsume'
-        auto nextReadSize = (stream.get()->internal->bitstream.bits_in_buffer >= 8) ? bytesToConsume - 1 : bytesToConsume;
-        nextReadSize = std::min(nextReadSize, inputSpan.size());
-
-        auto nextReadSpan = inputSpan.first(nextReadSize);
-        inputSpan = inputSpan.subspan(nextReadSize);
-        keepGoing = stream.inflate(nextReadSpan, outputSpan);
-    }
-
-    REQUIRE(inputSpan.empty());  // Should have consumed all bytes
-    REQUIRE(outputSpan.empty()); // Should have written all bytes
-    REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
-}
-
 TEST_CASE("InflateCodeLensStress", "[inflate]")
 {
     auto doCodeLensStressTest =
