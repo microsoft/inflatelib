@@ -322,7 +322,7 @@ int huffman_tree_lookup_unchecked(huffman_tree* tree, inflatelib_stream* stream,
     if (tableEntry->code_length == 0)
     {
         /* Zero means unassigned; this is an error */
-        if (format_error_message(stream, "Input bit sequence 0x%02X is not a valid Huffman code for the encoded table", input) < 0)
+        if (format_error_message(stream, "Input bit sequence 0x%02zX is not a valid Huffman code for the encoded table", input) < 0)
         {
             stream->error_msg = "Input bit sequence is not a valid Huffman code for the encoded table";
         }
