@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(inflatelib
-    VERSION 0.0.2
+    VERSION 0.2
     DESCRIPTION "A Deflate and Deflate64 decompression library"
     HOMEPAGE_URL "https://github.com/microsoft/inflatelib"
     LANGUAGES C CXX
