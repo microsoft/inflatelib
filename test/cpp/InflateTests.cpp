@@ -720,9 +720,9 @@ static void code_lens_stress_test(const char* inputFileName, const char* outputF
     auto initialReadSpan = inputSpan.first(initialReadSize);
     inputSpan = inputSpan.subspan(initialReadSize);
     REQUIRE(stream.inflate(initialReadSpan, outputSpan)); // Should not be EOF yet
-    REQUIRE(initialReadSpan.empty()); // All data should be consumed, even if there are leftover bits
+    REQUIRE(initialReadSpan.empty());                     // All data should be consumed, even if there are leftover bits
 
-    for (bool keepGoing = true; keepGoing; )
+    for (bool keepGoing = true; keepGoing;)
     {
         // Avoid infinite loops caused by running out of data/space too early
         REQUIRE(!inputSpan.empty());
@@ -738,7 +738,7 @@ static void code_lens_stress_test(const char* inputFileName, const char* outputF
         keepGoing = stream.inflate(nextReadSpan, outputSpan);
     }
 
-    REQUIRE(inputSpan.empty()); // Should have consumed all bytes
+    REQUIRE(inputSpan.empty());  // Should have consumed all bytes
     REQUIRE(outputSpan.empty()); // Should have written all bytes
     REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
 }

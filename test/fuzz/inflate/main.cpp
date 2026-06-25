@@ -21,7 +21,8 @@
 #define FUZZ_CALLCONV
 #endif
 
-extern "C" FUZZ_EXPORT int FUZZ_CALLCONV LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) try
+extern "C" FUZZ_EXPORT int FUZZ_CALLCONV LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+try
 {
     // To help make fuzzing results more useful, we take input/output buffer size(s) as arguments so that we exercise a
     // larger percentage of the code paths.
@@ -32,7 +33,7 @@ extern "C" FUZZ_EXPORT int FUZZ_CALLCONV LLVMFuzzerTestOneInput(const uint8_t* d
         }
 
         std::size_t count = (*data++) + 1; // Add 1 because it doesn't make sense to have zero buffer sizes
-        auto bytes = count * 2; // We use 16 bit sizes
+        auto bytes = count * 2;            // We use 16 bit sizes
         if (bytes > --size)
         {
             return false;
