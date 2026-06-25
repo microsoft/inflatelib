@@ -7,6 +7,7 @@
  *    PARTICULAR PURPOSE AND NONINFRINGEMENT.
  */
 #include <algorithm>
+#include <cstring>
 #include <memory>
 #include <ranges>
 #include <vector>
@@ -40,12 +41,12 @@ try
         }
 
         // Combine adjacent bytes into 16-bit sizes
-        sizes.insert_range(
-            sizes.begin(), std::ranges::subrange(data, data + bytes) | std::views::chunk(2) | std::views::transform([](auto chunk) {
-                               auto result = static_cast<std::size_t>(chunk[0]); // Little-endian
-                               result |= (static_cast<std::size_t>(chunk[1]) << 8);
-                               return result + 1; // Add 1 because it doesn't make sense to have zero buffer sizes
-                           }));
+        auto range = std::ranges::subrange(data, data + bytes) | std::views::chunk(2) | std::views::transform([](auto chunk) {
+                         auto result = static_cast<std::size_t>(chunk[0]); // Little-endian
+                         result |= (static_cast<std::size_t>(chunk[1]) << 8);
+                         return result + 1; // Add 1 because it doesn't make sense to have zero buffer sizes
+                     });
+        sizes.insert(sizes.begin(), range.begin(), range.end());
         data += bytes;
         size -= bytes;
 
