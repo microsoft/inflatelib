@@ -1,0 +1,18 @@
+
+# Buffer-size header that gets prepended to every entry in the fuzzing seed corpus.
+#
+# The fuzzing harnesses (see the inflate/ and inflate64/ 'main.cpp' files) interpret the leading bytes of each input as
+# a list of input buffer sizes followed by a list of output buffer sizes, encoded as:
+#     <count - 1 : u8> followed by <count> x <size - 1 : u16 little-endian>
+# The "- 1" bias lets a single 0x00 byte encode a count of 1 and a 0xFFFF value encode a size of 65536 (64 KiB).
+#
+# This header requests a single 64 KiB input buffer followed by a single 64 KiB output buffer, i.e. the bytes:
+#     00 FF FF 00 FF FF
+
+# Input buffers
+>8 00       # count: 1 buffer (1 - 1)
+>16 FFFF    # size:  65536 bytes (65536 - 1)
+
+# Output buffers
+>8 00       # count: 1 buffer (1 - 1)
+>16 FFFF    # size:  65536 bytes (65536 - 1)

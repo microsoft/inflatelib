@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cstdio>
 #include <charconv>
+#include <system_error>
 
 bool binary_writer::reset(const char* path) noexcept
 {

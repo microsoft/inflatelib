@@ -23,6 +23,9 @@ static int fopen_s(FILE** streamptr, const char* filename, const char* mode)
 #include <inflatelib.hpp>
 #include <filesystem>
 
+// Some tests need to see internal state for proper execution
+#include <internal.h>
+
 // These tests have backing test files compiled from 'test/data' and placed into '${buildRoot}/test/data'. When running
 // this test, that path is '../data' relative to the test executable.
 #ifdef _WIN32
@@ -696,4 +699,68 @@ TEST_CASE("InflateReset", "[inflate][inflate64]")
     output = read_file(data_directory / "static.overlap.deflate64.out.bin");
     doInflate64();
     stream.reset();
+}
+
+TEST_CASE("InflateCodeLensStress", "[inflate]")
+{
+    auto doCodeLensStressTest =
+        []<inflate_t inflateFunc>(
+            const char* inputFileName, const char* outputFileName, std::size_t initialReadSize, std::size_t bytesToConsume) {
+            auto input = read_file(data_directory / inputFileName);
+            auto output = read_file(data_directory / outputFileName);
+            auto outputBuffer = std::make_unique<std::byte[]>(output.size);
+
+            std::span<const std::byte> inputSpan = {input.buffer.get(), input.size};
+            std::span<std::byte> outputSpan = {outputBuffer.get(), output.size};
+
+            inflatelib::stream stream;
+
+            // Do the initial read, which should set up the tables
+            REQUIRE(initialReadSize <= inputSpan.size());
+            auto initialReadSpan = inputSpan.first(initialReadSize);
+            inputSpan = inputSpan.subspan(initialReadSize);
+            REQUIRE((stream.*inflateFunc)(initialReadSpan, outputSpan)); // Should not be EOF yet
+            REQUIRE(initialReadSpan.empty()); // All data should be consumed, even if there are leftover bits
+
+            // ASan works much better if it knows the bounds of the buffers, so we copy input to a new buffer
+            auto inputBuffer = std::make_unique<std::byte[]>(bytesToConsume);
+
+            for (bool keepGoing = true; keepGoing;)
+            {
+                // We start with an output buffer that should be large enough to hold all the output. If we run out of
+                // input, but still aren't done, that means that we're stuck waiting for more space to write output to
+                // and are therefore stuck in an infinite loop, so fail out.
+                REQUIRE(!inputSpan.empty());
+
+                // Because 'bitsream' wants to fill its buffer to at least 16 bits, we could have more than a byte already in
+                // the stream, which we need to account for to match 'bytesToConsume'
+                auto nextReadSize = (stream.get()->internal->bitstream.bits_in_buffer >= 8) ? bytesToConsume - 1 : bytesToConsume;
+                nextReadSize = std::min(nextReadSize, inputSpan.size());
+
+                auto bufferStart = inputBuffer.get() + (bytesToConsume - nextReadSize);
+                std::memcpy(bufferStart, inputSpan.data(), nextReadSize);
+
+                std::span<const std::byte> nextReadSpan = {bufferStart, nextReadSize};
+                inputSpan = inputSpan.subspan(nextReadSize);
+                keepGoing = (stream.*inflateFunc)(nextReadSpan, outputSpan);
+                REQUIRE(nextReadSpan.empty()); // Otherwise some other failure occurred
+            }
+
+            REQUIRE(inputSpan.empty());  // Should have consumed all bytes
+            REQUIRE(outputSpan.empty()); // Should have written all bytes
+            REQUIRE(std::memcmp(outputBuffer.get(), output.buffer.get(), output.size) == 0);
+        };
+
+    // NOTE: We loop using the range 7-9 for 'bytesToConsume' because 7 guarantees that we always take the slow path,
+    // 8 uses both the slow and fast path, and 9 guarantees the fast path
+    for (std::size_t bytesToConsume = 7; bytesToConsume <= 9; ++bytesToConsume)
+    {
+        // NOTE: 'dynamic.code-len-stress.deflate.in' has 1833 bytes plus a few bits before the encoded data we care about
+        doCodeLensStressTest.operator()<&inflatelib::stream::inflate>(
+            "dynamic.code-len-stress.deflate.in.bin", "dynamic.code-len-stress.deflate.out.bin", 1834, bytesToConsume);
+
+        // NOTE: 'dynamic.code-len-stress.deflate64.in' has 2184 bytes before the encoded data we care about
+        doCodeLensStressTest.operator()<&inflatelib::stream::inflate64>(
+            "dynamic.code-len-stress.deflate64.in.bin", "dynamic.code-len-stress.deflate64.out.bin", 2184, bytesToConsume);
+    }
 }

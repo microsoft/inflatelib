@@ -1,0 +1,4 @@
+
+# The input for this test repeats the values 0-255 288 times
+<dec
+repeat (288) { 0...255 }

@@ -8,6 +8,7 @@ set(INPUT
     "dynamic.single.deflate64.in.bin"
     "dynamic.multiple.deflate64.in.bin"
     "dynamic.overlap.deflate64.in.bin"
+    "dynamic.code-len-stress.deflate64.in.bin"
     "dynamic.length-distance-stress.deflate64.in.bin"
     "static.empty.in.bin"
     "static.single.deflate64.in.bin"
@@ -37,9 +38,13 @@ foreach(file ${INPUT})
     list(APPEND OUTPUT "${dest}")
     add_custom_command(
         OUTPUT "${dest}"
-        DEPENDS "${CMAKE_BINARY_DIR}/test/data/${file}"
-        COMMENT "Copying ${file} to corpus"
-        COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_BINARY_DIR}/test/data/${file}" "${dest}"
+        DEPENDS "${CMAKE_BINARY_DIR}/test/data/${file}" "${INFLATELIB_FUZZ_BUFFER_SIZE_HEADER}" "${INFLATELIB_FUZZ_PREPEND_SCRIPT}"
+        COMMENT "Adding buffer sizes to ${file} for corpus"
+        COMMAND "${CMAKE_COMMAND}"
+            -D "HEADER=${INFLATELIB_FUZZ_BUFFER_SIZE_HEADER}"
+            -D "SRC=${CMAKE_BINARY_DIR}/test/data/${file}"
+            -D "DEST=${dest}"
+            -P "${INFLATELIB_FUZZ_PREPEND_SCRIPT}"
     )
 endforeach()
 
@@ -47,3 +52,4 @@ add_custom_target(
     inflate64-corpus ALL
     DEPENDS ${OUTPUT}
 )
+add_dependencies(inflate64-corpus fuzz-buffer-size-header)
