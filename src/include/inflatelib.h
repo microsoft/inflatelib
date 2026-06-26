@@ -59,7 +59,7 @@ extern "C"
     struct inflatelib_state; /* Opaque to client applications */
 
     /*
-     * This struct stores all data and state for decompressing Defalte/Deflate64 encoded data. With the exception of
+     * This struct stores all data and state for decompressing Deflate/Deflate64 encoded data. With the exception of
      * success/error codes, all input and output data is passed through this struct. Specifically, input and output
      * buffers are set by the caller via 'next_in'/'avail_in' and 'next_out'/'avail_out' respectively. The "inflate" and
      * "inflate64" functions communicate the amount of data consumed/written by updating these buffers and lengths. For
@@ -177,7 +177,9 @@ extern "C"
 
     /*
      * "Inflates" the Deflate64 encoded data from next_in/avail_in, writing the decoded data to next_out/avail_out. The
-     * 'stream' MUST be in either the "initialized" state or the "Deflate64" state.
+     * 'stream' MUST be in either the "initialized" state or the "Deflate64" state. This function returns one of the
+     * status values defined above, notably it returns 'INFLATELIB_EOF' when the last block of data has been fully
+     * processed.
      */
     INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_inflate64(inflatelib_stream* stream);
 

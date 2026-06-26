@@ -73,6 +73,9 @@ try
     int result = 0;
     for (std::size_t i = 0; size > 0; ++i)
     {
+        // Pass the buffers such that the end of each buffer (as defined by the size we pass in) is aligned with the end
+        // of the allocated buffer. This is to ensure that ASan will capture any reads/writes past the end of the
+        // buffer, and is also the reason why we memcpy instead of using 'data' directly.
         auto inputBufferSize = std::min(size, inputBufferSizes[i % inputBufferSizes.size()]);
         auto inputBufferPtr = inputBuffer.get() + (maxInputBufferSize - inputBufferSize);
         std::memcpy(inputBufferPtr, data, inputBufferSize);
