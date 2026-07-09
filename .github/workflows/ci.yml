@@ -12,7 +12,7 @@ jobs:
     name: 'Format Check'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
@@ -73,7 +73,7 @@ jobs:
 
     runs-on: ${{matrix.host}}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Find vcvarsall.bat
         run: |
@@ -120,7 +120,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Update GCC to 14+ if necessary
         if: ${{matrix.compiler == 'gcc'}}
@@ -166,14 +166,14 @@ jobs:
 
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           path: inflatelib
 
       # For some reason, it seems as though the windows-latest and ubuntu-latest images both have vcpkg pre-configured,
       # but macos-latest does not. Simplest thing is to just check it out & bootstrap
       - name: Checkout vcpkg
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           repository: microsoft/vcpkg
           path: vcpkg
