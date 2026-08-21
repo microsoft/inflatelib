@@ -48,7 +48,7 @@ int INFLATELIB_CALLCONV inflatelib_init_(inflatelib_stream* stream, const char* 
 
     /* If the major versions don't match, make no assumptions about the layout of 'inflatelib_stream' as it may not be
        safe to write to. This failure is communicated ONLY through the return value. */
-    for (size_t i = 0; ; ++i)
+    for (size_t i = 0;; ++i)
     {
         if (version[i] != localVer[i])
         {
