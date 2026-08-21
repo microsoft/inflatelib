@@ -14,6 +14,11 @@
 
 #include "internal.h"
 
+const char* INFLATELIB_CALLCONV inflatelib_version()
+{
+    return INFLATELIB_VERSION_STRING;
+}
+
 static void* inflatelib_default_alloc(void* unusedUserData, size_t bytes, size_t alignment)
 {
     void* result;
@@ -35,10 +40,26 @@ static void inflatelib_default_free(void* unusedUserData, void* ptr, size_t byte
     free(ptr);
 }
 
-int inflatelib_init(inflatelib_stream* stream)
+#define STRINGIFY_(x) #x
+#define STRINGIFY(x) STRINGIFY_(x)
+#define INFLATELIB_VERSION_MAJOR_STRING STRINGIFY(INFLATELIB_VERSION_MAJOR)
+
+int INFLATELIB_CALLCONV inflatelib_init_(inflatelib_stream* stream, const char* version)
 {
     int result;
     inflatelib_state* state;
+    const char* verPeriod;
+    const char expectedMajorVersion[] = INFLATELIB_VERSION_MAJOR_STRING;
+
+    /* If the major versions don't match, make no assumptions about the layout of 'inflatelib_stream' as it may not be
+       safe to write to. This failure is communicated ONLY through the return value. */
+    verPeriod = strchr(version, '.');
+    if (!verPeriod || ((verPeriod - version) != (sizeof(expectedMajorVersion) - 1)) ||
+        strncmp(version, expectedMajorVersion, verPeriod - version) != 0)
+    {
+        errno = EINVAL;
+        return INFLATELIB_ERROR_VERSION;
+    }
 
     /* Start with no error message, in case it was set before (or contains uninitialized memory) */
     stream->error_msg = NULL;
@@ -93,7 +114,7 @@ int inflatelib_init(inflatelib_stream* stream)
     return INFLATELIB_OK;
 }
 
-int inflatelib_reset(inflatelib_stream* stream)
+int INFLATELIB_CALLCONV inflatelib_reset(inflatelib_stream* stream)
 {
     inflatelib_state* state = stream->internal;
 
@@ -107,15 +128,15 @@ int inflatelib_reset(inflatelib_stream* stream)
     bitstream_reset(&state->bitstream);
     window_reset(&state->window);
 
-    // NOTE: The Huffman trees do not need to be reset as they are reset on demand as needed. If we've made it this far,
-    // all of their internal state has been allocated, and that's the best that we can ask for
+    /* NOTE: The Huffman trees do not need to be reset as they are reset on demand as needed. If we've made it this far,
+             all of their internal state has been allocated, and that's the best that we can ask for */
 
     state->ifstate = ifstate_init;
 
     return INFLATELIB_OK;
 }
 
-int inflatelib_destroy(inflatelib_stream* stream)
+int INFLATELIB_CALLCONV inflatelib_destroy(inflatelib_stream* stream)
 {
     inflatelib_state* state = stream->internal;
 
@@ -238,7 +259,7 @@ static int do_inflate(inflatelib_stream* stream)
     return result;
 }
 
-int inflatelib_inflate(inflatelib_stream* stream)
+int INFLATELIB_CALLCONV inflatelib_inflate(inflatelib_stream* stream)
 {
     inflatelib_state* state = stream->internal;
 
@@ -273,7 +294,7 @@ int inflatelib_inflate(inflatelib_stream* stream)
     return do_inflate(stream);
 }
 
-int inflatelib_inflate64(inflatelib_stream* stream)
+int INFLATELIB_CALLCONV inflatelib_inflate64(inflatelib_stream* stream)
 {
     inflatelib_state* state = stream->internal;
 

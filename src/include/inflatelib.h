@@ -140,17 +140,33 @@ extern "C"
  * will remain unchanged. A positive return value indicates an "interesting" change in state that is not considered a
  * failure, while a return value of zero indicates generic success.
  */
-#define INFLATELIB_OK 0          /* No error occurred */
-#define INFLATELIB_EOF 1         /* No error occurred; reached the end of the stream */
-#define INFLATELIB_ERROR_ARG -1  /* Invalid argument */
-#define INFLATELIB_ERROR_DATA -2 /* Error in the input data */
-#define INFLATELIB_ERROR_OOM -3  /* Failed to allocate data */
+#define INFLATELIB_OK 0             /* No error occurred */
+#define INFLATELIB_EOF 1            /* No error occurred; reached the end of the stream */
+#define INFLATELIB_ERROR_ARG -1     /* Invalid argument */
+#define INFLATELIB_ERROR_DATA -2    /* Error in the input data */
+#define INFLATELIB_ERROR_OOM -3     /* Failed to allocate data */
+#define INFLATELIB_ERROR_VERSION -4 /* The major version of this header and the compiled library differ */
+
+    /*
+     * Returns the version of the compiled library as a string in the form 'X.Y.Z'. The implementation just returns
+     * 'INFLATELIB_VERSION_STRING', however this may differ when linking, statically or dynamically, against a pre-built
+     * library. The major version of 'INFLATELIB_VERSION_STRING' must match the major version returned by this function,
+     * otherwise the two are incompatible (struct size, arrangement, etc. may differ). The 'inflatelib_init' macro does
+     * this for you by passing 'INFLATELIB_VERSION_STRING' to 'inflatelib_init_'.
+     */
+    INFLATELIB_EXPORT const char* INFLATELIB_CALLCONV inflatelib_version();
 
     /*
      * Initializes the stream. The 'user_data', 'alloc', and 'free' members MUST be set prior to the init call and MUST
      * NOT be changed after the init call completes. This function returns one of the status values specified above.
      */
-    INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_init(inflatelib_stream* stream);
+    #define inflatelib_init(stream) inflatelib_init_(stream, INFLATELIB_VERSION_STRING)
+
+    /*
+     * Backing implementation of 'inflatelib_init' that verififes the major version of this header matches the major
+     * version the library was compiled with.
+     */
+    INFLATELIB_EXPORT int INFLATELIB_CALLCONV inflatelib_init_(inflatelib_stream* stream, const char* version);
 
     /*
      * Resets the stream's state back to its initialized state. This allows the stream to be reused for multiple inflate

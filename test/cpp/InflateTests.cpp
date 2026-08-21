@@ -272,6 +272,11 @@ static void inflate64_error_test(const char* inputFileName, const char* errFragm
     do_inflate_test<&inflatelib::stream::try_inflate64>(input, {}, errFragment);
 }
 
+#define STRINGIFY_(x) #x
+#define STRINGIFY(x) STRINGIFY_(x)
+#define MAJOR_VERSION_STRING STRINGIFY(INFLATELIB_VERSION_MAJOR)
+#define MAKE_VERSION_STRING(x, y, z) STRINGIFY(x) "." STRINGIFY(y) "." STRINGIFY(z)
+
 TEST_CASE("InflateErrors", "[inflate]")
 {
     inflate_error_test("error.invalid-block-type.in.bin", "Unexpected block type '3'");
@@ -279,6 +284,20 @@ TEST_CASE("InflateErrors", "[inflate]")
     // Error if we call 'inflatelib_inflate' before calling 'inflate64_init'
     inflatelib_stream stream = {};
     REQUIRE(inflatelib_inflate(&stream) == INFLATELIB_ERROR_ARG);
+
+    // Error if we have a mis-matched major version
+    auto checkMajorVersionMismatch = [&](const char* version) {
+        REQUIRE(inflatelib_init_(&stream, version) == INFLATELIB_ERROR_VERSION);
+    };
+
+    checkMajorVersionMismatch("." INFLATELIB_VERSION_STRING); // Leading dot
+    checkMajorVersionMismatch(" " INFLATELIB_VERSION_STRING); // Leading space
+    checkMajorVersionMismatch("0" INFLATELIB_VERSION_STRING); // Leading zero
+    checkMajorVersionMismatch(MAJOR_VERSION_STRING "0.0.0"); // Zero after the correct major version
+    checkMajorVersionMismatch(MAJOR_VERSION_STRING); // Only major version; not a supported form
+    // Different major version - library is older
+    checkMajorVersionMismatch(MAKE_VERSION_STRING("9", INFLATELIB_VERSION_MINOR, INFLATELIB_VERSION_PATCH));
+    // TODO: Once we reach a 1.0 release, we can test when the library is newer
 }
 
 TEST_CASE("Inflate64Errors", "[inflate64]")
@@ -288,6 +307,19 @@ TEST_CASE("Inflate64Errors", "[inflate64]")
     // Error if we call 'inflatelib_inflate64' before calling 'inflate64_init'
     inflatelib_stream stream = {};
     REQUIRE(inflatelib_inflate64(&stream) == INFLATELIB_ERROR_ARG);
+}
+
+TEST_CASE("InflateInitDifferentMinorVersion", "[inflate]")
+{
+    auto checkInit = [](const char* version) {
+        inflatelib_stream stream = {};
+        REQUIRE(inflatelib_init_(&stream, version) == INFLATELIB_OK);
+        inflatelib_destroy(&stream);
+    };
+
+    checkInit(INFLATELIB_VERSION_STRING); // Same version, obvious success
+    checkInit(MAKE_VERSION_STRING(INFLATELIB_VERSION_MAJOR, 0, 0)); // Library is (likely) newer
+    checkInit(MAKE_VERSION_STRING(INFLATELIB_VERSION_MAJOR, 999, 999)); // Library is (likely) older
 }
 
 TEST_CASE("InflateUncompressed", "[inflate]")
