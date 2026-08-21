@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-// NOTE: We can't include 'internal.h' since it includes us, so forward declare what we need
+/* NOTE: We can't include 'internal.h' since it includes us, so forward declare what we need */
 struct inflatelib_stream;
 
 /* Code length codes are encoded using 3 bits (length of 0-7 bits), and the code length alphabet, which defines how the

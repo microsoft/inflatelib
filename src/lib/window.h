@@ -73,4 +73,4 @@ extern "C"
 }
 #endif
 
-#endif // INFLATELIB_WINDOW_H
+#endif
