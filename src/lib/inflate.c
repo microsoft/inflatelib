@@ -48,17 +48,22 @@ int INFLATELIB_CALLCONV inflatelib_init_(inflatelib_stream* stream, const char* 
 {
     int result;
     inflatelib_state* state;
-    const char* verPeriod;
-    const char expectedMajorVersion[] = INFLATELIB_VERSION_MAJOR_STRING;
+    const char* localVer = INFLATELIB_VERSION_MAJOR_STRING;
 
     /* If the major versions don't match, make no assumptions about the layout of 'inflatelib_stream' as it may not be
        safe to write to. This failure is communicated ONLY through the return value. */
-    verPeriod = strchr(version, '.');
-    if (!verPeriod || ((verPeriod - version) != (sizeof(expectedMajorVersion) - 1)) ||
-        strncmp(version, expectedMajorVersion, verPeriod - version) != 0)
+    for (size_t i = 0; ; ++i)
     {
-        errno = EINVAL;
-        return INFLATELIB_ERROR_VERSION;
+        if (version[i] != localVer[i])
+        {
+            errno = EINVAL;
+            return INFLATELIB_ERROR_VERSION;
+        }
+
+        if (version[i] == '.')
+        {
+            break;
+        }
     }
 
     /* Start with no error message, in case it was set before (or contains uninitialized memory) */
