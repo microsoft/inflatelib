@@ -154,7 +154,7 @@ extern "C"
      * otherwise the two are incompatible (struct size, arrangement, etc. may differ). The 'inflatelib_init' macro does
      * this for you by passing 'INFLATELIB_VERSION_STRING' to 'inflatelib_init_'.
      */
-    INFLATELIB_EXPORT const char* INFLATELIB_CALLCONV inflatelib_version();
+    INFLATELIB_EXPORT const char* INFLATELIB_CALLCONV inflatelib_version(void);
 
 /*
  * Initializes the stream. The 'user_data', 'alloc', and 'free' members MUST be set prior to the init call and MUST NOT

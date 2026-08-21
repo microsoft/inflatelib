@@ -14,7 +14,7 @@
 
 #include "internal.h"
 
-const char* INFLATELIB_CALLCONV inflatelib_version()
+const char* INFLATELIB_CALLCONV inflatelib_version(void)
 {
     return INFLATELIB_VERSION_STRING;
 }
