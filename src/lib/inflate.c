@@ -40,15 +40,11 @@ static void inflatelib_default_free(void* unusedUserData, void* ptr, size_t byte
     free(ptr);
 }
 
-#define STRINGIFY_(x) #x
-#define STRINGIFY(x) STRINGIFY_(x)
-#define INFLATELIB_VERSION_MAJOR_STRING STRINGIFY(INFLATELIB_VERSION_MAJOR)
-
 int INFLATELIB_CALLCONV inflatelib_init_(inflatelib_stream* stream, const char* version)
 {
     int result;
     inflatelib_state* state;
-    const char* localVer = INFLATELIB_VERSION_MAJOR_STRING;
+    const char* localVer = INFLATELIB_VERSION_STRING;
 
     /* If the major versions don't match, make no assumptions about the layout of 'inflatelib_stream' as it may not be
        safe to write to. This failure is communicated ONLY through the return value. */
