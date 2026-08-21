@@ -48,9 +48,9 @@ extern "C"
 {
 #endif
 
-#define INFLATELIB_VERSION_STRING "0.2.0"
+#define INFLATELIB_VERSION_STRING "0.3.0"
 #define INFLATELIB_VERSION_MAJOR 0
-#define INFLATELIB_VERSION_MINOR 2
+#define INFLATELIB_VERSION_MINOR 3
 #define INFLATELIB_VERSION_PATCH 0
 
     typedef void* (*inflatelib_alloc)(void* userData, size_t bytes, size_t alignment);
