@@ -293,8 +293,8 @@ TEST_CASE("InflateErrors", "[inflate]")
     checkMajorVersionMismatch("." INFLATELIB_VERSION_STRING); // Leading dot
     checkMajorVersionMismatch(" " INFLATELIB_VERSION_STRING); // Leading space
     checkMajorVersionMismatch("0" INFLATELIB_VERSION_STRING); // Leading zero
-    checkMajorVersionMismatch(MAJOR_VERSION_STRING "0.0.0"); // Zero after the correct major version
-    checkMajorVersionMismatch(MAJOR_VERSION_STRING); // Only major version; not a supported form
+    checkMajorVersionMismatch(MAJOR_VERSION_STRING "0.0.0");  // Zero after the correct major version
+    checkMajorVersionMismatch(MAJOR_VERSION_STRING);          // Only major version; not a supported form
     // Different major version - library is older
     checkMajorVersionMismatch(MAKE_VERSION_STRING("9", INFLATELIB_VERSION_MINOR, INFLATELIB_VERSION_PATCH));
     // TODO: Once we reach a 1.0 release, we can test when the library is newer
@@ -317,8 +317,8 @@ TEST_CASE("InflateInitDifferentMinorVersion", "[inflate]")
         inflatelib_destroy(&stream);
     };
 
-    checkInit(INFLATELIB_VERSION_STRING); // Same version, obvious success
-    checkInit(MAKE_VERSION_STRING(INFLATELIB_VERSION_MAJOR, 0, 0)); // Library is (likely) newer
+    checkInit(INFLATELIB_VERSION_STRING);                               // Same version, obvious success
+    checkInit(MAKE_VERSION_STRING(INFLATELIB_VERSION_MAJOR, 0, 0));     // Library is (likely) newer
     checkInit(MAKE_VERSION_STRING(INFLATELIB_VERSION_MAJOR, 999, 999)); // Library is (likely) older
 }
 

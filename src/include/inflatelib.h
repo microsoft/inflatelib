@@ -156,11 +156,11 @@ extern "C"
      */
     INFLATELIB_EXPORT const char* INFLATELIB_CALLCONV inflatelib_version();
 
-    /*
-     * Initializes the stream. The 'user_data', 'alloc', and 'free' members MUST be set prior to the init call and MUST
-     * NOT be changed after the init call completes. This function returns one of the status values specified above.
-     */
-    #define inflatelib_init(stream) inflatelib_init_(stream, INFLATELIB_VERSION_STRING)
+/*
+ * Initializes the stream. The 'user_data', 'alloc', and 'free' members MUST be set prior to the init call and MUST NOT
+ * be changed after the init call completes. This function returns one of the status values specified above.
+ */
+#define inflatelib_init(stream) inflatelib_init_(stream, INFLATELIB_VERSION_STRING)
 
     /*
      * Backing implementation of 'inflatelib_init' that verififes the major version of this header matches the major
