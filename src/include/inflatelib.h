@@ -9,6 +9,7 @@
 #ifndef INFLATELIB_H
 #define INFLATELIB_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __has_attribute
