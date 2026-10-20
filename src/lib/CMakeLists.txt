@@ -2,6 +2,16 @@
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
+if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
+    if(WIN32)
+        # Windows Layout
+        set(CMAKE_INSTALL_CMAKEDIR "cmake" CACHE STRING "")
+    else()
+        # Linux / Standard Unix Layout
+        set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}" CACHE STRING "")
+    endif()
+endif()
+
 if (${INFLATELIB_BUILD_SHARED})
     add_library(inflatelib SHARED)
 
@@ -76,7 +86,7 @@ install(
     EXPORT inflatelib_export
     FILE inflatelib-config.cmake
     NAMESPACE inflatelib::
-    DESTINATION cmake
+    DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
     )
 
 write_basic_package_version_file(
@@ -85,5 +95,5 @@ write_basic_package_version_file(
     )
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/inflatelib-config-version.cmake"
-    DESTINATION cmake
+    DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
     )
