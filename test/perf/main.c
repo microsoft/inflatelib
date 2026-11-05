@@ -157,7 +157,7 @@ static uint64_t current_time(void)
     struct timespec result;
     int success = clock_gettime(CLOCK_MONOTONIC, &result);
     (void)success; /* Only used for assert */
-    assert(success);
+    assert(success == 0);
 
     return (uint64_t)result.tv_sec * 1000000000ull + (uint64_t)result.tv_nsec;
 }
