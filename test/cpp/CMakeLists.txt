@@ -1,7 +1,7 @@
 
 add_executable(cpptests)
 
-find_package(Catch2 CONFIG REQUIRED)
+find_package(Catch2 3.0 CONFIG REQUIRED)
 target_link_libraries(cpptests
     PRIVATE
         inflatelib::inflatelib

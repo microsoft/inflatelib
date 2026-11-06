@@ -6,7 +6,8 @@
  *    TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
  *    PARTICULAR PURPOSE AND NONINFRINGEMENT.
  */
-#include <catch.hpp>
+#include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <span>
 
 #include <window.h>
