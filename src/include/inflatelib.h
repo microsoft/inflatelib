@@ -328,7 +328,7 @@ extern "C"
 #define INFLATELIB_ERROR_OOM -3
 
 /**
- * @brief The linked library has an incompatible (major) version.
+ * @brief The linked library has an incompatible major version.
  */
 #define INFLATELIB_ERROR_VERSION -4
 
@@ -358,8 +358,8 @@ extern "C"
 /**
  * @brief Verifies library version and initializes the stream.
  *
- * Verifies that the (major) version of the linked InflateLib library
- * matches the (major) version of these library headers and initializes
+ * Verifies that the major version of the linked InflateLib library
+ * matches the major version of these library headers and initializes
  * the \p stream.
  *
  * The `user_data`, `alloc` and `free` members of \p stream MUST be set prior
@@ -369,7 +369,7 @@ extern "C"
  * @param[in,out] stream A pointer to an #inflatelib_stream.
  *
  * @retval #INFLATELIB_OK On success.
- * @retval #INFLATELIB_ERROR_VERSION When the linked library has an incompatible (major) version.
+ * @retval #INFLATELIB_ERROR_VERSION When the linked library has an incompatible major version.
  * @retval #INFLATELIB_ERROR_OOM When it fails allocating memory.
  */
 #define inflatelib_init(stream) inflatelib_init_(stream, INFLATELIB_VERSION_STRING)
@@ -377,7 +377,7 @@ extern "C"
     /**
      * @brief Verifies required library version and initializes the stream.
      *
-     * Verifies that the (major) version of the linked InflateLib library
+     * Verifies that the major version of the linked InflateLib library
      * matches the caller's major version and initializes the \p stream.
      *
      * The `user_data`, `alloc`, and `free` members of \p stream MUST be set
