@@ -377,7 +377,7 @@ extern "C"
      * @brief Verifies required library version and initializes the stream.
      *
      * Verifies that the (major) version of the linked InflateLib library
-     * matches the required version and initializes the \p stream.
+     * matches the caller's major version and initializes the \p stream.
      *
      * The `user_data`, `alloc`, and `free` members of \p stream MUST be set
      * prior to the inflatelib_init_() call and MUST NOT be changed after the
