@@ -332,9 +332,10 @@ extern "C"
  */
 #define INFLATELIB_ERROR_VERSION -4
 
+/* End of RETURN_VALUES_GROUP */
 /**
  * @}
- */ // End of RETURN_VALUES_GROUP
+ */
 
     /**
      * @brief Returns the version of the linked InflateLib library.
