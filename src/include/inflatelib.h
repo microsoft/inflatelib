@@ -246,8 +246,8 @@ extern "C"
          * This value is set by the caller and updated by the library based
          * on the number of bytes written.
          */
-
         size_t avail_out;
+
         /**
          * @brief Total number of bytes written by the library so far.
          *
@@ -268,8 +268,8 @@ extern "C"
          *
          * Set to @c null to get @c malloc.
          */
-
         inflatelib_alloc alloc;
+
         /**
          * @brief Custom memory deallocation function.
          *
