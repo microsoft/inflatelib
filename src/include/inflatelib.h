@@ -425,9 +425,13 @@ extern "C"
      * Reads a block of DEFLATE encoded data from `stream.next_in`/`stream.avail_in` and
      * writes decoded data to `stream.next_out`/`stream.avail_out`.
      *
+     * Calls to this function will return #INFLATELIB_OK until all the data in the stream have
+     * been fully processed. To process all the data in a stream, you should call this function
+     * in a loop until it returns #INFLATELIB_EOF (or an error).
+     *
      * @param[in,out] stream A pointer to an #inflatelib_stream either in the "initialized" or "Deflate" state.
      *
-     * @retval #INFLATELIB_OK When there is still unprocessed input data left.
+     * @retval #INFLATELIB_OK When the last block of data has not been fully processed.
      * @retval #INFLATELIB_EOF When the last block of data has been fully processed.
      * @retval #INFLATELIB_ERROR_ARG When \p stream is not initialized correctly.
      * @retval #INFLATELIB_ERROR_DATA When there is an error in the input data.
@@ -440,9 +444,13 @@ extern "C"
      * Reads a block of DEFLATE64 encoded data from `stream.next_in`/`stream.avail_in` and
      * writes decoded data to `stream.next_out`/`stream.avail_out`.
      *
+     * Calls to this function will return #INFLATELIB_OK until all the data in the stream have
+     * been fully processed. To process all the data in a stream, you should call this function
+     * in a loop until it returns #INFLATELIB_EOF (or an error).
+     *
      * @param[in,out] stream A pointer to an #inflatelib_stream either in the "initialized" or "Deflate64" state.
      *
-     * @retval #INFLATELIB_OK When there is still unprocessed input data left.
+     * @retval #INFLATELIB_OK When the last block of data has not been fully processed.
      * @retval #INFLATELIB_EOF When the last block of data has been fully processed.
      * @retval #INFLATELIB_ERROR_ARG When \p stream is not initialized correctly.
      * @retval #INFLATELIB_ERROR_DATA When there is an error in the input data.
