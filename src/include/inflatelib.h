@@ -28,16 +28,12 @@
  *
  *   // Initialize outputBuffer
  *   size_t outputBufferSize = 4096;
- *   char *outputBuffer = malloc(outputBufferSize);
- *   if (outputBuffer == NULL) {
- *     printf("Memory allocation failed.\n");
- *     return 1;
- *   }
+ *   char outputBuffer[outputBufferSize];
  *
  *   // Initialize stream.
  *   inflatelib_stream stream = { 0 };
  *   if (inflatelib_init(&stream) != INFLATELIB_OK) {
- *     fwrite(stream.error_msg, 1, strlen(stream.error_msg), stdout);
+ *     printf("ERROR: %s\n", stream.error_msg);
  *     return 1;
  *   }
  *
@@ -55,20 +51,16 @@
  *
  *     result = inflatelib_inflate64(&stream);
  *     if (result < INFLATELIB_OK) {
- *       fwrite(stream.error_msg, 1, strlen(stream.error_msg), stdout);
+ *       printf("ERROR: %s\n", stream.error_msg);
  *       inflatelib_destroy(&stream);
  *       return 1;
  *     }
  *
  *     fwrite(outputBuffer, 1, outputBufferSize - stream.avail_out, stdout);
- *
  *   }
  *
  *   // Discard stream.
  *   inflatelib_destroy(&stream);
- *
- *   // Discard outputBuffer
- *   free(outputBuffer);
  *
  *   return 0;
  * };
