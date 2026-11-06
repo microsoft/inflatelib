@@ -234,7 +234,7 @@ extern "C"
         /**
          * @brief Pointer to the next byte of output data written by the library.
          *
-         * This pointer is set by the caller and updated  by the library based
+         * This pointer is set by the caller and updated by the library based
          * on the number of bytes written so that this points one byte past
          * the last byte of output written.
          */
