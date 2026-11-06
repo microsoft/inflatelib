@@ -1,0 +1,6 @@
+/** \mainpage
+
+The InflateLib library can be used to decompress DEFLATE or DEFFLATE64 encoded data.
+
+- The C API is documented in inflatelib.h.
+*/

@@ -8,6 +8,7 @@ project(inflatelib
 
 # "Production" options
 option(INFLATELIB_BUILD_SHARED "Build inflatelib as a shared library" OFF)
+option(INFLATELIB_API_DOC "Generate API documentation" OFF)
 
 # "Test" options
 option(INFLATELIB_TEST "Build tests for local development and CI validation" ON)
